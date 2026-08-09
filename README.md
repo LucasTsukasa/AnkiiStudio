@@ -1,69 +1,104 @@
-# AnkiiStudio
-
 <p align="center">
   <img src="ankiistudio/resources/icons/app.png" alt="AnkiiStudio" width="150">
 </p>
 
+<h1 align="center">AnkiiStudio</h1>
+
 <p align="center">
-  Aplicativo desktop para criar, revisar e exportar flashcards para o Anki com conteúdo estruturado, imagens e áudio.
+  Crie, organize e exporte flashcards para o Anki com conteúdo estruturado, imagens e áudio.
 </p>
 
 <p align="center">
-  <img alt="Version" src="https://img.shields.io/badge/version-0.10.0-19D978">
-  <img alt="Python" src="https://img.shields.io/badge/Python-3.11%2B-3776AB">
-  <img alt="Platform" src="https://img.shields.io/badge/Windows-portable-0078D4">
-  <img alt="License" src="https://img.shields.io/badge/license-GPL--3.0-blue">
+  <a href="https://github.com/LucasTsukasa/AnkiiStudio/releases">
+    <img alt="Latest Release" src="https://img.shields.io/github/v/release/LucasTsukasa/AnkiiStudio?display_name=tag&sort=semver">
+  </a>
+  <img alt="Python" src="https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white">
+  <img alt="Windows" src="https://img.shields.io/badge/Windows-Portable-0078D4?logo=windows&logoColor=white">
+  <a href="LICENSE">
+    <img alt="License" src="https://img.shields.io/badge/License-GPL--3.0-blue">
+  </a>
 </p>
+
+<p align="center">
+  <a href="https://github.com/LucasTsukasa/AnkiiStudio/releases"><strong>Download</strong></a>
+  ·
+  <a href="CHANGELOG.md">Changelog</a>
+  ·
+  <a href="https://github.com/LucasTsukasa/AnkiiStudio/issues">Issues</a>
+  ·
+  <a href="LICENSE">Licença</a>
+</p>
+
+---
 
 ## Sobre
 
-O **AnkiiStudio** organiza a criação de flashcards e exporta projetos em `.apkg`, sem exigir AnkiConnect. A versão atual prioriza uma experiência portátil para Windows: dados de projetos, banco local, mídias, cache e logs ficam dentro da pasta `data/` ao lado do aplicativo.
+**AnkiiStudio** é um aplicativo desktop para criação, organização e exportação de flashcards para o [Anki](https://apps.ankiweb.net/).
 
-As credenciais de serviços externos não ficam dentro dessa pasta. As chaves configuradas pela interface são armazenadas pelo gerenciador seguro de credenciais do sistema por meio de `keyring`.
+O projeto reúne em uma única interface as principais etapas de criação de um baralho: definição da estrutura dos cartões, geração ou importação de conteúdo, obtenção de imagens, geração de áudio, revisão e exportação.
 
-## Recursos principais
+Os projetos são exportados diretamente em `.apkg`, sem depender do AnkiConnect.
 
-- Projetos de flashcards com frente e verso configuráveis.
-- Exportação para `.apkg`.
-- Subbaralhos organizados com a estrutura `Baralho::Subbaralho`.
-- Geração/importação de conteúdo com suporte a Gemini e importação JSON/TXT.
-- Imagens pelo Wikimedia Commons, com metadados de autoria/licença preservados internamente.
-- Áudio por Wikimedia, VOICEVOX, Gemini TTS e ElevenLabs.
-- Perfis ilimitados de voz Gemini e ElevenLabs separados por idioma.
-- Ajustes de voz no ElevenLabs e VOICEVOX.
-- Reprodução de exemplo do VOICEVOX dentro do próprio AnkiiStudio.
-- Pesquisa por relevância nos seletores de modelo, idioma e personagem/estilo do VOICEVOX sem ocultar resultados, mantendo a digitação ativa enquanto a lista está aberta.
-- Tema escuro e claro.
-- Interface responsiva para uso em janela portátil.
+## Principais recursos
 
-## Idiomas
+- Criação e gerenciamento de projetos de flashcards.
+- Estrutura configurável de frente e verso.
+- Exportação direta para `.apkg`.
+- Organização em baralhos e subbaralhos.
+- Suporte a múltiplos idiomas.
+- Modelos de flashcards prontos para idiomas compatíveis.
+- Modelo personalizado para criação de estruturas próprias.
+- Geração de conteúdo com Google Gemini.
+- Importação de conteúdo estruturado por JSON/TXT.
+- Busca e processamento de imagens pelo Wikimedia Commons.
+- Áudio por Wikimedia Commons, VOICEVOX, Gemini TTS e ElevenLabs.
+- Perfis de voz configuráveis por idioma.
+- Ajustes de voz por provedor.
+- Reprodução de áudio dentro do aplicativo.
+- Tema claro e escuro.
+- Armazenamento seguro de credenciais pelo sistema operacional.
+- Distribuição portátil para Windows.
 
-A interface inclui um catálogo amplo com **184 idiomas ISO 639-1**, pesquisáveis diretamente no mesmo seletor. Entre eles estão Japonês, Inglês, Espanhol, Coreano, Português, Francês, Alemão, Italiano, Chinês, Árabe, Russo, Hindi e muitos outros.
+## Fluxo de criação
 
-A arquitetura de projetos e perfis de voz não está mais limitada aos quatro idiomas das versões anteriores. Códigos ISO/BCP-47 válidos também são normalizados internamente.
+```text
+Criar projeto
+      ↓
+Selecionar idioma e modelo
+      ↓
+Definir a estrutura dos cartões
+      ↓
+Criar ou importar conteúdo
+      ↓
+Adicionar imagens e áudio
+      ↓
+Revisar
+      ↓
+Exportar para .apkg
+      ↓
+Importar no Anki
+```
 
-Na versão 0.10.0, os modelos padrão revisados estão disponíveis para **Japonês**:
+## Idiomas e modelos
 
-- Hiragana
-- Katakana
-- Frases Básicas
+O AnkiiStudio foi desenvolvido para trabalhar com um amplo catálogo de idiomas.
 
-Para todos os idiomas existe o modelo **Personalizado**, que é a opção inicial da tela Criar.
+Dependendo do idioma selecionado, o aplicativo pode disponibilizar **modelos de flashcards prontos**, com estrutura e conteúdo previamente definidos para determinados objetivos de estudo.
 
-## Modelos padrão
+Além dos modelos disponíveis, o modo **Personalizado** permite criar baralhos adaptados a diferentes necessidades, definindo elementos como:
 
-Modelos padrão utilizam o conteúdo interno revisado e não pedem configurações que alterariam esse conteúdo. Ao selecionar um modelo padrão:
+- conteúdo;
+- tema ou contexto;
+- quantidade de cartões;
+- estrutura da frente;
+- estrutura do verso;
+- método de criação.
 
-- Tema/contexto fica bloqueado.
-- Quantidade é definida pelo próprio modelo.
-- O método de criação fica bloqueado em **Conteúdo padrão**.
-- A estrutura visual do flashcard continua editável.
+A disponibilidade de modelos prontos pode evoluir conforme novos conteúdos forem adicionados ao projeto.
 
-A estrutura inicial recomendada é carregada automaticamente. O usuário pode remover, adicionar ou reorganizar os componentes antes de criar o projeto.
+## Estrutura dos flashcards
 
-## Estrutura dos cartões
-
-A estrutura visual foi simplificada para componentes que possuem função direta no cartão:
+Os cartões podem ser compostos por diferentes componentes:
 
 - Imagem
 - Conteúdo principal
@@ -75,108 +110,159 @@ A estrutura visual foi simplificada para componentes que possuem função direta
 - Explicação
 - Mnemônico
 
-Existe apenas um componente **Áudio**. Ele sempre sintetiza o **Conteúdo principal** do cartão, seja uma palavra, frase, kana ou outro item. O áudio não força a criação de uma frase de exemplo.
+A estrutura disponível pode variar conforme o modelo utilizado e pode ser personalizada quando o modelo permitir.
 
-Campos antigos continuam reconhecidos internamente para abrir projetos anteriores, mas são normalizados para a estrutura atual.
+## Criação de conteúdo
 
-## Busca de imagens
+O AnkiiStudio oferece diferentes formas de adicionar conteúdo aos projetos.
 
-Na busca automática, o AnkiiStudio usa uma ordem determinística:
+### Conteúdo com IA
 
-1. conteúdo original do cartão;
-2. tradução, somente como fallback.
+A integração com **Google Gemini** permite gerar conteúdo estruturado de acordo com o idioma, modelo e configuração definidos no projeto.
 
-Termos de imagem inventados por IA não são usados automaticamente. Isso evita transformar um kana isolado, por exemplo, em uma associação semântica não solicitada.
+### Importação
 
-Arquivos **SVG do Wikimedia Commons são aceitos**. O AnkiiStudio solicita uma miniatura rasterizada de até 900 px ao próprio Wikimedia e processa essa versão com Pillow, evitando descartar ilustrações vetoriais limpas de kana, kanji, símbolos e diagramas. Para SVGs com fundo transparente, a miniatura é composta explicitamente sobre branco antes de virar WebP, evitando blocos pretos em visualizadores que não preservam corretamente o canal alfa. A ordem de relevância retornada pela pesquisa do Commons é preservada.
+Também é possível importar conteúdo previamente preparado em formatos estruturados, permitindo utilizar respostas geradas externamente ou materiais próprios.
+
+### Conteúdo interno
+
+Alguns modelos podem utilizar conteúdo fornecido diretamente pelo AnkiiStudio, sem necessidade de geração por IA.
+
+## Imagens
+
+O AnkiiStudio utiliza o **Wikimedia Commons** como fonte de imagens.
+
+O aplicativo pesquisa, seleciona e processa as mídias antes de vinculá-las aos cartões, incluindo suporte a imagens rasterizadas provenientes de arquivos vetoriais disponíveis no Commons.
+
+Quando disponíveis, informações de origem, autoria e licença são preservadas internamente.
 
 ## Áudio
 
+O AnkiiStudio pode utilizar diferentes provedores de áudio.
+
 ### Wikimedia Commons
 
-Prioriza gravações humanas quando houver mídia compatível.
+Permite utilizar gravações disponíveis no Wikimedia quando houver mídia compatível com o conteúdo do cartão.
 
 ### VOICEVOX
 
-Para projetos em japonês, o AnkiiStudio consulta os personagens/estilos disponíveis no engine local. O seletor aceita pesquisa por relevância e continua exibindo todas as vozes.
+Integração com o engine local do VOICEVOX.
 
-É possível ajustar por projeto:
-
-- velocidade;
-- tom;
-- entonação;
-- volume;
-- escala de pausas.
-
-O botão **Ouvir exemplo** reproduz o resultado diretamente no AnkiiStudio, sem abrir um player externo.
+O aplicativo permite consultar personagens e estilos disponíveis no engine, selecionar vozes e ajustar parâmetros de síntese.
 
 ### Gemini TTS
 
-Perfis de voz são cadastrados por idioma e podem combinar diferentes modelos e vozes. O modo inteligente pode percorrer os perfis habilitados e respeita bloqueios temporários de cota observados durante a execução.
+Permite configurar perfis de voz utilizando modelos e vozes compatíveis com o Google Gemini.
 
 ### ElevenLabs
 
-Cada perfil pode definir:
+Permite cadastrar perfis utilizando modelos e Voice IDs disponíveis para a conta configurada.
 
-- idioma;
-- nome;
-- Model ID;
-- Voice ID;
+Os perfis podem incluir ajustes como:
+
 - estabilidade;
 - similaridade;
 - estilo;
 - velocidade;
 - Speaker Boost.
 
-Erros HTTP retornados pela ElevenLabs têm a mensagem da API preservada no diagnóstico. Falhas permanentes de um perfil durante um lote são bloqueadas para o restante daquele lote, evitando repetir a mesma requisição inválida em todos os cartões.
+> A disponibilidade de modelos, vozes, cotas e recursos depende dos serviços externos e do plano utilizado em cada plataforma.
 
-Para `eleven_multilingual_v2`, o AnkiiStudio não força `language_code` nem a normalização japonesa específica que causava o erro `Language text normalization is not supported for language code 'None'`; a normalização geral permanece em modo automático.
+## Exportação para o Anki
 
-## Mídia ausente e exportação
+Os projetos são exportados no formato:
 
-Uma mídia ausente não bloqueia automaticamente o projeto. Se o cartão continuar possuindo uma frente válida, o AnkiiStudio avisa quais mídias estão faltando e permite exportar mesmo assim. O componente vazio é omitido no cartão final.
+```text
+.apkg
+```
 
-A exportação só é bloqueada quando a ausência deixa a frente do cartão sem conteúdo utilizável.
+O arquivo pode ser importado diretamente pelo Anki.
 
-## Quantidade de cartões no Anki
+Também é possível organizar o conteúdo em subbaralhos utilizando a estrutura:
 
-O AnkiiStudio grava no `.apkg` todos os cartões selecionados para exportação. Se, depois da importação, a tela de estudo do Anki mostrar um número menor de **cartões novos**, verifique o limite diário de Novos nas opções do baralho. O navegador do Anki pode ser usado para confirmar a quantidade total realmente importada.
+```text
+Baralho::Subbaralho
+```
 
-## Dados da versão portátil
+Quando uma mídia opcional estiver ausente, a exportação ainda pode ser realizada se o cartão continuar contendo informações suficientes para estudo.
 
-Ao executar o código-fonte ou o build portátil, os dados não sensíveis ficam em:
+## Download
+
+A versão portátil para Windows está disponível na página de:
+
+**[GitHub Releases](https://github.com/LucasTsukasa/AnkiiStudio/releases)**
+
+### Como executar
+
+1. Baixe o arquivo `.zip` da versão desejada.
+2. Extraia todo o conteúdo.
+3. Execute `AnkiiStudio.exe`.
+
+Estrutura típica da distribuição:
 
 ```text
 AnkiiStudio/
 ├── AnkiiStudio.exe
+├── _internal/
 └── data/
-    ├── database/
-    │   └── ankiistudio.db
-    ├── media/
-    │   ├── images/
-    │   └── audio/
-    ├── exports/
-    ├── cache/
-    └── logs/
 ```
 
-A pasta `data/` é criada automaticamente. Ela não faz parte do repositório Git.
+> A pasta `_internal` contém dependências necessárias para execução e deve permanecer junto do aplicativo.
 
-As API keys são configuradas em **Configurações** e permanecem no gerenciador de credenciais do Windows. O projeto não depende de `.env` para o uso normal.
+A versão portátil não exige uma instalação local do Python.
 
-## Executar pelo código-fonte
+## Dados locais
 
-Requer Python 3.11 ou superior. No ambiente de desenvolvimento atualmente utilizado, Python 3.14 pode ser usado assim:
+Os dados criados durante o uso ficam na pasta `data/` da versão portátil:
+
+```text
+data/
+├── database/
+├── media/
+│   ├── images/
+│   └── audio/
+├── exports/
+├── cache/
+└── logs/
+```
+
+Essa estrutura mantém projetos, mídias e arquivos de execução separados dos arquivos internos do aplicativo.
+
+## Segurança e credenciais
+
+As API keys configuradas pelo usuário não são armazenadas em texto simples dentro da pasta portátil.
+
+O AnkiiStudio utiliza `keyring` para integrar-se ao gerenciador seguro de credenciais do sistema operacional.
+
+Serviços externos podem exigir credenciais próprias, como:
+
+- Google Gemini
+- ElevenLabs
+
+Cada usuário deve utilizar suas próprias credenciais e respeitar os termos dos respectivos serviços.
+
+## Desenvolvimento
+
+Para executar o projeto a partir do código-fonte, utilize Python **3.11 ou superior**.
+
+### Criar o ambiente virtual
 
 ```bat
 py -3.14 -m venv .venv
 .venv\Scripts\activate.bat
 python -m pip install --upgrade pip
 pip install -r requirements.txt
+```
+
+Caso utilize outra versão compatível do Python, ajuste o comando conforme sua instalação.
+
+### Executar
+
+```bat
 python run.py
 ```
 
-Sem ativar o ambiente:
+Ou diretamente:
 
 ```bat
 .venv\Scripts\python.exe run.py
@@ -184,39 +270,72 @@ Sem ativar o ambiente:
 
 ## Testes
 
+Instale as dependências de desenvolvimento:
+
 ```bat
 pip install -r requirements-dev.txt
+```
+
+Execute:
+
+```bat
 pytest
 ```
 
-## Build portátil para Windows
+## Build para Windows
+
+O projeto inclui um script para gerar a distribuição portátil:
 
 ```bat
 powershell -ExecutionPolicy Bypass -File .\scripts\build_windows.ps1
 ```
 
-O script executa os testes, gera o aplicativo com PyInstaller e cria:
+O processo utiliza PyInstaller e gera o pacote de distribuição na pasta `release/`.
+
+## Estrutura do repositório
 
 ```text
-dist\AnkiiStudio\AnkiiStudio.exe
-release\AnkiiStudio-Portable-0.10.0.zip
+AnkiiStudio/
+├── ankiistudio/
+│   ├── data/
+│   ├── resources/
+│   ├── services/
+│   └── ui/
+├── scripts/
+├── tests/
+├── AnkiiStudio.spec
+├── CHANGELOG.md
+├── LICENSE
+├── pyproject.toml
+├── requirements.txt
+├── requirements-dev.txt
+└── run.py
 ```
 
-A pasta `data/` é preparada junto do build portátil.
+| Diretório | Finalidade |
+|---|---|
+| `ankiistudio/` | Código principal da aplicação |
+| `ankiistudio/data/` | Conteúdo interno distribuído com o programa |
+| `ankiistudio/resources/` | Ícones e recursos visuais |
+| `ankiistudio/services/` | Serviços, integrações e regras de negócio |
+| `ankiistudio/ui/` | Interface gráfica |
+| `tests/` | Testes automatizados |
+| `scripts/` | Scripts auxiliares e de build |
 
-## Publicação no GitHub
+## Changelog
 
-O repositório deve conter o código-fonte e os arquivos de desenvolvimento. O pacote compilado deve ser publicado em **GitHub Releases**, por exemplo `AnkiiStudio-Portable-0.10.0.zip`.
-
-Arquivos locais como `.venv/`, `data/`, `build/`, `dist/`, `release/`, caches, bancos e segredos são ignorados pelo Git.
+O histórico de alterações está disponível em [CHANGELOG.md](CHANGELOG.md).
 
 ## Licença
 
-O código do AnkiiStudio é distribuído sob a **GNU General Public License v3.0 (GPL-3.0)**. Consulte [LICENSE](LICENSE).
+O AnkiiStudio é distribuído sob a **GNU General Public License v3.0 (GPL-3.0)**.
 
-Bibliotecas, serviços e mídias de terceiros mantêm seus próprios termos e licenças. O AnkiiStudio preserva metadados de mídia quando aplicável, sem inserir créditos técnicos em cada flashcard.
+Consulte [LICENSE](LICENSE) para os termos completos.
+
+Bibliotecas, APIs, serviços e mídias de terceiros permanecem sujeitos às suas próprias licenças e termos de uso.
 
 ## Autor
 
-**Lucas Tsukasa**  
-GitHub: [@LucasTsukasa](https://github.com/LucasTsukasa)
+Desenvolvido por **Lucas Tsukasa**.
+
+[GitHub @LucasTsukasa](https://github.com/LucasTsukasa)
