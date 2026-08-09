@@ -1,0 +1,42 @@
+# Virtual environments
+.venv/
+venv/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyd
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Build
+build/
+dist/
+release/
+*.egg-info/
+
+# Runtime data
+/data/
+*.db
+*.sqlite
+*.sqlite3
+*.log
+
+# Secrets
+.env
+.env.*
+*.key
+
+# IDE
+.vscode/
+.idea/
+
+# Windows
+Thumbs.db
+Desktop.ini
+
+# macOS
+.DS_Store

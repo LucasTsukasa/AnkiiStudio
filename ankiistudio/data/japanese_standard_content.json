@@ -1,0 +1,4295 @@
+{
+  "source": "AnkiiStudio_estrutura_e_conteudo_flashcards_padrao_v2(1).txt",
+  "models": {
+    "hiragana": {
+      "label": "Hiragana",
+      "sections": [
+        "Silabário",
+        "Dakuten e Handakuten",
+        "Yōon",
+        "Sokuon",
+        "Vogais Longas",
+        "Partículas com Leitura Especial",
+        "Caracteres Parecidos",
+        "Palavras",
+        "Revisão"
+      ],
+      "cards": [
+        {
+          "section": "Silabário",
+          "word": "あ",
+          "reading": "",
+          "romanization": "a",
+          "translation": "A",
+          "explanation": "Vogal básica japonesa."
+        },
+        {
+          "section": "Silabário",
+          "word": "い",
+          "reading": "",
+          "romanization": "i",
+          "translation": "I",
+          "explanation": "Vogal básica japonesa."
+        },
+        {
+          "section": "Silabário",
+          "word": "う",
+          "reading": "",
+          "romanization": "u",
+          "translation": "U",
+          "explanation": "Vogal japonesa /u/, geralmente pronunciada com menos arredondamento dos lábios que em português."
+        },
+        {
+          "section": "Silabário",
+          "word": "え",
+          "reading": "",
+          "romanization": "e",
+          "translation": "E",
+          "explanation": "Vogal básica japonesa."
+        },
+        {
+          "section": "Silabário",
+          "word": "お",
+          "reading": "",
+          "romanization": "o",
+          "translation": "O",
+          "explanation": "Vogal básica japonesa."
+        },
+        {
+          "section": "Silabário",
+          "word": "か",
+          "reading": "",
+          "romanization": "ka",
+          "translation": "Ka",
+          "explanation": "Hiragana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "き",
+          "reading": "",
+          "romanization": "ki",
+          "translation": "Ki",
+          "explanation": "Hiragana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "く",
+          "reading": "",
+          "romanization": "ku",
+          "translation": "Ku",
+          "explanation": "Hiragana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "け",
+          "reading": "",
+          "romanization": "ke",
+          "translation": "Ke",
+          "explanation": "Hiragana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "こ",
+          "reading": "",
+          "romanization": "ko",
+          "translation": "Ko",
+          "explanation": "Hiragana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "さ",
+          "reading": "",
+          "romanization": "sa",
+          "translation": "Sa",
+          "explanation": "Hiragana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "し",
+          "reading": "",
+          "romanization": "shi",
+          "translation": "Shi",
+          "explanation": "Hiragana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "す",
+          "reading": "",
+          "romanization": "su",
+          "translation": "Su",
+          "explanation": "Hiragana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "せ",
+          "reading": "",
+          "romanization": "se",
+          "translation": "Se",
+          "explanation": "Hiragana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "そ",
+          "reading": "",
+          "romanization": "so",
+          "translation": "So",
+          "explanation": "Hiragana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "た",
+          "reading": "",
+          "romanization": "ta",
+          "translation": "Ta",
+          "explanation": "Hiragana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "ち",
+          "reading": "",
+          "romanization": "chi",
+          "translation": "Chi",
+          "explanation": "Hiragana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "つ",
+          "reading": "",
+          "romanization": "tsu",
+          "translation": "Tsu",
+          "explanation": "Hiragana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "て",
+          "reading": "",
+          "romanization": "te",
+          "translation": "Te",
+          "explanation": "Hiragana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "と",
+          "reading": "",
+          "romanization": "to",
+          "translation": "To",
+          "explanation": "Hiragana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "な",
+          "reading": "",
+          "romanization": "na",
+          "translation": "Na",
+          "explanation": "Hiragana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "に",
+          "reading": "",
+          "romanization": "ni",
+          "translation": "Ni",
+          "explanation": "Hiragana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "ぬ",
+          "reading": "",
+          "romanization": "nu",
+          "translation": "Nu",
+          "explanation": "Hiragana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "ね",
+          "reading": "",
+          "romanization": "ne",
+          "translation": "Ne",
+          "explanation": "Hiragana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "の",
+          "reading": "",
+          "romanization": "no",
+          "translation": "No",
+          "explanation": "Hiragana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "は",
+          "reading": "",
+          "romanization": "ha",
+          "translation": "Ha",
+          "explanation": "Hiragana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "ひ",
+          "reading": "",
+          "romanization": "hi",
+          "translation": "Hi",
+          "explanation": "Hiragana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "ふ",
+          "reading": "",
+          "romanization": "fu",
+          "translation": "Fu",
+          "explanation": "Hiragana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "へ",
+          "reading": "",
+          "romanization": "he",
+          "translation": "He",
+          "explanation": "Hiragana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "ほ",
+          "reading": "",
+          "romanization": "ho",
+          "translation": "Ho",
+          "explanation": "Hiragana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "ま",
+          "reading": "",
+          "romanization": "ma",
+          "translation": "Ma",
+          "explanation": "Hiragana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "み",
+          "reading": "",
+          "romanization": "mi",
+          "translation": "Mi",
+          "explanation": "Hiragana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "む",
+          "reading": "",
+          "romanization": "mu",
+          "translation": "Mu",
+          "explanation": "Hiragana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "め",
+          "reading": "",
+          "romanization": "me",
+          "translation": "Me",
+          "explanation": "Hiragana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "も",
+          "reading": "",
+          "romanization": "mo",
+          "translation": "Mo",
+          "explanation": "Hiragana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "や",
+          "reading": "",
+          "romanization": "ya",
+          "translation": "Ya",
+          "explanation": "Hiragana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "ゆ",
+          "reading": "",
+          "romanization": "yu",
+          "translation": "Yu",
+          "explanation": "Hiragana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "よ",
+          "reading": "",
+          "romanization": "yo",
+          "translation": "Yo",
+          "explanation": "Hiragana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "ら",
+          "reading": "",
+          "romanization": "ra",
+          "translation": "Ra",
+          "explanation": "Hiragana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "り",
+          "reading": "",
+          "romanization": "ri",
+          "translation": "Ri",
+          "explanation": "Hiragana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "る",
+          "reading": "",
+          "romanization": "ru",
+          "translation": "Ru",
+          "explanation": "Hiragana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "れ",
+          "reading": "",
+          "romanization": "re",
+          "translation": "Re",
+          "explanation": "Hiragana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "ろ",
+          "reading": "",
+          "romanization": "ro",
+          "translation": "Ro",
+          "explanation": "Hiragana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "わ",
+          "reading": "",
+          "romanization": "wa",
+          "translation": "Wa",
+          "explanation": "Hiragana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "を",
+          "reading": "",
+          "romanization": "o / wo",
+          "translation": "O / Wo",
+          "explanation": "Hiragana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "ん",
+          "reading": "",
+          "romanization": "n",
+          "translation": "N",
+          "explanation": "Hiragana da categoria Silabário."
+        },
+        {
+          "section": "Dakuten e Handakuten",
+          "word": "が",
+          "reading": "",
+          "romanization": "ga",
+          "translation": "Ga",
+          "explanation": "Hiragana da categoria Dakuten e Handakuten."
+        },
+        {
+          "section": "Dakuten e Handakuten",
+          "word": "ぎ",
+          "reading": "",
+          "romanization": "gi",
+          "translation": "Gi",
+          "explanation": "Hiragana da categoria Dakuten e Handakuten."
+        },
+        {
+          "section": "Dakuten e Handakuten",
+          "word": "ぐ",
+          "reading": "",
+          "romanization": "gu",
+          "translation": "Gu",
+          "explanation": "Hiragana da categoria Dakuten e Handakuten."
+        },
+        {
+          "section": "Dakuten e Handakuten",
+          "word": "げ",
+          "reading": "",
+          "romanization": "ge",
+          "translation": "Ge",
+          "explanation": "Hiragana da categoria Dakuten e Handakuten."
+        },
+        {
+          "section": "Dakuten e Handakuten",
+          "word": "ご",
+          "reading": "",
+          "romanization": "go",
+          "translation": "Go",
+          "explanation": "Hiragana da categoria Dakuten e Handakuten."
+        },
+        {
+          "section": "Dakuten e Handakuten",
+          "word": "ざ",
+          "reading": "",
+          "romanization": "za",
+          "translation": "Za",
+          "explanation": "Hiragana da categoria Dakuten e Handakuten."
+        },
+        {
+          "section": "Dakuten e Handakuten",
+          "word": "じ",
+          "reading": "",
+          "romanization": "ji",
+          "translation": "Ji",
+          "explanation": "Hiragana da categoria Dakuten e Handakuten."
+        },
+        {
+          "section": "Dakuten e Handakuten",
+          "word": "ず",
+          "reading": "",
+          "romanization": "zu",
+          "translation": "Zu",
+          "explanation": "Hiragana da categoria Dakuten e Handakuten."
+        },
+        {
+          "section": "Dakuten e Handakuten",
+          "word": "ぜ",
+          "reading": "",
+          "romanization": "ze",
+          "translation": "Ze",
+          "explanation": "Hiragana da categoria Dakuten e Handakuten."
+        },
+        {
+          "section": "Dakuten e Handakuten",
+          "word": "ぞ",
+          "reading": "",
+          "romanization": "zo",
+          "translation": "Zo",
+          "explanation": "Hiragana da categoria Dakuten e Handakuten."
+        },
+        {
+          "section": "Dakuten e Handakuten",
+          "word": "だ",
+          "reading": "",
+          "romanization": "da",
+          "translation": "Da",
+          "explanation": "Hiragana da categoria Dakuten e Handakuten."
+        },
+        {
+          "section": "Dakuten e Handakuten",
+          "word": "ぢ",
+          "reading": "",
+          "romanization": "ji",
+          "translation": "Ji",
+          "explanation": "Hiragana da categoria Dakuten e Handakuten."
+        },
+        {
+          "section": "Dakuten e Handakuten",
+          "word": "づ",
+          "reading": "",
+          "romanization": "zu",
+          "translation": "Zu",
+          "explanation": "Hiragana da categoria Dakuten e Handakuten."
+        },
+        {
+          "section": "Dakuten e Handakuten",
+          "word": "で",
+          "reading": "",
+          "romanization": "de",
+          "translation": "De",
+          "explanation": "Hiragana da categoria Dakuten e Handakuten."
+        },
+        {
+          "section": "Dakuten e Handakuten",
+          "word": "ど",
+          "reading": "",
+          "romanization": "do",
+          "translation": "Do",
+          "explanation": "Hiragana da categoria Dakuten e Handakuten."
+        },
+        {
+          "section": "Dakuten e Handakuten",
+          "word": "ば",
+          "reading": "",
+          "romanization": "ba",
+          "translation": "Ba",
+          "explanation": "Hiragana da categoria Dakuten e Handakuten."
+        },
+        {
+          "section": "Dakuten e Handakuten",
+          "word": "び",
+          "reading": "",
+          "romanization": "bi",
+          "translation": "Bi",
+          "explanation": "Hiragana da categoria Dakuten e Handakuten."
+        },
+        {
+          "section": "Dakuten e Handakuten",
+          "word": "ぶ",
+          "reading": "",
+          "romanization": "bu",
+          "translation": "Bu",
+          "explanation": "Hiragana da categoria Dakuten e Handakuten."
+        },
+        {
+          "section": "Dakuten e Handakuten",
+          "word": "べ",
+          "reading": "",
+          "romanization": "be",
+          "translation": "Be",
+          "explanation": "Hiragana da categoria Dakuten e Handakuten."
+        },
+        {
+          "section": "Dakuten e Handakuten",
+          "word": "ぼ",
+          "reading": "",
+          "romanization": "bo",
+          "translation": "Bo",
+          "explanation": "Hiragana da categoria Dakuten e Handakuten."
+        },
+        {
+          "section": "Dakuten e Handakuten",
+          "word": "ぱ",
+          "reading": "",
+          "romanization": "pa",
+          "translation": "Pa",
+          "explanation": "Hiragana da categoria Dakuten e Handakuten."
+        },
+        {
+          "section": "Dakuten e Handakuten",
+          "word": "ぴ",
+          "reading": "",
+          "romanization": "pi",
+          "translation": "Pi",
+          "explanation": "Hiragana da categoria Dakuten e Handakuten."
+        },
+        {
+          "section": "Dakuten e Handakuten",
+          "word": "ぷ",
+          "reading": "",
+          "romanization": "pu",
+          "translation": "Pu",
+          "explanation": "Hiragana da categoria Dakuten e Handakuten."
+        },
+        {
+          "section": "Dakuten e Handakuten",
+          "word": "ぺ",
+          "reading": "",
+          "romanization": "pe",
+          "translation": "Pe",
+          "explanation": "Hiragana da categoria Dakuten e Handakuten."
+        },
+        {
+          "section": "Dakuten e Handakuten",
+          "word": "ぽ",
+          "reading": "",
+          "romanization": "po",
+          "translation": "Po",
+          "explanation": "Hiragana da categoria Dakuten e Handakuten."
+        },
+        {
+          "section": "Yōon",
+          "word": "きゃ",
+          "reading": "",
+          "romanization": "kya",
+          "translation": "Kya",
+          "explanation": "Hiragana da categoria Yōon."
+        },
+        {
+          "section": "Yōon",
+          "word": "きゅ",
+          "reading": "",
+          "romanization": "kyu",
+          "translation": "Kyu",
+          "explanation": "Hiragana da categoria Yōon."
+        },
+        {
+          "section": "Yōon",
+          "word": "きょ",
+          "reading": "",
+          "romanization": "kyo",
+          "translation": "Kyo",
+          "explanation": "Hiragana da categoria Yōon."
+        },
+        {
+          "section": "Yōon",
+          "word": "しゃ",
+          "reading": "",
+          "romanization": "sha",
+          "translation": "Sha",
+          "explanation": "Hiragana da categoria Yōon."
+        },
+        {
+          "section": "Yōon",
+          "word": "しゅ",
+          "reading": "",
+          "romanization": "shu",
+          "translation": "Shu",
+          "explanation": "Hiragana da categoria Yōon."
+        },
+        {
+          "section": "Yōon",
+          "word": "しょ",
+          "reading": "",
+          "romanization": "sho",
+          "translation": "Sho",
+          "explanation": "Hiragana da categoria Yōon."
+        },
+        {
+          "section": "Yōon",
+          "word": "ちゃ",
+          "reading": "",
+          "romanization": "cha",
+          "translation": "Cha",
+          "explanation": "Hiragana da categoria Yōon."
+        },
+        {
+          "section": "Yōon",
+          "word": "ちゅ",
+          "reading": "",
+          "romanization": "chu",
+          "translation": "Chu",
+          "explanation": "Hiragana da categoria Yōon."
+        },
+        {
+          "section": "Yōon",
+          "word": "ちょ",
+          "reading": "",
+          "romanization": "cho",
+          "translation": "Cho",
+          "explanation": "Hiragana da categoria Yōon."
+        },
+        {
+          "section": "Yōon",
+          "word": "にゃ",
+          "reading": "",
+          "romanization": "nya",
+          "translation": "Nya",
+          "explanation": "Hiragana da categoria Yōon."
+        },
+        {
+          "section": "Yōon",
+          "word": "にゅ",
+          "reading": "",
+          "romanization": "nyu",
+          "translation": "Nyu",
+          "explanation": "Hiragana da categoria Yōon."
+        },
+        {
+          "section": "Yōon",
+          "word": "にょ",
+          "reading": "",
+          "romanization": "nyo",
+          "translation": "Nyo",
+          "explanation": "Hiragana da categoria Yōon."
+        },
+        {
+          "section": "Yōon",
+          "word": "ひゃ",
+          "reading": "",
+          "romanization": "hya",
+          "translation": "Hya",
+          "explanation": "Hiragana da categoria Yōon."
+        },
+        {
+          "section": "Yōon",
+          "word": "ひゅ",
+          "reading": "",
+          "romanization": "hyu",
+          "translation": "Hyu",
+          "explanation": "Hiragana da categoria Yōon."
+        },
+        {
+          "section": "Yōon",
+          "word": "ひょ",
+          "reading": "",
+          "romanization": "hyo",
+          "translation": "Hyo",
+          "explanation": "Hiragana da categoria Yōon."
+        },
+        {
+          "section": "Yōon",
+          "word": "みゃ",
+          "reading": "",
+          "romanization": "mya",
+          "translation": "Mya",
+          "explanation": "Hiragana da categoria Yōon."
+        },
+        {
+          "section": "Yōon",
+          "word": "みゅ",
+          "reading": "",
+          "romanization": "myu",
+          "translation": "Myu",
+          "explanation": "Hiragana da categoria Yōon."
+        },
+        {
+          "section": "Yōon",
+          "word": "みょ",
+          "reading": "",
+          "romanization": "myo",
+          "translation": "Myo",
+          "explanation": "Hiragana da categoria Yōon."
+        },
+        {
+          "section": "Yōon",
+          "word": "りゃ",
+          "reading": "",
+          "romanization": "rya",
+          "translation": "Rya",
+          "explanation": "Hiragana da categoria Yōon."
+        },
+        {
+          "section": "Yōon",
+          "word": "りゅ",
+          "reading": "",
+          "romanization": "ryu",
+          "translation": "Ryu",
+          "explanation": "Hiragana da categoria Yōon."
+        },
+        {
+          "section": "Yōon",
+          "word": "りょ",
+          "reading": "",
+          "romanization": "ryo",
+          "translation": "Ryo",
+          "explanation": "Hiragana da categoria Yōon."
+        },
+        {
+          "section": "Yōon",
+          "word": "ぎゃ",
+          "reading": "",
+          "romanization": "gya",
+          "translation": "Gya",
+          "explanation": "Hiragana da categoria Yōon."
+        },
+        {
+          "section": "Yōon",
+          "word": "ぎゅ",
+          "reading": "",
+          "romanization": "gyu",
+          "translation": "Gyu",
+          "explanation": "Hiragana da categoria Yōon."
+        },
+        {
+          "section": "Yōon",
+          "word": "ぎょ",
+          "reading": "",
+          "romanization": "gyo",
+          "translation": "Gyo",
+          "explanation": "Hiragana da categoria Yōon."
+        },
+        {
+          "section": "Yōon",
+          "word": "じゃ",
+          "reading": "",
+          "romanization": "ja",
+          "translation": "Ja",
+          "explanation": "Hiragana da categoria Yōon."
+        },
+        {
+          "section": "Yōon",
+          "word": "じゅ",
+          "reading": "",
+          "romanization": "ju",
+          "translation": "Ju",
+          "explanation": "Hiragana da categoria Yōon."
+        },
+        {
+          "section": "Yōon",
+          "word": "じょ",
+          "reading": "",
+          "romanization": "jo",
+          "translation": "Jo",
+          "explanation": "Hiragana da categoria Yōon."
+        },
+        {
+          "section": "Yōon",
+          "word": "びゃ",
+          "reading": "",
+          "romanization": "bya",
+          "translation": "Bya",
+          "explanation": "Hiragana da categoria Yōon."
+        },
+        {
+          "section": "Yōon",
+          "word": "びゅ",
+          "reading": "",
+          "romanization": "byu",
+          "translation": "Byu",
+          "explanation": "Hiragana da categoria Yōon."
+        },
+        {
+          "section": "Yōon",
+          "word": "びょ",
+          "reading": "",
+          "romanization": "byo",
+          "translation": "Byo",
+          "explanation": "Hiragana da categoria Yōon."
+        },
+        {
+          "section": "Yōon",
+          "word": "ぴゃ",
+          "reading": "",
+          "romanization": "pya",
+          "translation": "Pya",
+          "explanation": "Hiragana da categoria Yōon."
+        },
+        {
+          "section": "Yōon",
+          "word": "ぴゅ",
+          "reading": "",
+          "romanization": "pyu",
+          "translation": "Pyu",
+          "explanation": "Hiragana da categoria Yōon."
+        },
+        {
+          "section": "Yōon",
+          "word": "ぴょ",
+          "reading": "",
+          "romanization": "pyo",
+          "translation": "Pyo",
+          "explanation": "Hiragana da categoria Yōon."
+        },
+        {
+          "section": "Sokuon",
+          "word": "がっこう",
+          "reading": "",
+          "romanization": "gakkō",
+          "translation": "escola",
+          "explanation": "O っ cria a geminação de \"k\"."
+        },
+        {
+          "section": "Sokuon",
+          "word": "きって",
+          "reading": "",
+          "romanization": "kitte",
+          "translation": "selo postal",
+          "explanation": "っ cria \"tt\"."
+        },
+        {
+          "section": "Sokuon",
+          "word": "ざっし",
+          "reading": "",
+          "romanization": "zasshi",
+          "translation": "revista",
+          "explanation": "っ reforça a consoante seguinte."
+        },
+        {
+          "section": "Sokuon",
+          "word": "きっぷ",
+          "reading": "",
+          "romanization": "kippu",
+          "translation": "passagem / bilhete",
+          "explanation": "っ cria \"pp\"."
+        },
+        {
+          "section": "Sokuon",
+          "word": "ちょっと",
+          "reading": "",
+          "romanization": "chotto",
+          "translation": "um pouco",
+          "explanation": "Palavra extremamente frequente no japonês cotidiano."
+        },
+        {
+          "section": "Vogais Longas",
+          "word": "おばさん",
+          "reading": "",
+          "romanization": "obasan",
+          "translation": "tia / senhora",
+          "explanation": ""
+        },
+        {
+          "section": "Vogais Longas",
+          "word": "おばあさん",
+          "reading": "",
+          "romanization": "obāsan",
+          "translation": "avó / senhora idosa",
+          "explanation": ""
+        },
+        {
+          "section": "Vogais Longas",
+          "word": "ここ",
+          "reading": "",
+          "romanization": "koko",
+          "translation": "aqui",
+          "explanation": ""
+        },
+        {
+          "section": "Vogais Longas",
+          "word": "こうこう",
+          "reading": "",
+          "romanization": "kōkō",
+          "translation": "ensino médio / escola de ensino médio",
+          "explanation": ""
+        },
+        {
+          "section": "Partículas com Leitura Especial",
+          "word": "は",
+          "reading": "は",
+          "romanization": "wa",
+          "translation": "Partícula de tópico; pronunciada \"wa\" nesta função.",
+          "explanation": "Como kana isolado, は é lido \"ha\". Como partícula de tópico, é pronunciado \"wa\"."
+        },
+        {
+          "section": "Partículas com Leitura Especial",
+          "word": "へ",
+          "reading": "へ",
+          "romanization": "e",
+          "translation": "Partícula direcional; pronunciada \"e\" nesta função.",
+          "explanation": "Como kana isolado, へ é lido \"he\". Como partícula direcional, é pronunciado \"e\"."
+        },
+        {
+          "section": "Partículas com Leitura Especial",
+          "word": "を",
+          "reading": "を",
+          "romanization": "o",
+          "translation": "Partícula de objeto direto; geralmente pronunciada \"o\".",
+          "explanation": "No japonês moderno, を é normalmente pronunciado \"o\" quando funciona como partícula."
+        },
+        {
+          "section": "Caracteres Parecidos",
+          "word": "ぬ × め",
+          "reading": "",
+          "romanization": "",
+          "translation": "Distinguir ぬ de め.",
+          "explanation": "Cartão comparativo de hiragana para praticar caracteres visualmente parecidos."
+        },
+        {
+          "section": "Caracteres Parecidos",
+          "word": "れ × わ",
+          "reading": "",
+          "romanization": "",
+          "translation": "Distinguir れ de わ.",
+          "explanation": "Cartão comparativo de hiragana para praticar caracteres visualmente parecidos."
+        },
+        {
+          "section": "Caracteres Parecidos",
+          "word": "る × ろ",
+          "reading": "",
+          "romanization": "",
+          "translation": "Distinguir る de ろ.",
+          "explanation": "Cartão comparativo de hiragana para praticar caracteres visualmente parecidos."
+        },
+        {
+          "section": "Caracteres Parecidos",
+          "word": "さ × き",
+          "reading": "",
+          "romanization": "",
+          "translation": "Distinguir さ de き.",
+          "explanation": "Cartão comparativo de hiragana para praticar caracteres visualmente parecidos."
+        },
+        {
+          "section": "Caracteres Parecidos",
+          "word": "あ × お",
+          "reading": "",
+          "romanization": "",
+          "translation": "Distinguir あ de お.",
+          "explanation": "Cartão comparativo de hiragana para praticar caracteres visualmente parecidos."
+        },
+        {
+          "section": "Caracteres Parecidos",
+          "word": "は × ほ",
+          "reading": "",
+          "romanization": "",
+          "translation": "Distinguir は de ほ.",
+          "explanation": "Cartão comparativo de hiragana para praticar caracteres visualmente parecidos."
+        },
+        {
+          "section": "Palavras",
+          "word": "あさ",
+          "reading": "",
+          "romanization": "asa",
+          "translation": "manhã",
+          "explanation": "Palavra básica. Em kanji pode ser 朝."
+        },
+        {
+          "section": "Palavras",
+          "word": "いえ",
+          "reading": "",
+          "romanization": "ie",
+          "translation": "casa",
+          "explanation": "Duas moras: i-e."
+        },
+        {
+          "section": "Palavras",
+          "word": "うみ",
+          "reading": "",
+          "romanization": "umi",
+          "translation": "mar",
+          "explanation": "Kanji: 海"
+        },
+        {
+          "section": "Palavras",
+          "word": "えき",
+          "reading": "",
+          "romanization": "eki",
+          "translation": "estação",
+          "explanation": "Kanji: 駅"
+        },
+        {
+          "section": "Palavras",
+          "word": "おと",
+          "reading": "",
+          "romanization": "oto",
+          "translation": "som",
+          "explanation": "Kanji comum: 音"
+        },
+        {
+          "section": "Palavras",
+          "word": "かお",
+          "reading": "",
+          "romanization": "kao",
+          "translation": "rosto",
+          "explanation": "Kanji: 顔"
+        },
+        {
+          "section": "Palavras",
+          "word": "きく",
+          "reading": "",
+          "romanization": "kiku",
+          "translation": "ouvir / perguntar",
+          "explanation": "Significado depende do contexto."
+        },
+        {
+          "section": "Palavras",
+          "word": "くつ",
+          "reading": "",
+          "romanization": "kutsu",
+          "translation": "sapatos",
+          "explanation": "Kanji possível: 靴"
+        },
+        {
+          "section": "Palavras",
+          "word": "けさ",
+          "reading": "",
+          "romanization": "kesa",
+          "translation": "esta manhã",
+          "explanation": "Kanji: 今朝"
+        },
+        {
+          "section": "Palavras",
+          "word": "ここ",
+          "reading": "",
+          "romanization": "koko",
+          "translation": "aqui",
+          "explanation": ""
+        },
+        {
+          "section": "Palavras",
+          "word": "さかな",
+          "reading": "",
+          "romanization": "sakana",
+          "translation": "peixe",
+          "explanation": "Kanji: 魚"
+        },
+        {
+          "section": "Palavras",
+          "word": "しお",
+          "reading": "",
+          "romanization": "shio",
+          "translation": "sal",
+          "explanation": "Kanji: 塩"
+        },
+        {
+          "section": "Palavras",
+          "word": "すし",
+          "reading": "",
+          "romanization": "sushi",
+          "translation": "sushi",
+          "explanation": ""
+        },
+        {
+          "section": "Palavras",
+          "word": "すき",
+          "reading": "",
+          "romanization": "suki",
+          "translation": "gostar / de que se gosta",
+          "explanation": "好き funciona como adjetivo-na, não como verbo equivalente perfeito a \"gostar\"."
+        },
+        {
+          "section": "Palavras",
+          "word": "せかい",
+          "reading": "",
+          "romanization": "sekai",
+          "translation": "mundo",
+          "explanation": "Kanji: 世界"
+        },
+        {
+          "section": "Palavras",
+          "word": "そこ",
+          "reading": "",
+          "romanization": "soko",
+          "translation": "aí / ali",
+          "explanation": ""
+        },
+        {
+          "section": "Palavras",
+          "word": "そら",
+          "reading": "",
+          "romanization": "sora",
+          "translation": "céu",
+          "explanation": "Kanji: 空"
+        },
+        {
+          "section": "Palavras",
+          "word": "たまご",
+          "reading": "",
+          "romanization": "tamago",
+          "translation": "ovo",
+          "explanation": "Kanji: 卵"
+        },
+        {
+          "section": "Palavras",
+          "word": "ちず",
+          "reading": "",
+          "romanization": "chizu",
+          "translation": "mapa",
+          "explanation": "Kanji: 地図"
+        },
+        {
+          "section": "Palavras",
+          "word": "つき",
+          "reading": "",
+          "romanization": "tsuki",
+          "translation": "lua",
+          "explanation": "Kanji: 月"
+        },
+        {
+          "section": "Palavras",
+          "word": "て",
+          "reading": "",
+          "romanization": "te",
+          "translation": "mão",
+          "explanation": "Kanji: 手"
+        },
+        {
+          "section": "Palavras",
+          "word": "とり",
+          "reading": "",
+          "romanization": "tori",
+          "translation": "pássaro / ave",
+          "explanation": "Kanji: 鳥"
+        },
+        {
+          "section": "Palavras",
+          "word": "なつ",
+          "reading": "",
+          "romanization": "natsu",
+          "translation": "verão",
+          "explanation": "Kanji: 夏"
+        },
+        {
+          "section": "Palavras",
+          "word": "にく",
+          "reading": "",
+          "romanization": "niku",
+          "translation": "carne",
+          "explanation": "Kanji: 肉"
+        },
+        {
+          "section": "Palavras",
+          "word": "ぬの",
+          "reading": "",
+          "romanization": "nuno",
+          "translation": "tecido / pano",
+          "explanation": "Kanji: 布"
+        },
+        {
+          "section": "Palavras",
+          "word": "ねこ",
+          "reading": "",
+          "romanization": "neko",
+          "translation": "gato",
+          "explanation": "Kanji: 猫"
+        },
+        {
+          "section": "Palavras",
+          "word": "のむ",
+          "reading": "",
+          "romanization": "nomu",
+          "translation": "beber",
+          "explanation": "Kanji: 飲む"
+        },
+        {
+          "section": "Palavras",
+          "word": "はな",
+          "reading": "",
+          "romanization": "hana",
+          "translation": "flor / nariz Possíveis kanji: 花 = flor 鼻 = nariz",
+          "explanation": "Excelente exemplo para demonstrar que contexto e kanji importam."
+        },
+        {
+          "section": "Palavras",
+          "word": "ひと",
+          "reading": "",
+          "romanization": "hito",
+          "translation": "pessoa",
+          "explanation": "Kanji: 人"
+        },
+        {
+          "section": "Palavras",
+          "word": "ふね",
+          "reading": "",
+          "romanization": "fune",
+          "translation": "barco / navio",
+          "explanation": "Kanji: 船"
+        },
+        {
+          "section": "Palavras",
+          "word": "へや",
+          "reading": "",
+          "romanization": "heya",
+          "translation": "quarto / cômodo",
+          "explanation": "Kanji: 部屋"
+        },
+        {
+          "section": "Palavras",
+          "word": "ほし",
+          "reading": "",
+          "romanization": "hoshi",
+          "translation": "estrela",
+          "explanation": "Kanji: 星"
+        },
+        {
+          "section": "Palavras",
+          "word": "まど",
+          "reading": "",
+          "romanization": "mado",
+          "translation": "janela",
+          "explanation": "Kanji: 窓"
+        },
+        {
+          "section": "Palavras",
+          "word": "みず",
+          "reading": "",
+          "romanization": "mizu",
+          "translation": "água",
+          "explanation": "Kanji: 水"
+        },
+        {
+          "section": "Palavras",
+          "word": "むし",
+          "reading": "",
+          "romanization": "mushi",
+          "translation": "inseto",
+          "explanation": "Kanji: 虫"
+        },
+        {
+          "section": "Palavras",
+          "word": "め",
+          "reading": "",
+          "romanization": "me",
+          "translation": "olho",
+          "explanation": "Kanji: 目"
+        },
+        {
+          "section": "Palavras",
+          "word": "もり",
+          "reading": "",
+          "romanization": "mori",
+          "translation": "floresta",
+          "explanation": "Kanji: 森"
+        },
+        {
+          "section": "Palavras",
+          "word": "やま",
+          "reading": "",
+          "romanization": "yama",
+          "translation": "montanha",
+          "explanation": "Kanji: 山"
+        },
+        {
+          "section": "Palavras",
+          "word": "ゆき",
+          "reading": "",
+          "romanization": "yuki",
+          "translation": "neve",
+          "explanation": "Kanji: 雪"
+        },
+        {
+          "section": "Palavras",
+          "word": "よる",
+          "reading": "",
+          "romanization": "yoru",
+          "translation": "noite",
+          "explanation": "Kanji: 夜"
+        },
+        {
+          "section": "Palavras",
+          "word": "らいねん",
+          "reading": "",
+          "romanization": "rainen",
+          "translation": "próximo ano",
+          "explanation": "Kanji: 来年"
+        },
+        {
+          "section": "Palavras",
+          "word": "りす",
+          "reading": "",
+          "romanization": "risu",
+          "translation": "esquilo",
+          "explanation": "Observação: normalmente リス em katakana."
+        },
+        {
+          "section": "Palavras",
+          "word": "るす",
+          "reading": "",
+          "romanization": "rusu",
+          "translation": "ausência / não estar em casa",
+          "explanation": "Kanji: 留守"
+        },
+        {
+          "section": "Palavras",
+          "word": "れきし",
+          "reading": "",
+          "romanization": "rekishi",
+          "translation": "história",
+          "explanation": "Kanji: 歴史"
+        },
+        {
+          "section": "Palavras",
+          "word": "ろく",
+          "reading": "",
+          "romanization": "roku",
+          "translation": "seis",
+          "explanation": "Kanji: 六"
+        },
+        {
+          "section": "Palavras",
+          "word": "わに",
+          "reading": "",
+          "romanization": "wani",
+          "translation": "crocodilo / jacaré",
+          "explanation": "Observação: normalmente ワニ ou 鰐."
+        }
+      ]
+    },
+    "katakana": {
+      "label": "Katakana",
+      "sections": [
+        "Silabário",
+        "Dakuten e Handakuten",
+        "Yōon",
+        "Sokuon",
+        "Prolongador Vocálico",
+        "Sons Estrangeiros",
+        "Caracteres Parecidos",
+        "Palavras",
+        "Revisão"
+      ],
+      "cards": [
+        {
+          "section": "Silabário",
+          "word": "ア",
+          "reading": "",
+          "romanization": "a",
+          "translation": "A",
+          "explanation": "Katakana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "イ",
+          "reading": "",
+          "romanization": "i",
+          "translation": "I",
+          "explanation": "Katakana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "ウ",
+          "reading": "",
+          "romanization": "u",
+          "translation": "U",
+          "explanation": "Katakana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "エ",
+          "reading": "",
+          "romanization": "e",
+          "translation": "E",
+          "explanation": "Katakana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "オ",
+          "reading": "",
+          "romanization": "o",
+          "translation": "O",
+          "explanation": "Katakana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "カ",
+          "reading": "",
+          "romanization": "ka",
+          "translation": "Ka",
+          "explanation": "Katakana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "キ",
+          "reading": "",
+          "romanization": "ki",
+          "translation": "Ki",
+          "explanation": "Katakana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "ク",
+          "reading": "",
+          "romanization": "ku",
+          "translation": "Ku",
+          "explanation": "Katakana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "ケ",
+          "reading": "",
+          "romanization": "ke",
+          "translation": "Ke",
+          "explanation": "Katakana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "コ",
+          "reading": "",
+          "romanization": "ko",
+          "translation": "Ko",
+          "explanation": "Katakana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "サ",
+          "reading": "",
+          "romanization": "sa",
+          "translation": "Sa",
+          "explanation": "Katakana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "シ",
+          "reading": "",
+          "romanization": "shi",
+          "translation": "Shi",
+          "explanation": "Katakana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "ス",
+          "reading": "",
+          "romanization": "su",
+          "translation": "Su",
+          "explanation": "Katakana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "セ",
+          "reading": "",
+          "romanization": "se",
+          "translation": "Se",
+          "explanation": "Katakana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "ソ",
+          "reading": "",
+          "romanization": "so",
+          "translation": "So",
+          "explanation": "Katakana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "タ",
+          "reading": "",
+          "romanization": "ta",
+          "translation": "Ta",
+          "explanation": "Katakana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "チ",
+          "reading": "",
+          "romanization": "chi",
+          "translation": "Chi",
+          "explanation": "Katakana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "ツ",
+          "reading": "",
+          "romanization": "tsu",
+          "translation": "Tsu",
+          "explanation": "Katakana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "テ",
+          "reading": "",
+          "romanization": "te",
+          "translation": "Te",
+          "explanation": "Katakana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "ト",
+          "reading": "",
+          "romanization": "to",
+          "translation": "To",
+          "explanation": "Katakana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "ナ",
+          "reading": "",
+          "romanization": "na",
+          "translation": "Na",
+          "explanation": "Katakana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "ニ",
+          "reading": "",
+          "romanization": "ni",
+          "translation": "Ni",
+          "explanation": "Katakana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "ヌ",
+          "reading": "",
+          "romanization": "nu",
+          "translation": "Nu",
+          "explanation": "Katakana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "ネ",
+          "reading": "",
+          "romanization": "ne",
+          "translation": "Ne",
+          "explanation": "Katakana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "ノ",
+          "reading": "",
+          "romanization": "no",
+          "translation": "No",
+          "explanation": "Katakana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "ハ",
+          "reading": "",
+          "romanization": "ha",
+          "translation": "Ha",
+          "explanation": "Katakana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "ヒ",
+          "reading": "",
+          "romanization": "hi",
+          "translation": "Hi",
+          "explanation": "Katakana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "フ",
+          "reading": "",
+          "romanization": "fu",
+          "translation": "Fu",
+          "explanation": "Katakana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "ヘ",
+          "reading": "",
+          "romanization": "he",
+          "translation": "He",
+          "explanation": "Katakana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "ホ",
+          "reading": "",
+          "romanization": "ho",
+          "translation": "Ho",
+          "explanation": "Katakana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "マ",
+          "reading": "",
+          "romanization": "ma",
+          "translation": "Ma",
+          "explanation": "Katakana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "ミ",
+          "reading": "",
+          "romanization": "mi",
+          "translation": "Mi",
+          "explanation": "Katakana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "ム",
+          "reading": "",
+          "romanization": "mu",
+          "translation": "Mu",
+          "explanation": "Katakana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "メ",
+          "reading": "",
+          "romanization": "me",
+          "translation": "Me",
+          "explanation": "Katakana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "モ",
+          "reading": "",
+          "romanization": "mo",
+          "translation": "Mo",
+          "explanation": "Katakana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "ヤ",
+          "reading": "",
+          "romanization": "ya",
+          "translation": "Ya",
+          "explanation": "Katakana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "ユ",
+          "reading": "",
+          "romanization": "yu",
+          "translation": "Yu",
+          "explanation": "Katakana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "ヨ",
+          "reading": "",
+          "romanization": "yo",
+          "translation": "Yo",
+          "explanation": "Katakana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "ラ",
+          "reading": "",
+          "romanization": "ra",
+          "translation": "Ra",
+          "explanation": "Katakana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "リ",
+          "reading": "",
+          "romanization": "ri",
+          "translation": "Ri",
+          "explanation": "Katakana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "ル",
+          "reading": "",
+          "romanization": "ru",
+          "translation": "Ru",
+          "explanation": "Katakana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "レ",
+          "reading": "",
+          "romanization": "re",
+          "translation": "Re",
+          "explanation": "Katakana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "ロ",
+          "reading": "",
+          "romanization": "ro",
+          "translation": "Ro",
+          "explanation": "Katakana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "ワ",
+          "reading": "",
+          "romanization": "wa",
+          "translation": "Wa",
+          "explanation": "Katakana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "ヲ",
+          "reading": "",
+          "romanization": "o / wo",
+          "translation": "O / Wo",
+          "explanation": "Katakana da categoria Silabário."
+        },
+        {
+          "section": "Silabário",
+          "word": "ン",
+          "reading": "",
+          "romanization": "n",
+          "translation": "N",
+          "explanation": "Katakana da categoria Silabário."
+        },
+        {
+          "section": "Dakuten e Handakuten",
+          "word": "ガ",
+          "reading": "",
+          "romanization": "ga",
+          "translation": "Ga",
+          "explanation": "Katakana da categoria Dakuten e Handakuten."
+        },
+        {
+          "section": "Dakuten e Handakuten",
+          "word": "ギ",
+          "reading": "",
+          "romanization": "gi",
+          "translation": "Gi",
+          "explanation": "Katakana da categoria Dakuten e Handakuten."
+        },
+        {
+          "section": "Dakuten e Handakuten",
+          "word": "グ",
+          "reading": "",
+          "romanization": "gu",
+          "translation": "Gu",
+          "explanation": "Katakana da categoria Dakuten e Handakuten."
+        },
+        {
+          "section": "Dakuten e Handakuten",
+          "word": "ゲ",
+          "reading": "",
+          "romanization": "ge",
+          "translation": "Ge",
+          "explanation": "Katakana da categoria Dakuten e Handakuten."
+        },
+        {
+          "section": "Dakuten e Handakuten",
+          "word": "ゴ",
+          "reading": "",
+          "romanization": "go",
+          "translation": "Go",
+          "explanation": "Katakana da categoria Dakuten e Handakuten."
+        },
+        {
+          "section": "Dakuten e Handakuten",
+          "word": "ザ",
+          "reading": "",
+          "romanization": "za",
+          "translation": "Za",
+          "explanation": "Katakana da categoria Dakuten e Handakuten."
+        },
+        {
+          "section": "Dakuten e Handakuten",
+          "word": "ジ",
+          "reading": "",
+          "romanization": "ji",
+          "translation": "Ji",
+          "explanation": "Katakana da categoria Dakuten e Handakuten."
+        },
+        {
+          "section": "Dakuten e Handakuten",
+          "word": "ズ",
+          "reading": "",
+          "romanization": "zu",
+          "translation": "Zu",
+          "explanation": "Katakana da categoria Dakuten e Handakuten."
+        },
+        {
+          "section": "Dakuten e Handakuten",
+          "word": "ゼ",
+          "reading": "",
+          "romanization": "ze",
+          "translation": "Ze",
+          "explanation": "Katakana da categoria Dakuten e Handakuten."
+        },
+        {
+          "section": "Dakuten e Handakuten",
+          "word": "ゾ",
+          "reading": "",
+          "romanization": "zo",
+          "translation": "Zo",
+          "explanation": "Katakana da categoria Dakuten e Handakuten."
+        },
+        {
+          "section": "Dakuten e Handakuten",
+          "word": "ダ",
+          "reading": "",
+          "romanization": "da",
+          "translation": "Da",
+          "explanation": "Katakana da categoria Dakuten e Handakuten."
+        },
+        {
+          "section": "Dakuten e Handakuten",
+          "word": "ヂ",
+          "reading": "",
+          "romanization": "ji",
+          "translation": "Ji",
+          "explanation": "Katakana da categoria Dakuten e Handakuten."
+        },
+        {
+          "section": "Dakuten e Handakuten",
+          "word": "ヅ",
+          "reading": "",
+          "romanization": "zu",
+          "translation": "Zu",
+          "explanation": "Katakana da categoria Dakuten e Handakuten."
+        },
+        {
+          "section": "Dakuten e Handakuten",
+          "word": "デ",
+          "reading": "",
+          "romanization": "de",
+          "translation": "De",
+          "explanation": "Katakana da categoria Dakuten e Handakuten."
+        },
+        {
+          "section": "Dakuten e Handakuten",
+          "word": "ド",
+          "reading": "",
+          "romanization": "do",
+          "translation": "Do",
+          "explanation": "Katakana da categoria Dakuten e Handakuten."
+        },
+        {
+          "section": "Dakuten e Handakuten",
+          "word": "バ",
+          "reading": "",
+          "romanization": "ba",
+          "translation": "Ba",
+          "explanation": "Katakana da categoria Dakuten e Handakuten."
+        },
+        {
+          "section": "Dakuten e Handakuten",
+          "word": "ビ",
+          "reading": "",
+          "romanization": "bi",
+          "translation": "Bi",
+          "explanation": "Katakana da categoria Dakuten e Handakuten."
+        },
+        {
+          "section": "Dakuten e Handakuten",
+          "word": "ブ",
+          "reading": "",
+          "romanization": "bu",
+          "translation": "Bu",
+          "explanation": "Katakana da categoria Dakuten e Handakuten."
+        },
+        {
+          "section": "Dakuten e Handakuten",
+          "word": "ベ",
+          "reading": "",
+          "romanization": "be",
+          "translation": "Be",
+          "explanation": "Katakana da categoria Dakuten e Handakuten."
+        },
+        {
+          "section": "Dakuten e Handakuten",
+          "word": "ボ",
+          "reading": "",
+          "romanization": "bo",
+          "translation": "Bo",
+          "explanation": "Katakana da categoria Dakuten e Handakuten."
+        },
+        {
+          "section": "Dakuten e Handakuten",
+          "word": "パ",
+          "reading": "",
+          "romanization": "pa",
+          "translation": "Pa",
+          "explanation": "Katakana da categoria Dakuten e Handakuten."
+        },
+        {
+          "section": "Dakuten e Handakuten",
+          "word": "ピ",
+          "reading": "",
+          "romanization": "pi",
+          "translation": "Pi",
+          "explanation": "Katakana da categoria Dakuten e Handakuten."
+        },
+        {
+          "section": "Dakuten e Handakuten",
+          "word": "プ",
+          "reading": "",
+          "romanization": "pu",
+          "translation": "Pu",
+          "explanation": "Katakana da categoria Dakuten e Handakuten."
+        },
+        {
+          "section": "Dakuten e Handakuten",
+          "word": "ペ",
+          "reading": "",
+          "romanization": "pe",
+          "translation": "Pe",
+          "explanation": "Katakana da categoria Dakuten e Handakuten."
+        },
+        {
+          "section": "Dakuten e Handakuten",
+          "word": "ポ",
+          "reading": "",
+          "romanization": "po",
+          "translation": "Po",
+          "explanation": "Katakana da categoria Dakuten e Handakuten."
+        },
+        {
+          "section": "Yōon",
+          "word": "キャ",
+          "reading": "",
+          "romanization": "kya",
+          "translation": "Kya",
+          "explanation": "Katakana da categoria Yōon."
+        },
+        {
+          "section": "Yōon",
+          "word": "キュ",
+          "reading": "",
+          "romanization": "kyu",
+          "translation": "Kyu",
+          "explanation": "Katakana da categoria Yōon."
+        },
+        {
+          "section": "Yōon",
+          "word": "キョ",
+          "reading": "",
+          "romanization": "kyo",
+          "translation": "Kyo",
+          "explanation": "Katakana da categoria Yōon."
+        },
+        {
+          "section": "Yōon",
+          "word": "シャ",
+          "reading": "",
+          "romanization": "sha",
+          "translation": "Sha",
+          "explanation": "Katakana da categoria Yōon."
+        },
+        {
+          "section": "Yōon",
+          "word": "シュ",
+          "reading": "",
+          "romanization": "shu",
+          "translation": "Shu",
+          "explanation": "Katakana da categoria Yōon."
+        },
+        {
+          "section": "Yōon",
+          "word": "ショ",
+          "reading": "",
+          "romanization": "sho",
+          "translation": "Sho",
+          "explanation": "Katakana da categoria Yōon."
+        },
+        {
+          "section": "Yōon",
+          "word": "チャ",
+          "reading": "",
+          "romanization": "cha",
+          "translation": "Cha",
+          "explanation": "Katakana da categoria Yōon."
+        },
+        {
+          "section": "Yōon",
+          "word": "チュ",
+          "reading": "",
+          "romanization": "chu",
+          "translation": "Chu",
+          "explanation": "Katakana da categoria Yōon."
+        },
+        {
+          "section": "Yōon",
+          "word": "チョ",
+          "reading": "",
+          "romanization": "cho",
+          "translation": "Cho",
+          "explanation": "Katakana da categoria Yōon."
+        },
+        {
+          "section": "Yōon",
+          "word": "ニャ",
+          "reading": "",
+          "romanization": "nya",
+          "translation": "Nya",
+          "explanation": "Katakana da categoria Yōon."
+        },
+        {
+          "section": "Yōon",
+          "word": "ニュ",
+          "reading": "",
+          "romanization": "nyu",
+          "translation": "Nyu",
+          "explanation": "Katakana da categoria Yōon."
+        },
+        {
+          "section": "Yōon",
+          "word": "ニョ",
+          "reading": "",
+          "romanization": "nyo",
+          "translation": "Nyo",
+          "explanation": "Katakana da categoria Yōon."
+        },
+        {
+          "section": "Yōon",
+          "word": "ヒャ",
+          "reading": "",
+          "romanization": "hya",
+          "translation": "Hya",
+          "explanation": "Katakana da categoria Yōon."
+        },
+        {
+          "section": "Yōon",
+          "word": "ヒュ",
+          "reading": "",
+          "romanization": "hyu",
+          "translation": "Hyu",
+          "explanation": "Katakana da categoria Yōon."
+        },
+        {
+          "section": "Yōon",
+          "word": "ヒョ",
+          "reading": "",
+          "romanization": "hyo",
+          "translation": "Hyo",
+          "explanation": "Katakana da categoria Yōon."
+        },
+        {
+          "section": "Yōon",
+          "word": "ミャ",
+          "reading": "",
+          "romanization": "mya",
+          "translation": "Mya",
+          "explanation": "Katakana da categoria Yōon."
+        },
+        {
+          "section": "Yōon",
+          "word": "ミュ",
+          "reading": "",
+          "romanization": "myu",
+          "translation": "Myu",
+          "explanation": "Katakana da categoria Yōon."
+        },
+        {
+          "section": "Yōon",
+          "word": "ミョ",
+          "reading": "",
+          "romanization": "myo",
+          "translation": "Myo",
+          "explanation": "Katakana da categoria Yōon."
+        },
+        {
+          "section": "Yōon",
+          "word": "リャ",
+          "reading": "",
+          "romanization": "rya",
+          "translation": "Rya",
+          "explanation": "Katakana da categoria Yōon."
+        },
+        {
+          "section": "Yōon",
+          "word": "リュ",
+          "reading": "",
+          "romanization": "ryu",
+          "translation": "Ryu",
+          "explanation": "Katakana da categoria Yōon."
+        },
+        {
+          "section": "Yōon",
+          "word": "リョ",
+          "reading": "",
+          "romanization": "ryo",
+          "translation": "Ryo",
+          "explanation": "Katakana da categoria Yōon."
+        },
+        {
+          "section": "Yōon",
+          "word": "ギャ",
+          "reading": "",
+          "romanization": "gya",
+          "translation": "Gya",
+          "explanation": "Katakana da categoria Yōon."
+        },
+        {
+          "section": "Yōon",
+          "word": "ギュ",
+          "reading": "",
+          "romanization": "gyu",
+          "translation": "Gyu",
+          "explanation": "Katakana da categoria Yōon."
+        },
+        {
+          "section": "Yōon",
+          "word": "ギョ",
+          "reading": "",
+          "romanization": "gyo",
+          "translation": "Gyo",
+          "explanation": "Katakana da categoria Yōon."
+        },
+        {
+          "section": "Yōon",
+          "word": "ジャ",
+          "reading": "",
+          "romanization": "ja",
+          "translation": "Ja",
+          "explanation": "Katakana da categoria Yōon."
+        },
+        {
+          "section": "Yōon",
+          "word": "ジュ",
+          "reading": "",
+          "romanization": "ju",
+          "translation": "Ju",
+          "explanation": "Katakana da categoria Yōon."
+        },
+        {
+          "section": "Yōon",
+          "word": "ジョ",
+          "reading": "",
+          "romanization": "jo",
+          "translation": "Jo",
+          "explanation": "Katakana da categoria Yōon."
+        },
+        {
+          "section": "Yōon",
+          "word": "ビャ",
+          "reading": "",
+          "romanization": "bya",
+          "translation": "Bya",
+          "explanation": "Katakana da categoria Yōon."
+        },
+        {
+          "section": "Yōon",
+          "word": "ビュ",
+          "reading": "",
+          "romanization": "byu",
+          "translation": "Byu",
+          "explanation": "Katakana da categoria Yōon."
+        },
+        {
+          "section": "Yōon",
+          "word": "ビョ",
+          "reading": "",
+          "romanization": "byo",
+          "translation": "Byo",
+          "explanation": "Katakana da categoria Yōon."
+        },
+        {
+          "section": "Yōon",
+          "word": "ピャ",
+          "reading": "",
+          "romanization": "pya",
+          "translation": "Pya",
+          "explanation": "Katakana da categoria Yōon."
+        },
+        {
+          "section": "Yōon",
+          "word": "ピュ",
+          "reading": "",
+          "romanization": "pyu",
+          "translation": "Pyu",
+          "explanation": "Katakana da categoria Yōon."
+        },
+        {
+          "section": "Yōon",
+          "word": "ピョ",
+          "reading": "",
+          "romanization": "pyo",
+          "translation": "Pyo",
+          "explanation": "Katakana da categoria Yōon."
+        },
+        {
+          "section": "Sokuon",
+          "word": "ベッド",
+          "reading": "",
+          "romanization": "beddo",
+          "translation": "cama",
+          "explanation": "ッ cria a geminação \"dd\"."
+        },
+        {
+          "section": "Sokuon",
+          "word": "カップ",
+          "reading": "",
+          "romanization": "kappu",
+          "translation": "copo / xícara",
+          "explanation": "ッ cria \"pp\"."
+        },
+        {
+          "section": "Sokuon",
+          "word": "サッカー",
+          "reading": "",
+          "romanization": "sakkā",
+          "translation": "futebol",
+          "explanation": "Possui ッ e vogal longa com ー."
+        },
+        {
+          "section": "Prolongador Vocálico",
+          "word": "コーヒー",
+          "reading": "",
+          "romanization": "kōhī",
+          "translation": "café",
+          "explanation": "O ー prolonga a vogal anterior."
+        },
+        {
+          "section": "Prolongador Vocálico",
+          "word": "スーパー",
+          "reading": "",
+          "romanization": "sūpā",
+          "translation": "supermercado",
+          "explanation": "Possui duas vogais longas marcadas com ー."
+        },
+        {
+          "section": "Prolongador Vocálico",
+          "word": "ケーキ",
+          "reading": "",
+          "romanization": "kēki",
+          "translation": "bolo",
+          "explanation": ""
+        },
+        {
+          "section": "Prolongador Vocálico",
+          "word": "タクシー",
+          "reading": "",
+          "romanization": "takushī",
+          "translation": "táxi",
+          "explanation": ""
+        },
+        {
+          "section": "Sons Estrangeiros",
+          "word": "ファ",
+          "reading": "",
+          "romanization": "fa",
+          "translation": "Fa",
+          "explanation": "Katakana da categoria Sons Estrangeiros."
+        },
+        {
+          "section": "Sons Estrangeiros",
+          "word": "フィ",
+          "reading": "",
+          "romanization": "fi",
+          "translation": "Fi",
+          "explanation": "Katakana da categoria Sons Estrangeiros."
+        },
+        {
+          "section": "Sons Estrangeiros",
+          "word": "フェ",
+          "reading": "",
+          "romanization": "fe",
+          "translation": "Fe",
+          "explanation": "Katakana da categoria Sons Estrangeiros."
+        },
+        {
+          "section": "Sons Estrangeiros",
+          "word": "フォ",
+          "reading": "",
+          "romanization": "fo",
+          "translation": "Fo",
+          "explanation": "Katakana da categoria Sons Estrangeiros."
+        },
+        {
+          "section": "Sons Estrangeiros",
+          "word": "ティ",
+          "reading": "",
+          "romanization": "ti",
+          "translation": "Ti",
+          "explanation": "Katakana da categoria Sons Estrangeiros."
+        },
+        {
+          "section": "Sons Estrangeiros",
+          "word": "ディ",
+          "reading": "",
+          "romanization": "di",
+          "translation": "Di",
+          "explanation": "Katakana da categoria Sons Estrangeiros."
+        },
+        {
+          "section": "Sons Estrangeiros",
+          "word": "チェ",
+          "reading": "",
+          "romanization": "che",
+          "translation": "Che",
+          "explanation": "Katakana da categoria Sons Estrangeiros."
+        },
+        {
+          "section": "Sons Estrangeiros",
+          "word": "シェ",
+          "reading": "",
+          "romanization": "she",
+          "translation": "She",
+          "explanation": "Katakana da categoria Sons Estrangeiros."
+        },
+        {
+          "section": "Sons Estrangeiros",
+          "word": "ジェ",
+          "reading": "",
+          "romanization": "je",
+          "translation": "Je",
+          "explanation": "Katakana da categoria Sons Estrangeiros."
+        },
+        {
+          "section": "Sons Estrangeiros",
+          "word": "ウィ",
+          "reading": "",
+          "romanization": "wi",
+          "translation": "Wi",
+          "explanation": "Katakana da categoria Sons Estrangeiros."
+        },
+        {
+          "section": "Sons Estrangeiros",
+          "word": "ウェ",
+          "reading": "",
+          "romanization": "we",
+          "translation": "We",
+          "explanation": "Katakana da categoria Sons Estrangeiros."
+        },
+        {
+          "section": "Sons Estrangeiros",
+          "word": "ウォ",
+          "reading": "",
+          "romanization": "wo",
+          "translation": "Wo",
+          "explanation": "Katakana da categoria Sons Estrangeiros."
+        },
+        {
+          "section": "Sons Estrangeiros",
+          "word": "ヴ",
+          "reading": "",
+          "romanization": "vu",
+          "translation": "Vu",
+          "explanation": "Katakana da categoria Sons Estrangeiros."
+        },
+        {
+          "section": "Sons Estrangeiros",
+          "word": "ヴァ",
+          "reading": "",
+          "romanization": "va",
+          "translation": "Va",
+          "explanation": "Katakana da categoria Sons Estrangeiros."
+        },
+        {
+          "section": "Sons Estrangeiros",
+          "word": "ヴィ",
+          "reading": "",
+          "romanization": "vi",
+          "translation": "Vi",
+          "explanation": "Katakana da categoria Sons Estrangeiros."
+        },
+        {
+          "section": "Sons Estrangeiros",
+          "word": "ヴェ",
+          "reading": "",
+          "romanization": "ve",
+          "translation": "Ve",
+          "explanation": "Katakana da categoria Sons Estrangeiros."
+        },
+        {
+          "section": "Sons Estrangeiros",
+          "word": "ヴォ",
+          "reading": "",
+          "romanization": "vo",
+          "translation": "Vo",
+          "explanation": "Katakana da categoria Sons Estrangeiros."
+        },
+        {
+          "section": "Sons Estrangeiros",
+          "word": "ファン",
+          "reading": "",
+          "romanization": "fan",
+          "translation": "fã",
+          "explanation": ""
+        },
+        {
+          "section": "Sons Estrangeiros",
+          "word": "フィルム",
+          "reading": "",
+          "romanization": "firumu",
+          "translation": "filme / película",
+          "explanation": ""
+        },
+        {
+          "section": "Sons Estrangeiros",
+          "word": "フェリー",
+          "reading": "",
+          "romanization": "ferī",
+          "translation": "balsa / ferry",
+          "explanation": ""
+        },
+        {
+          "section": "Sons Estrangeiros",
+          "word": "フォーク",
+          "reading": "",
+          "romanization": "fōku",
+          "translation": "garfo",
+          "explanation": ""
+        },
+        {
+          "section": "Sons Estrangeiros",
+          "word": "パーティー",
+          "reading": "",
+          "romanization": "pātī",
+          "translation": "festa",
+          "explanation": ""
+        },
+        {
+          "section": "Sons Estrangeiros",
+          "word": "ディナー",
+          "reading": "",
+          "romanization": "dinā",
+          "translation": "jantar",
+          "explanation": ""
+        },
+        {
+          "section": "Sons Estrangeiros",
+          "word": "チェック",
+          "reading": "",
+          "romanization": "chekku",
+          "translation": "checagem / verificar",
+          "explanation": ""
+        },
+        {
+          "section": "Sons Estrangeiros",
+          "word": "シェフ",
+          "reading": "",
+          "romanization": "shefu",
+          "translation": "chef",
+          "explanation": ""
+        },
+        {
+          "section": "Sons Estrangeiros",
+          "word": "ジェット",
+          "reading": "",
+          "romanization": "jetto",
+          "translation": "jato",
+          "explanation": ""
+        },
+        {
+          "section": "Sons Estrangeiros",
+          "word": "ウェブ",
+          "reading": "",
+          "romanization": "webu",
+          "translation": "web",
+          "explanation": ""
+        },
+        {
+          "section": "Sons Estrangeiros",
+          "word": "ウォーター",
+          "reading": "",
+          "romanization": "wōtā",
+          "translation": "água, em empréstimos/nomes estrangeiros",
+          "explanation": ""
+        },
+        {
+          "section": "Sons Estrangeiros",
+          "word": "ヴァイオリン",
+          "reading": "",
+          "romanization": "vaiorin",
+          "translation": "violino",
+          "explanation": ""
+        },
+        {
+          "section": "Caracteres Parecidos",
+          "word": "シ × ツ",
+          "reading": "",
+          "romanization": "",
+          "translation": "Distinguir シ de ツ.",
+          "explanation": "Cartão comparativo de katakana para praticar caracteres visualmente parecidos."
+        },
+        {
+          "section": "Caracteres Parecidos",
+          "word": "shi × tsu",
+          "reading": "",
+          "romanization": "",
+          "translation": "Distinguir shi de tsu.",
+          "explanation": "Cartão comparativo de katakana para praticar caracteres visualmente parecidos."
+        },
+        {
+          "section": "Caracteres Parecidos",
+          "word": "ソ × ン",
+          "reading": "",
+          "romanization": "",
+          "translation": "Distinguir ソ de ン.",
+          "explanation": "Cartão comparativo de katakana para praticar caracteres visualmente parecidos."
+        },
+        {
+          "section": "Caracteres Parecidos",
+          "word": "so × n",
+          "reading": "",
+          "romanization": "",
+          "translation": "Distinguir so de n.",
+          "explanation": "Cartão comparativo de katakana para praticar caracteres visualmente parecidos."
+        },
+        {
+          "section": "Caracteres Parecidos",
+          "word": "ク × ケ",
+          "reading": "",
+          "romanization": "",
+          "translation": "Distinguir ク de ケ.",
+          "explanation": "Cartão comparativo de katakana para praticar caracteres visualmente parecidos."
+        },
+        {
+          "section": "Caracteres Parecidos",
+          "word": "ロ × コ",
+          "reading": "",
+          "romanization": "",
+          "translation": "Distinguir ロ de コ.",
+          "explanation": "Cartão comparativo de katakana para praticar caracteres visualmente parecidos."
+        },
+        {
+          "section": "Caracteres Parecidos",
+          "word": "ヌ × ス",
+          "reading": "",
+          "romanization": "",
+          "translation": "Distinguir ヌ de ス.",
+          "explanation": "Cartão comparativo de katakana para praticar caracteres visualmente parecidos."
+        },
+        {
+          "section": "Caracteres Parecidos",
+          "word": "フ × ワ",
+          "reading": "",
+          "romanization": "",
+          "translation": "Distinguir フ de ワ.",
+          "explanation": "Cartão comparativo de katakana para praticar caracteres visualmente parecidos."
+        },
+        {
+          "section": "Palavras",
+          "word": "アイス",
+          "reading": "",
+          "romanization": "aisu",
+          "translation": "sorvete",
+          "explanation": "Uso abreviado relacionado a \"ice cream\"."
+        },
+        {
+          "section": "Palavras",
+          "word": "アニメ",
+          "reading": "",
+          "romanization": "anime",
+          "translation": "anime / animação",
+          "explanation": "Abreviação de アニメーション."
+        },
+        {
+          "section": "Palavras",
+          "word": "イタリア",
+          "reading": "",
+          "romanization": "Itaria",
+          "translation": "Itália",
+          "explanation": ""
+        },
+        {
+          "section": "Palavras",
+          "word": "インターネット",
+          "reading": "",
+          "romanization": "intānetto",
+          "translation": "internet",
+          "explanation": ""
+        },
+        {
+          "section": "Palavras",
+          "word": "エアコン",
+          "reading": "",
+          "romanization": "eakon",
+          "translation": "ar-condicionado",
+          "explanation": "Abreviação de エアーコンディショナー."
+        },
+        {
+          "section": "Palavras",
+          "word": "エレベーター",
+          "reading": "",
+          "romanization": "erebētā",
+          "translation": "elevador",
+          "explanation": ""
+        },
+        {
+          "section": "Palavras",
+          "word": "オレンジ",
+          "reading": "",
+          "romanization": "orenji",
+          "translation": "laranja",
+          "explanation": ""
+        },
+        {
+          "section": "Palavras",
+          "word": "カメラ",
+          "reading": "",
+          "romanization": "kamera",
+          "translation": "câmera",
+          "explanation": ""
+        },
+        {
+          "section": "Palavras",
+          "word": "カレー",
+          "reading": "",
+          "romanization": "karē",
+          "translation": "curry",
+          "explanation": ""
+        },
+        {
+          "section": "Palavras",
+          "word": "ギター",
+          "reading": "",
+          "romanization": "gitā",
+          "translation": "guitarra / violão",
+          "explanation": "Significado específico depende do contexto."
+        },
+        {
+          "section": "Palavras",
+          "word": "ケーキ",
+          "reading": "",
+          "romanization": "kēki",
+          "translation": "bolo",
+          "explanation": ""
+        },
+        {
+          "section": "Palavras",
+          "word": "コーヒー",
+          "reading": "",
+          "romanization": "kōhī",
+          "translation": "café",
+          "explanation": ""
+        },
+        {
+          "section": "Palavras",
+          "word": "コンビニ",
+          "reading": "",
+          "romanization": "konbini",
+          "translation": "loja de conveniência",
+          "explanation": "Abreviação de コンビニエンスストア."
+        },
+        {
+          "section": "Palavras",
+          "word": "サッカー",
+          "reading": "",
+          "romanization": "sakkā",
+          "translation": "futebol",
+          "explanation": ""
+        },
+        {
+          "section": "Palavras",
+          "word": "サラダ",
+          "reading": "",
+          "romanization": "sarada",
+          "translation": "salada",
+          "explanation": ""
+        },
+        {
+          "section": "Palavras",
+          "word": "シャツ",
+          "reading": "",
+          "romanization": "shatsu",
+          "translation": "camisa",
+          "explanation": ""
+        },
+        {
+          "section": "Palavras",
+          "word": "スマホ",
+          "reading": "",
+          "romanization": "sumaho",
+          "translation": "smartphone",
+          "explanation": "Abreviação de スマートフォン."
+        },
+        {
+          "section": "Palavras",
+          "word": "スーパー",
+          "reading": "",
+          "romanization": "sūpā",
+          "translation": "supermercado",
+          "explanation": "Abreviação de スーパーマーケット."
+        },
+        {
+          "section": "Palavras",
+          "word": "スポーツ",
+          "reading": "",
+          "romanization": "supōtsu",
+          "translation": "esporte",
+          "explanation": ""
+        },
+        {
+          "section": "Palavras",
+          "word": "セーター",
+          "reading": "",
+          "romanization": "sētā",
+          "translation": "suéter",
+          "explanation": ""
+        },
+        {
+          "section": "Palavras",
+          "word": "ソファ",
+          "reading": "",
+          "romanization": "sofa",
+          "translation": "sofá",
+          "explanation": ""
+        },
+        {
+          "section": "Palavras",
+          "word": "タクシー",
+          "reading": "",
+          "romanization": "takushī",
+          "translation": "táxi",
+          "explanation": ""
+        },
+        {
+          "section": "Palavras",
+          "word": "チーズ",
+          "reading": "",
+          "romanization": "chīzu",
+          "translation": "queijo",
+          "explanation": ""
+        },
+        {
+          "section": "Palavras",
+          "word": "テレビ",
+          "reading": "",
+          "romanization": "terebi",
+          "translation": "televisão",
+          "explanation": "Abreviação de テレビジョン."
+        },
+        {
+          "section": "Palavras",
+          "word": "デパート",
+          "reading": "",
+          "romanization": "depāto",
+          "translation": "loja de departamentos",
+          "explanation": "Abreviação de デパートメントストア."
+        },
+        {
+          "section": "Palavras",
+          "word": "トイレ",
+          "reading": "",
+          "romanization": "toire",
+          "translation": "banheiro",
+          "explanation": "No japonês cotidiano refere-se ao banheiro."
+        },
+        {
+          "section": "Palavras",
+          "word": "ドア",
+          "reading": "",
+          "romanization": "doa",
+          "translation": "porta",
+          "explanation": ""
+        },
+        {
+          "section": "Palavras",
+          "word": "ノート",
+          "reading": "",
+          "romanization": "nōto",
+          "translation": "caderno",
+          "explanation": "Falso amigo importante; não significa simplesmente \"nota\"."
+        },
+        {
+          "section": "Palavras",
+          "word": "パソコン",
+          "reading": "",
+          "romanization": "pasokon",
+          "translation": "computador pessoal",
+          "explanation": "Abreviação de パーソナルコンピューター."
+        },
+        {
+          "section": "Palavras",
+          "word": "パン",
+          "reading": "",
+          "romanization": "pan",
+          "translation": "pão",
+          "explanation": "Palavra historicamente associada à influência portuguesa."
+        },
+        {
+          "section": "Palavras",
+          "word": "バス",
+          "reading": "",
+          "romanization": "basu",
+          "translation": "ônibus",
+          "explanation": ""
+        },
+        {
+          "section": "Palavras",
+          "word": "ホテル",
+          "reading": "",
+          "romanization": "hoteru",
+          "translation": "hotel",
+          "explanation": ""
+        },
+        {
+          "section": "Palavras",
+          "word": "メール",
+          "reading": "",
+          "romanization": "mēru",
+          "translation": "e-mail / mensagem por e-mail",
+          "explanation": ""
+        },
+        {
+          "section": "Palavras",
+          "word": "メニュー",
+          "reading": "",
+          "romanization": "menyū",
+          "translation": "menu / cardápio",
+          "explanation": ""
+        },
+        {
+          "section": "Palavras",
+          "word": "ラジオ",
+          "reading": "",
+          "romanization": "rajio",
+          "translation": "rádio",
+          "explanation": ""
+        },
+        {
+          "section": "Palavras",
+          "word": "レストラン",
+          "reading": "",
+          "romanization": "resutoran",
+          "translation": "restaurante",
+          "explanation": ""
+        },
+        {
+          "section": "Palavras",
+          "word": "ロボット",
+          "reading": "",
+          "romanization": "robotto",
+          "translation": "robô",
+          "explanation": ""
+        },
+        {
+          "section": "Palavras",
+          "word": "ワイン",
+          "reading": "",
+          "romanization": "wain",
+          "translation": "vinho",
+          "explanation": ""
+        },
+        {
+          "section": "Palavras",
+          "word": "ペン",
+          "reading": "",
+          "romanization": "pen",
+          "translation": "caneta",
+          "explanation": ""
+        },
+        {
+          "section": "Palavras",
+          "word": "アルバイト",
+          "reading": "",
+          "romanization": "arubaito",
+          "translation": "trabalho de meio período",
+          "explanation": "Vem do alemão Arbeit, mas no japonês significa normalmente emprego part-time."
+        },
+        {
+          "section": "Palavras",
+          "word": "マンション",
+          "reading": "",
+          "romanization": "manshon",
+          "translation": "apartamento / condomínio",
+          "explanation": "Falso amigo. Não significa necessariamente \"mansão\"."
+        },
+        {
+          "section": "Palavras",
+          "word": "クレーム",
+          "reading": "",
+          "romanization": "kurēmu",
+          "translation": "reclamação",
+          "explanation": "No japonês comercial, normalmente significa reclamação de cliente."
+        }
+      ]
+    },
+    "basic_phrases": {
+      "label": "Frases Básicas",
+      "sections": [
+        "Saudações",
+        "Apresentações",
+        "Educação e Cortesia",
+        "Agradecimentos e Desculpas",
+        "Compreensão e Comunicação",
+        "Conversa Cotidiana",
+        "Casa e Rotina",
+        "Escola e Estudos",
+        "Compras",
+        "Restaurante",
+        "Konbini",
+        "Transporte",
+        "Direções",
+        "Horários e Datas",
+        "Pedindo Permissão",
+        "Hotel e Viagem",
+        "Emergências",
+        "Conversação Casual",
+        "Revisão"
+      ],
+      "cards": [
+        {
+          "section": "Saudações",
+          "word": "おはよう。",
+          "reading": "",
+          "romanization": "ohayō",
+          "translation": "Bom dia.",
+          "explanation": "forma casual."
+        },
+        {
+          "section": "Saudações",
+          "word": "おはようございます。",
+          "reading": "",
+          "romanization": "ohayō gozaimasu",
+          "translation": "Bom dia.",
+          "explanation": "forma educada."
+        },
+        {
+          "section": "Saudações",
+          "word": "こんにちは。",
+          "reading": "",
+          "romanization": "konnichiwa",
+          "translation": "Olá / Boa tarde.",
+          "explanation": "saudação diurna. O は final é pronunciado \"wa\"."
+        },
+        {
+          "section": "Saudações",
+          "word": "こんばんは。",
+          "reading": "",
+          "romanization": "konbanwa",
+          "translation": "Boa noite.",
+          "explanation": "saudação usada ao encontrar alguém à noite."
+        },
+        {
+          "section": "Saudações",
+          "word": "おやすみ。",
+          "reading": "",
+          "romanization": "oyasumi",
+          "translation": "Boa noite.",
+          "explanation": "forma casual usada ao ir dormir ou se despedir à noite."
+        },
+        {
+          "section": "Saudações",
+          "word": "おやすみなさい。",
+          "reading": "",
+          "romanization": "oyasuminasai",
+          "translation": "Boa noite.",
+          "explanation": "forma mais educada."
+        },
+        {
+          "section": "Saudações",
+          "word": "またね。",
+          "reading": "",
+          "romanization": "mata ne",
+          "translation": "Até mais.",
+          "explanation": "despedida casual."
+        },
+        {
+          "section": "Saudações",
+          "word": "じゃあ、また。",
+          "reading": "",
+          "romanization": "jā, mata",
+          "translation": "Então, até mais.",
+          "explanation": "despedida casual muito comum."
+        },
+        {
+          "section": "Saudações",
+          "word": "さようなら。",
+          "reading": "",
+          "romanization": "sayōnara",
+          "translation": "Adeus / Até outra hora.",
+          "explanation": "não é necessariamente a despedida cotidiana universal."
+        },
+        {
+          "section": "Apresentações",
+          "word": "はじめまして。",
+          "reading": "",
+          "romanization": "hajimemashite",
+          "translation": "Prazer em conhecê-lo(a).",
+          "explanation": "usada ao conhecer alguém pela primeira vez."
+        },
+        {
+          "section": "Apresentações",
+          "word": "私はルーカスです。",
+          "reading": "わたしはルーカスです。",
+          "romanization": "Watashi wa Rūkasu desu.",
+          "translation": "Eu sou Lucas.",
+          "explanation": "は marca o tópico e é pronunciado \"wa\"."
+        },
+        {
+          "section": "Apresentações",
+          "word": "ルーカスといいます。",
+          "reading": "",
+          "romanization": "Rūkasu to iimasu.",
+          "translation": "Eu me chamo Lucas.",
+          "explanation": "forma natural de apresentar o próprio nome."
+        },
+        {
+          "section": "Apresentações",
+          "word": "お名前は何ですか。",
+          "reading": "おなまえはなんですか。",
+          "romanization": "Onamae wa nan desu ka?",
+          "translation": "Qual é o seu nome?",
+          "explanation": ""
+        },
+        {
+          "section": "Apresentações",
+          "word": "ブラジルから来ました。",
+          "reading": "ブラジルからきました。",
+          "romanization": "Burajiru kara kimashita.",
+          "translation": "Vim do Brasil. / Sou do Brasil.",
+          "explanation": "expressão comum ao informar origem."
+        },
+        {
+          "section": "Apresentações",
+          "word": "日本語を勉強しています。",
+          "reading": "にほんごをべんきょうしています。",
+          "romanization": "Nihongo o benkyō shiteimasu.",
+          "translation": "Estou estudando japonês.",
+          "explanation": ""
+        },
+        {
+          "section": "Apresentações",
+          "word": "よろしくお願いします。",
+          "reading": "よろしくおねがいします。",
+          "romanization": "yoroshiku onegaishimasu",
+          "translation": "Prazer / Conto com você / Espero que nos demos bem.",
+          "explanation": "expressão sem equivalente único em português."
+        },
+        {
+          "section": "Educação e Cortesia",
+          "word": "ありがとうございます。",
+          "reading": "",
+          "romanization": "arigatō gozaimasu",
+          "translation": "Muito obrigado(a).",
+          "explanation": "forma educada."
+        },
+        {
+          "section": "Educação e Cortesia",
+          "word": "どうもありがとう。",
+          "reading": "",
+          "romanization": "dōmo arigatō",
+          "translation": "Muito obrigado(a).",
+          "explanation": "mais casual."
+        },
+        {
+          "section": "Educação e Cortesia",
+          "word": "すみません。",
+          "reading": "",
+          "romanization": "sumimasen",
+          "translation": "Com licença / Desculpe / Obrigado.",
+          "explanation": "expressão extremamente contextual."
+        },
+        {
+          "section": "Educação e Cortesia",
+          "word": "ごめんなさい。",
+          "reading": "",
+          "romanization": "gomennasai",
+          "translation": "Desculpe-me.",
+          "explanation": "pedido de desculpas mais direto."
+        },
+        {
+          "section": "Educação e Cortesia",
+          "word": "お願いします。",
+          "reading": "おねがいします。",
+          "romanization": "onegaishimasu",
+          "translation": "Por favor.",
+          "explanation": "muito comum em pedidos e solicitações."
+        },
+        {
+          "section": "Educação e Cortesia",
+          "word": "どうぞ。",
+          "reading": "",
+          "romanization": "dōzo",
+          "translation": "Por favor / Aqui está / Fique à vontade.",
+          "explanation": "depende do contexto."
+        },
+        {
+          "section": "Educação e Cortesia",
+          "word": "どういたしまして。",
+          "reading": "",
+          "romanization": "dō itashimashite",
+          "translation": "De nada.",
+          "explanation": ""
+        },
+        {
+          "section": "Educação e Cortesia",
+          "word": "大丈夫です。",
+          "reading": "だいじょうぶです。",
+          "romanization": "daijōbu desu",
+          "translation": "Está tudo bem / Estou bem / Não precisa.",
+          "explanation": "significado depende do contexto."
+        },
+        {
+          "section": "Compreensão e Comunicação",
+          "word": "わかります。",
+          "reading": "",
+          "romanization": "wakarimasu",
+          "translation": "Entendo.",
+          "explanation": ""
+        },
+        {
+          "section": "Compreensão e Comunicação",
+          "word": "わかりません。",
+          "reading": "",
+          "romanization": "wakarimasen",
+          "translation": "Não entendo / Não sei.",
+          "explanation": ""
+        },
+        {
+          "section": "Compreensão e Comunicação",
+          "word": "わかりました。",
+          "reading": "",
+          "romanization": "wakarimashita",
+          "translation": "Entendi.",
+          "explanation": ""
+        },
+        {
+          "section": "Compreensão e Comunicação",
+          "word": "もう一度お願いします。",
+          "reading": "もういちどおねがいします。",
+          "romanization": "mō ichido onegaishimasu",
+          "translation": "Mais uma vez, por favor.",
+          "explanation": ""
+        },
+        {
+          "section": "Compreensão e Comunicação",
+          "word": "ゆっくり話してください。",
+          "reading": "ゆっくりはなしてください。",
+          "romanization": "yukkuri hanashite kudasai",
+          "translation": "Por favor, fale devagar.",
+          "explanation": ""
+        },
+        {
+          "section": "Compreensão e Comunicação",
+          "word": "これは何ですか。",
+          "reading": "これはなんですか。",
+          "romanization": "Kore wa nan desu ka?",
+          "translation": "O que é isto?",
+          "explanation": ""
+        },
+        {
+          "section": "Compreensão e Comunicação",
+          "word": "どういう意味ですか。",
+          "reading": "どういういみですか。",
+          "romanization": "Dō iu imi desu ka?",
+          "translation": "O que isso significa?",
+          "explanation": ""
+        },
+        {
+          "section": "Compreensão e Comunicação",
+          "word": "日本語で何と言いますか。",
+          "reading": "にほんごでなんといいますか。",
+          "romanization": "Nihongo de nan to iimasu ka?",
+          "translation": "Como se diz isso em japonês?",
+          "explanation": ""
+        },
+        {
+          "section": "Conversa Cotidiana",
+          "word": "元気ですか。",
+          "reading": "げんきですか。",
+          "romanization": "Genki desu ka?",
+          "translation": "Como você está? / Está bem?",
+          "explanation": ""
+        },
+        {
+          "section": "Conversa Cotidiana",
+          "word": "元気です。",
+          "reading": "げんきです。",
+          "romanization": "Genki desu.",
+          "translation": "Estou bem.",
+          "explanation": ""
+        },
+        {
+          "section": "Conversa Cotidiana",
+          "word": "本当ですか。",
+          "reading": "ほんとうですか。",
+          "romanization": "Hontō desu ka?",
+          "translation": "É verdade? / Sério?",
+          "explanation": ""
+        },
+        {
+          "section": "Conversa Cotidiana",
+          "word": "そうですか。",
+          "reading": "",
+          "romanization": "sō desu ka",
+          "translation": "Entendo / Ah, é? / É mesmo?",
+          "explanation": "varia conforme entonação e contexto."
+        },
+        {
+          "section": "Conversa Cotidiana",
+          "word": "いいですね。",
+          "reading": "",
+          "romanization": "ii desu ne",
+          "translation": "Que legal / Parece bom.",
+          "explanation": ""
+        },
+        {
+          "section": "Conversa Cotidiana",
+          "word": "ちょっと待ってください。",
+          "reading": "ちょっとまってください。",
+          "romanization": "chotto matte kudasai",
+          "translation": "Espere um pouco, por favor.",
+          "explanation": ""
+        },
+        {
+          "section": "Casa e Rotina",
+          "word": "いってきます。",
+          "reading": "",
+          "romanization": "ittekimasu",
+          "translation": "Estou indo / Estou saindo e volto depois.",
+          "explanation": ""
+        },
+        {
+          "section": "Casa e Rotina",
+          "word": "いってらっしゃい。",
+          "reading": "",
+          "romanization": "itterasshai",
+          "translation": "Vá bem / Até mais.",
+          "explanation": "resposta a いってきます."
+        },
+        {
+          "section": "Casa e Rotina",
+          "word": "ただいま。",
+          "reading": "",
+          "romanization": "tadaima",
+          "translation": "Cheguei / Estou de volta.",
+          "explanation": ""
+        },
+        {
+          "section": "Casa e Rotina",
+          "word": "おかえりなさい。",
+          "reading": "",
+          "romanization": "okaerinasai",
+          "translation": "Bem-vindo(a) de volta.",
+          "explanation": ""
+        },
+        {
+          "section": "Casa e Rotina",
+          "word": "いただきます。",
+          "reading": "",
+          "romanization": "itadakimasu",
+          "translation": "Vamos comer / Agradeço pela refeição.",
+          "explanation": "usada antes de comer."
+        },
+        {
+          "section": "Casa e Rotina",
+          "word": "ごちそうさまでした。",
+          "reading": "",
+          "romanization": "gochisōsama deshita",
+          "translation": "Obrigado pela refeição.",
+          "explanation": "usada depois de comer."
+        },
+        {
+          "section": "Compras",
+          "word": "いくらですか。",
+          "reading": "",
+          "romanization": "ikura desu ka?",
+          "translation": "Quanto custa?",
+          "explanation": ""
+        },
+        {
+          "section": "Compras",
+          "word": "これをください。",
+          "reading": "",
+          "romanization": "kore o kudasai",
+          "translation": "Quero isto, por favor / Dê-me isto, por favor.",
+          "explanation": ""
+        },
+        {
+          "section": "Compras",
+          "word": "カードは使えますか。",
+          "reading": "カードはつかえますか。",
+          "romanization": "Kādo wa tsukaemasu ka?",
+          "translation": "Aceita cartão? / Posso usar cartão?",
+          "explanation": ""
+        },
+        {
+          "section": "Compras",
+          "word": "袋はいりません。",
+          "reading": "ふくろはいりません。",
+          "romanization": "Fukuro wa irimasen.",
+          "translation": "Não preciso de sacola.",
+          "explanation": ""
+        },
+        {
+          "section": "Restaurante",
+          "word": "メニューをお願いします。",
+          "reading": "",
+          "romanization": "Menyū o onegaishimasu.",
+          "translation": "O cardápio, por favor.",
+          "explanation": ""
+        },
+        {
+          "section": "Restaurante",
+          "word": "水をください。",
+          "reading": "みずをください。",
+          "romanization": "Mizu o kudasai.",
+          "translation": "Água, por favor.",
+          "explanation": ""
+        },
+        {
+          "section": "Restaurante",
+          "word": "おすすめは何ですか。",
+          "reading": "おすすめはなんですか。",
+          "romanization": "Osusume wa nan desu ka?",
+          "translation": "O que você recomenda?",
+          "explanation": ""
+        },
+        {
+          "section": "Restaurante",
+          "word": "これをお願いします。",
+          "reading": "",
+          "romanization": "Kore o onegaishimasu.",
+          "translation": "Este, por favor.",
+          "explanation": ""
+        },
+        {
+          "section": "Restaurante",
+          "word": "お会計をお願いします。",
+          "reading": "おかいけいをおねがいします。",
+          "romanization": "Okaikei o onegaishimasu.",
+          "translation": "A conta, por favor.",
+          "explanation": ""
+        },
+        {
+          "section": "Direções",
+          "word": "トイレはどこですか。",
+          "reading": "",
+          "romanization": "Toire wa doko desu ka?",
+          "translation": "Onde fica o banheiro?",
+          "explanation": ""
+        },
+        {
+          "section": "Direções",
+          "word": "駅はどこですか。",
+          "reading": "えきはどこですか。",
+          "romanization": "Eki wa doko desu ka?",
+          "translation": "Onde fica a estação?",
+          "explanation": ""
+        },
+        {
+          "section": "Direções",
+          "word": "東京駅へはどう行きますか。",
+          "reading": "とうきょうえきへはどういきますか。",
+          "romanization": "Tōkyō-eki e wa dō ikimasu ka?",
+          "translation": "Como faço para chegar à Estação de Tóquio?",
+          "explanation": ""
+        },
+        {
+          "section": "Direções",
+          "word": "ここで合っていますか。",
+          "reading": "ここであっていますか。",
+          "romanization": "Koko de atteimasu ka?",
+          "translation": "É aqui mesmo? / Estou no lugar certo?",
+          "explanation": ""
+        },
+        {
+          "section": "Direções",
+          "word": "次の駅は何ですか。",
+          "reading": "つぎのえきはなんですか。",
+          "romanization": "Tsugi no eki wa nan desu ka?",
+          "translation": "Qual é a próxima estação?",
+          "explanation": ""
+        },
+        {
+          "section": "Horários e Datas",
+          "word": "今、何時ですか。",
+          "reading": "いま、なんじですか。",
+          "romanization": "Ima, nanji desu ka?",
+          "translation": "Que horas são agora?",
+          "explanation": ""
+        },
+        {
+          "section": "Horários e Datas",
+          "word": "何時からですか。",
+          "reading": "なんじからですか。",
+          "romanization": "Nanji kara desu ka?",
+          "translation": "Começa a que horas?",
+          "explanation": ""
+        },
+        {
+          "section": "Horários e Datas",
+          "word": "何時までですか。",
+          "reading": "なんじまでですか。",
+          "romanization": "Nanji made desu ka?",
+          "translation": "Vai até que horas?",
+          "explanation": ""
+        },
+        {
+          "section": "Pedindo Permissão",
+          "word": "写真を撮ってもいいですか。",
+          "reading": "しゃしんをとってもいいですか。",
+          "romanization": "Shashin o totte mo ii desu ka?",
+          "translation": "Posso tirar uma foto?",
+          "explanation": "〜てもいいですか é uma estrutura comum para pedir permissão."
+        },
+        {
+          "section": "Pedindo Permissão",
+          "word": "ここに座ってもいいですか。",
+          "reading": "ここにすわってもいいですか。",
+          "romanization": "Koko ni suwatte mo ii desu ka?",
+          "translation": "Posso sentar aqui?",
+          "explanation": ""
+        },
+        {
+          "section": "Emergências",
+          "word": "助けてください。",
+          "reading": "たすけてください。",
+          "romanization": "Tasukete kudasai.",
+          "translation": "Por favor, ajude-me / Socorro.",
+          "explanation": ""
+        },
+        {
+          "section": "Emergências",
+          "word": "気分が悪いです。",
+          "reading": "きぶんがわるいです。",
+          "romanization": "Kibun ga warui desu.",
+          "translation": "Estou me sentindo mal.",
+          "explanation": ""
+        },
+        {
+          "section": "Emergências",
+          "word": "病院はどこですか。",
+          "reading": "びょういんはどこですか。",
+          "romanization": "Byōin wa doko desu ka?",
+          "translation": "Onde fica o hospital?",
+          "explanation": ""
+        },
+        {
+          "section": "Emergências",
+          "word": "警察を呼んでください。",
+          "reading": "けいさつをよんでください。",
+          "romanization": "Keisatsu o yonde kudasai.",
+          "translation": "Por favor, chame a polícia.",
+          "explanation": ""
+        },
+        {
+          "section": "Agradecimentos e Desculpas",
+          "word": "ありがとう。",
+          "reading": "ありがとう。",
+          "romanization": "arigatō",
+          "translation": "Obrigado(a).",
+          "explanation": "forma casual de agradecer, adequada entre pessoas próximas ou em situações informais."
+        },
+        {
+          "section": "Agradecimentos e Desculpas",
+          "word": "ありがとうございます。",
+          "reading": "ありがとうございます。",
+          "romanization": "arigatō gozaimasu",
+          "translation": "Muito obrigado(a).",
+          "explanation": "forma educada e muito comum no dia a dia."
+        },
+        {
+          "section": "Agradecimentos e Desculpas",
+          "word": "ありがとうございました。",
+          "reading": "ありがとうございました。",
+          "romanization": "arigatō gozaimashita",
+          "translation": "Muito obrigado(a) pelo que fez.",
+          "explanation": "agradecimento educado frequentemente usado depois que uma ação ou serviço foi concluído."
+        },
+        {
+          "section": "Agradecimentos e Desculpas",
+          "word": "どうも。",
+          "reading": "どうも。",
+          "romanization": "dōmo",
+          "translation": "Obrigado / Valeu.",
+          "explanation": "pode funcionar como agradecimento curto e casual dependendo do contexto."
+        },
+        {
+          "section": "Agradecimentos e Desculpas",
+          "word": "すみません。",
+          "reading": "すみません。",
+          "romanization": "sumimasen",
+          "translation": "Desculpe / Com licença / Obrigado.",
+          "explanation": "expressão extremamente versátil; pode servir para chamar alguém, pedir desculpas ou demonstrar gratidão."
+        },
+        {
+          "section": "Agradecimentos e Desculpas",
+          "word": "ごめん。",
+          "reading": "ごめん。",
+          "romanization": "gomen",
+          "translation": "Desculpa.",
+          "explanation": "pedido de desculpas casual."
+        },
+        {
+          "section": "Agradecimentos e Desculpas",
+          "word": "ごめんなさい。",
+          "reading": "ごめんなさい。",
+          "romanization": "gomennasai",
+          "translation": "Desculpe-me.",
+          "explanation": "pedido de desculpas mais completo e direto que ごめん."
+        },
+        {
+          "section": "Agradecimentos e Desculpas",
+          "word": "申し訳ありません。",
+          "reading": "もうしわけありません。",
+          "romanization": "mōshiwake arimasen",
+          "translation": "Peço sinceras desculpas.",
+          "explanation": "forma formal de desculpa; muito usada em contextos profissionais e de atendimento."
+        },
+        {
+          "section": "Agradecimentos e Desculpas",
+          "word": "大丈夫です。",
+          "reading": "だいじょうぶです。",
+          "romanization": "daijōbu desu",
+          "translation": "Está tudo bem / Não tem problema / Não precisa.",
+          "explanation": "resposta muito contextual; pode tranquilizar alguém ou recusar educadamente uma oferta."
+        },
+        {
+          "section": "Agradecimentos e Desculpas",
+          "word": "気にしないでください。",
+          "reading": "きにしないでください。",
+          "romanization": "ki ni shinaide kudasai",
+          "translation": "Não se preocupe com isso.",
+          "explanation": "usada para dizer ao interlocutor que não precisa se preocupar com algo que aconteceu."
+        },
+        {
+          "section": "Escola e Estudos",
+          "word": "私は学生です。",
+          "reading": "わたしはがくせいです。",
+          "romanization": "Watashi wa gakusei desu.",
+          "translation": "Eu sou estudante.",
+          "explanation": "frase básica para apresentar ocupação ou condição de estudante."
+        },
+        {
+          "section": "Escola e Estudos",
+          "word": "日本語を勉強しています。",
+          "reading": "にほんごをべんきょうしています。",
+          "romanization": "Nihongo o benkyō shiteimasu.",
+          "translation": "Estou estudando japonês.",
+          "explanation": "勉強する significa estudar; a forma 〜ています indica aqui atividade em andamento ou habitual."
+        },
+        {
+          "section": "Escola e Estudos",
+          "word": "学校へ行きます。",
+          "reading": "がっこうへいきます。",
+          "romanization": "Gakkō e ikimasu.",
+          "translation": "Vou para a escola.",
+          "explanation": "へ indica direção e, como partícula, é pronunciado \"e\"."
+        },
+        {
+          "section": "Escola e Estudos",
+          "word": "学校で勉強します。",
+          "reading": "がっこうでべんきょうします。",
+          "romanization": "Gakkō de benkyō shimasu.",
+          "translation": "Estudo na escola.",
+          "explanation": "で marca o local onde uma ação acontece."
+        },
+        {
+          "section": "Escola e Estudos",
+          "word": "先生に聞きます。",
+          "reading": "せんせいにききます。",
+          "romanization": "Sensei ni kikimasu.",
+          "translation": "Vou perguntar ao professor.",
+          "explanation": "聞く pode significar ouvir ou perguntar; com に marcando a pessoa, pode indicar perguntar a alguém."
+        },
+        {
+          "section": "Escola e Estudos",
+          "word": "宿題があります。",
+          "reading": "しゅくだいがあります。",
+          "romanization": "Shukudai ga arimasu.",
+          "translation": "Tenho dever de casa.",
+          "explanation": "literalmente indica que existe dever de casa."
+        },
+        {
+          "section": "Escola e Estudos",
+          "word": "宿題をします。",
+          "reading": "しゅくだいをします。",
+          "romanization": "Shukudai o shimasu.",
+          "translation": "Faço o dever de casa.",
+          "explanation": "を marca 宿題 como objeto da ação する."
+        },
+        {
+          "section": "Escola e Estudos",
+          "word": "本を読みます。",
+          "reading": "ほんをよみます。",
+          "romanization": "Hon o yomimasu.",
+          "translation": "Leio um livro.",
+          "explanation": "読む significa ler."
+        },
+        {
+          "section": "Escola e Estudos",
+          "word": "漢字を練習します。",
+          "reading": "かんじをれんしゅうします。",
+          "romanization": "Kanji o renshū shimasu.",
+          "translation": "Pratico kanji.",
+          "explanation": "練習する significa praticar ou treinar."
+        },
+        {
+          "section": "Escola e Estudos",
+          "word": "質問があります。",
+          "reading": "しつもんがあります。",
+          "romanization": "Shitsumon ga arimasu.",
+          "translation": "Tenho uma pergunta.",
+          "explanation": "frase útil para aulas e situações de estudo."
+        },
+        {
+          "section": "Escola e Estudos",
+          "word": "これはどう読みますか。",
+          "reading": "これはどうよみますか。",
+          "romanization": "Kore wa dō yomimasu ka?",
+          "translation": "Como se lê isto?",
+          "explanation": "pergunta útil para descobrir a leitura de palavras e kanji."
+        },
+        {
+          "section": "Escola e Estudos",
+          "word": "これはどう書きますか。",
+          "reading": "これはどうかきますか。",
+          "romanization": "Kore wa dō kakimasu ka?",
+          "translation": "Como se escreve isto?",
+          "explanation": "書く significa escrever."
+        },
+        {
+          "section": "Escola e Estudos",
+          "word": "意味がわかりません。",
+          "reading": "いみがわかりません。",
+          "romanization": "Imi ga wakarimasen.",
+          "translation": "Não entendo o significado.",
+          "explanation": "frase útil durante estudos ou conversas."
+        },
+        {
+          "section": "Escola e Estudos",
+          "word": "もう一度説明してください。",
+          "reading": "もういちどせつめいしてください。",
+          "romanization": "Mō ichido setsumei shite kudasai.",
+          "translation": "Explique mais uma vez, por favor.",
+          "explanation": "〜てください é uma forma comum de fazer pedidos educados."
+        },
+        {
+          "section": "Escola e Estudos",
+          "word": "テストはいつですか。",
+          "reading": "テストはいつですか。",
+          "romanization": "Tesuto wa itsu desu ka?",
+          "translation": "Quando é a prova?",
+          "explanation": "いつ significa quando."
+        },
+        {
+          "section": "Konbini",
+          "word": "コンビニはどこですか。",
+          "reading": "コンビニはどこですか。",
+          "romanization": "Konbini wa doko desu ka?",
+          "translation": "Onde fica a loja de conveniência?",
+          "explanation": "コンビニ é abreviação de コンビニエンスストア."
+        },
+        {
+          "section": "Konbini",
+          "word": "これをください。",
+          "reading": "これをください。",
+          "romanization": "Kore o kudasai.",
+          "translation": "Isto, por favor.",
+          "explanation": "forma simples de pedir um produto apontando para ele."
+        },
+        {
+          "section": "Konbini",
+          "word": "袋はいりますか。",
+          "reading": "ふくろはいりますか。",
+          "romanization": "Fukuro wa irimasu ka?",
+          "translation": "Precisa de sacola?",
+          "explanation": "pergunta comum feita por atendentes."
+        },
+        {
+          "section": "Konbini",
+          "word": "袋はいりません。",
+          "reading": "ふくろはいりません。",
+          "romanization": "Fukuro wa irimasen.",
+          "translation": "Não preciso de sacola.",
+          "explanation": "resposta útil em lojas."
+        },
+        {
+          "section": "Konbini",
+          "word": "袋をお願いします。",
+          "reading": "ふくろをおねがいします。",
+          "romanization": "Fukuro o onegaishimasu.",
+          "translation": "Uma sacola, por favor.",
+          "explanation": "pedido educado."
+        },
+        {
+          "section": "Konbini",
+          "word": "温めますか。",
+          "reading": "あたためますか。",
+          "romanization": "Atatamemasu ka?",
+          "translation": "Quer que eu aqueça?",
+          "explanation": "pergunta comum ao comprar refeições prontas."
+        },
+        {
+          "section": "Konbini",
+          "word": "温めてください。",
+          "reading": "あたためてください。",
+          "romanization": "Atatamete kudasai.",
+          "translation": "Aqueça, por favor.",
+          "explanation": "resposta útil quando se deseja aquecer a comida."
+        },
+        {
+          "section": "Konbini",
+          "word": "そのままで大丈夫です。",
+          "reading": "そのままでだいじょうぶです。",
+          "romanization": "Sono mama de daijōbu desu.",
+          "translation": "Pode deixar assim mesmo.",
+          "explanation": "útil para recusar aquecimento, embalagem extra ou outra preparação."
+        },
+        {
+          "section": "Konbini",
+          "word": "お箸をください。",
+          "reading": "おはしをください。",
+          "romanization": "Ohashi o kudasai.",
+          "translation": "Hashis, por favor.",
+          "explanation": "お箸 significa palitinhos japoneses."
+        },
+        {
+          "section": "Konbini",
+          "word": "スプーンをください。",
+          "reading": "スプーンをください。",
+          "romanization": "Supūn o kudasai.",
+          "translation": "Uma colher, por favor.",
+          "explanation": ""
+        },
+        {
+          "section": "Konbini",
+          "word": "レシートをください。",
+          "reading": "レシートをください。",
+          "romanization": "Reshīto o kudasai.",
+          "translation": "O recibo, por favor.",
+          "explanation": ""
+        },
+        {
+          "section": "Konbini",
+          "word": "カードで払います。",
+          "reading": "カードではらいます。",
+          "romanization": "Kādo de haraimasu.",
+          "translation": "Vou pagar com cartão.",
+          "explanation": "で indica o meio utilizado para o pagamento."
+        },
+        {
+          "section": "Konbini",
+          "word": "現金で払います。",
+          "reading": "げんきんではらいます。",
+          "romanization": "Genkin de haraimasu.",
+          "translation": "Vou pagar em dinheiro.",
+          "explanation": "現金 significa dinheiro em espécie."
+        },
+        {
+          "section": "Konbini",
+          "word": "これはいくらですか。",
+          "reading": "これはいくらですか。",
+          "romanization": "Kore wa ikura desu ka?",
+          "translation": "Quanto custa isto?",
+          "explanation": ""
+        },
+        {
+          "section": "Konbini",
+          "word": "トイレを借りてもいいですか。",
+          "reading": "トイレをかりてもいいですか。",
+          "romanization": "Toire o karite mo ii desu ka?",
+          "translation": "Posso usar o banheiro?",
+          "explanation": "literalmente usa 借りる, \"pegar emprestado\"; é uma maneira natural de perguntar se pode usar o banheiro de um estabelecimento."
+        },
+        {
+          "section": "Transporte",
+          "word": "駅はどこですか。",
+          "reading": "えきはどこですか。",
+          "romanization": "Eki wa doko desu ka?",
+          "translation": "Onde fica a estação?",
+          "explanation": ""
+        },
+        {
+          "section": "Transporte",
+          "word": "この電車は東京へ行きますか。",
+          "reading": "このでんしゃはとうきょうへいきますか。",
+          "romanization": "Kono densha wa Tōkyō e ikimasu ka?",
+          "translation": "Este trem vai para Tóquio?",
+          "explanation": "pergunta prática para confirmar destino."
+        },
+        {
+          "section": "Transporte",
+          "word": "何番線ですか。",
+          "reading": "なんばんせんですか。",
+          "romanization": "Nanbansen desu ka?",
+          "translation": "Qual é a plataforma?",
+          "explanation": "番線 é usado para identificar linhas/plataformas em estações."
+        },
+        {
+          "section": "Transporte",
+          "word": "切符はどこで買えますか。",
+          "reading": "きっぷはどこでかえますか。",
+          "romanization": "Kippu wa doko de kaemasu ka?",
+          "translation": "Onde posso comprar a passagem?",
+          "explanation": "買えます é a forma potencial de 買う, \"poder comprar\"."
+        },
+        {
+          "section": "Transporte",
+          "word": "ICカードは使えますか。",
+          "reading": "アイシーカードはつかえますか。",
+          "romanization": "Aishī kādo wa tsukaemasu ka?",
+          "translation": "Posso usar cartão IC?",
+          "explanation": "útil para cartões de transporte como Suica e PASMO."
+        },
+        {
+          "section": "Transporte",
+          "word": "次の電車は何時ですか。",
+          "reading": "つぎのでんしゃはなんじですか。",
+          "romanization": "Tsugi no densha wa nanji desu ka?",
+          "translation": "Que horas é o próximo trem?",
+          "explanation": ""
+        },
+        {
+          "section": "Transporte",
+          "word": "次の駅は何ですか。",
+          "reading": "つぎのえきはなんですか。",
+          "romanization": "Tsugi no eki wa nan desu ka?",
+          "translation": "Qual é a próxima estação?",
+          "explanation": ""
+        },
+        {
+          "section": "Transporte",
+          "word": "ここで乗り換えますか。",
+          "reading": "ここでのりかえますか。",
+          "romanization": "Koko de norikaemasu ka?",
+          "translation": "Faço baldeação aqui?",
+          "explanation": "乗り換える significa trocar de trem, metrô, ônibus etc."
+        },
+        {
+          "section": "Transporte",
+          "word": "このバスは駅に行きますか。",
+          "reading": "このバスはえきにいきますか。",
+          "romanization": "Kono basu wa eki ni ikimasu ka?",
+          "translation": "Este ônibus vai para a estação?",
+          "explanation": ""
+        },
+        {
+          "section": "Transporte",
+          "word": "どこで降りますか。",
+          "reading": "どこでおりますか。",
+          "romanization": "Doko de orimasu ka?",
+          "translation": "Onde eu desço?",
+          "explanation": "降りる significa descer de um veículo."
+        },
+        {
+          "section": "Transporte",
+          "word": "タクシーを呼んでください。",
+          "reading": "タクシーをよんでください。",
+          "romanization": "Takushī o yonde kudasai.",
+          "translation": "Chame um táxi, por favor.",
+          "explanation": ""
+        },
+        {
+          "section": "Transporte",
+          "word": "ここまでお願いします。",
+          "reading": "ここまでおねがいします。",
+          "romanization": "Koko made onegaishimasu.",
+          "translation": "Até aqui, por favor.",
+          "explanation": "útil ao mostrar um destino a um motorista."
+        },
+        {
+          "section": "Transporte",
+          "word": "いくらかかりますか。",
+          "reading": "いくらかかりますか。",
+          "romanization": "Ikura kakarimasu ka?",
+          "translation": "Quanto vai custar?",
+          "explanation": "かかる pode indicar custo ou tempo necessário."
+        },
+        {
+          "section": "Hotel e Viagem",
+          "word": "予約しています。",
+          "reading": "よやくしています。",
+          "romanization": "Yoyaku shiteimasu.",
+          "translation": "Tenho uma reserva.",
+          "explanation": "expressão essencial ao chegar a um hotel."
+        },
+        {
+          "section": "Hotel e Viagem",
+          "word": "予約の名前はルーカスです。",
+          "reading": "よやくのなまえはルーカスです。",
+          "romanization": "Yoyaku no namae wa Rūkasu desu.",
+          "translation": "A reserva está no nome de Lucas.",
+          "explanation": ""
+        },
+        {
+          "section": "Hotel e Viagem",
+          "word": "チェックインをお願いします。",
+          "reading": "チェックインをおねがいします。",
+          "romanization": "Chekkuin o onegaishimasu.",
+          "translation": "Gostaria de fazer o check-in.",
+          "explanation": ""
+        },
+        {
+          "section": "Hotel e Viagem",
+          "word": "チェックアウトは何時ですか。",
+          "reading": "チェックアウトはなんじですか。",
+          "romanization": "Chekkuauto wa nanji desu ka?",
+          "translation": "Que horas é o check-out?",
+          "explanation": ""
+        },
+        {
+          "section": "Hotel e Viagem",
+          "word": "部屋は何階ですか。",
+          "reading": "へやはなんがいですか。",
+          "romanization": "Heya wa nangai desu ka?",
+          "translation": "Em que andar fica o quarto?",
+          "explanation": ""
+        },
+        {
+          "section": "Hotel e Viagem",
+          "word": "Wi-Fiはありますか。",
+          "reading": "ワイファイはありますか。",
+          "romanization": "Waifai wa arimasu ka?",
+          "translation": "Tem Wi-Fi?",
+          "explanation": ""
+        },
+        {
+          "section": "Hotel e Viagem",
+          "word": "Wi-Fiのパスワードは何ですか。",
+          "reading": "ワイファイのパスワードはなんですか。",
+          "romanization": "Waifai no pasuwādo wa nan desu ka?",
+          "translation": "Qual é a senha do Wi-Fi?",
+          "explanation": ""
+        },
+        {
+          "section": "Hotel e Viagem",
+          "word": "荷物を預けてもいいですか。",
+          "reading": "にもつをあずけてもいいですか。",
+          "romanization": "Nimotsu o azukete mo ii desu ka?",
+          "translation": "Posso deixar minha bagagem aqui?",
+          "explanation": "útil antes do check-in ou depois do check-out."
+        },
+        {
+          "section": "Hotel e Viagem",
+          "word": "タオルをもう一枚ください。",
+          "reading": "タオルをもういちまいください。",
+          "romanization": "Taoru o mō ichimai kudasai.",
+          "translation": "Mais uma toalha, por favor.",
+          "explanation": "枚 é contador para objetos planos e finos, incluindo toalhas em muitos contextos práticos."
+        },
+        {
+          "section": "Hotel e Viagem",
+          "word": "部屋の鍵をなくしました。",
+          "reading": "へやのかぎをなくしました。",
+          "romanization": "Heya no kagi o nakushimashita.",
+          "translation": "Perdi a chave do quarto.",
+          "explanation": ""
+        },
+        {
+          "section": "Hotel e Viagem",
+          "word": "エアコンが動きません。",
+          "reading": "エアコンがうごきません。",
+          "romanization": "Eakon ga ugokimasen.",
+          "translation": "O ar-condicionado não está funcionando.",
+          "explanation": ""
+        },
+        {
+          "section": "Hotel e Viagem",
+          "word": "お湯が出ません。",
+          "reading": "おゆがでません。",
+          "romanization": "Oyu ga demasen.",
+          "translation": "Não está saindo água quente.",
+          "explanation": ""
+        },
+        {
+          "section": "Hotel e Viagem",
+          "word": "観光案内所はどこですか。",
+          "reading": "かんこうあんないじょはどこですか。",
+          "romanization": "Kankō annaijo wa doko desu ka?",
+          "translation": "Onde fica o centro de informações turísticas?",
+          "explanation": ""
+        },
+        {
+          "section": "Hotel e Viagem",
+          "word": "この近くにおすすめの場所はありますか。",
+          "reading": "このちかくにおすすめのばしょはありますか。",
+          "romanization": "Kono chikaku ni osusume no basho wa arimasu ka?",
+          "translation": "Há algum lugar recomendado aqui perto?",
+          "explanation": ""
+        },
+        {
+          "section": "Conversação Casual",
+          "word": "元気？",
+          "reading": "げんき？",
+          "romanization": "Genki?",
+          "translation": "Tudo bem?",
+          "explanation": "forma casual muito curta."
+        },
+        {
+          "section": "Conversação Casual",
+          "word": "うん、元気。",
+          "reading": "うん、げんき。",
+          "romanization": "Un, genki.",
+          "translation": "Sim, estou bem.",
+          "explanation": "うん é um \"sim\" casual."
+        },
+        {
+          "section": "Conversação Casual",
+          "word": "最近どう？",
+          "reading": "さいきんどう？",
+          "romanization": "Saikin dō?",
+          "translation": "Como você está ultimamente? / Como vão as coisas?",
+          "explanation": "expressão casual para iniciar conversa."
+        },
+        {
+          "section": "Conversação Casual",
+          "word": "何してる？",
+          "reading": "なにしてる？",
+          "romanization": "Nani shiteru?",
+          "translation": "O que você está fazendo?",
+          "explanation": "forma casual de 何をしていますか."
+        },
+        {
+          "section": "Conversação Casual",
+          "word": "今、暇？",
+          "reading": "いま、ひま？",
+          "romanization": "Ima, hima?",
+          "translation": "Está livre agora?",
+          "explanation": "暇 significa tempo livre / estar desocupado."
+        },
+        {
+          "section": "Conversação Casual",
+          "word": "ほんと？",
+          "reading": "ほんと？",
+          "romanization": "Honto?",
+          "translation": "Sério?",
+          "explanation": "forma casual de 本当ですか."
+        },
+        {
+          "section": "Conversação Casual",
+          "word": "まじで？",
+          "reading": "まじで？",
+          "romanization": "Maji de?",
+          "translation": "Sério mesmo?",
+          "explanation": "expressão bastante casual; apropriada entre amigos, não em situações formais."
+        },
+        {
+          "section": "Conversação Casual",
+          "word": "そうなんだ。",
+          "reading": "そうなんだ。",
+          "romanization": "Sō nan da.",
+          "translation": "Ah, entendi / Então é assim.",
+          "explanation": "resposta casual ao receber informação."
+        },
+        {
+          "section": "Conversação Casual",
+          "word": "いいね！",
+          "reading": "いいね！",
+          "romanization": "Ii ne!",
+          "translation": "Legal! / Boa!",
+          "explanation": "expressão casual de aprovação."
+        },
+        {
+          "section": "Conversação Casual",
+          "word": "楽しそう。",
+          "reading": "たのしそう。",
+          "romanization": "Tanoshisō.",
+          "translation": "Parece divertido.",
+          "explanation": "〜そう pode indicar aparência ou impressão."
+        },
+        {
+          "section": "Conversação Casual",
+          "word": "行こう！",
+          "reading": "いこう！",
+          "romanization": "Ikō!",
+          "translation": "Vamos!",
+          "explanation": "forma volitiva casual de 行く."
+        },
+        {
+          "section": "Conversação Casual",
+          "word": "ちょっと待って。",
+          "reading": "ちょっとまって。",
+          "romanization": "Chotto matte.",
+          "translation": "Espera um pouco.",
+          "explanation": "forma casual de ちょっと待ってください."
+        },
+        {
+          "section": "Conversação Casual",
+          "word": "大丈夫？",
+          "reading": "だいじょうぶ？",
+          "romanization": "Daijōbu?",
+          "translation": "Você está bem? / Está tudo bem?",
+          "explanation": "significado depende do contexto."
+        },
+        {
+          "section": "Conversação Casual",
+          "word": "大丈夫。",
+          "reading": "だいじょうぶ。",
+          "romanization": "Daijōbu.",
+          "translation": "Estou bem / Tudo bem.",
+          "explanation": "resposta casual."
+        },
+        {
+          "section": "Conversação Casual",
+          "word": "わかった。",
+          "reading": "わかった。",
+          "romanization": "Wakatta.",
+          "translation": "Entendi.",
+          "explanation": "passado casual de 分かる usado como confirmação de entendimento."
+        },
+        {
+          "section": "Conversação Casual",
+          "word": "わからない。",
+          "reading": "わからない。",
+          "romanization": "Wakaranai.",
+          "translation": "Não sei / Não entendo.",
+          "explanation": "forma casual negativa de 分かる."
+        },
+        {
+          "section": "Conversação Casual",
+          "word": "またあとで。",
+          "reading": "またあとで。",
+          "romanization": "Mata ato de.",
+          "translation": "Até mais tarde.",
+          "explanation": ""
+        },
+        {
+          "section": "Conversação Casual",
+          "word": "じゃあね。",
+          "reading": "じゃあね。",
+          "romanization": "Jā ne.",
+          "translation": "Tchau / Até mais.",
+          "explanation": "despedida casual."
+        },
+        {
+          "section": "Conversação Casual",
+          "word": "気をつけて。",
+          "reading": "きをつけて。",
+          "romanization": "Ki o tsukete.",
+          "translation": "Se cuida / Tome cuidado.",
+          "explanation": "forma comum de desejar cuidado a alguém."
+        },
+        {
+          "section": "Conversação Casual",
+          "word": "また明日。",
+          "reading": "またあした。",
+          "romanization": "Mata ashita.",
+          "translation": "Até amanhã.",
+          "explanation": ""
+        },
+        {
+          "section": "Direções",
+          "word": "右に曲がってください。",
+          "reading": "みぎにまがってください。",
+          "romanization": "Migi ni magatte kudasai.",
+          "translation": "Vire à direita, por favor.",
+          "explanation": ""
+        },
+        {
+          "section": "Direções",
+          "word": "左に曲がってください。",
+          "reading": "ひだりにまがってください。",
+          "romanization": "Hidari ni magatte kudasai.",
+          "translation": "Vire à esquerda, por favor.",
+          "explanation": ""
+        },
+        {
+          "section": "Direções",
+          "word": "まっすぐ行ってください。",
+          "reading": "まっすぐいってください。",
+          "romanization": "Massugu itte kudasai.",
+          "translation": "Siga em frente, por favor.",
+          "explanation": ""
+        },
+        {
+          "section": "Direções",
+          "word": "ここから遠いですか。",
+          "reading": "ここからとおいですか。",
+          "romanization": "Koko kara tōi desu ka?",
+          "translation": "É longe daqui?",
+          "explanation": ""
+        },
+        {
+          "section": "Direções",
+          "word": "歩いて行けますか。",
+          "reading": "あるいていけますか。",
+          "romanization": "Aruite ikemasu ka?",
+          "translation": "Dá para ir a pé?",
+          "explanation": ""
+        },
+        {
+          "section": "Direções",
+          "word": "どのくらいかかりますか。",
+          "reading": "どのくらいかかりますか。",
+          "romanization": "Dono kurai kakarimasu ka?",
+          "translation": "Quanto tempo leva?",
+          "explanation": "dependendo do contexto, かかる pode se referir a tempo ou custo."
+        },
+        {
+          "section": "Direções",
+          "word": "地図で見せてください。",
+          "reading": "ちずでみせてください。",
+          "romanization": "Chizu de misete kudasai.",
+          "translation": "Mostre no mapa, por favor.",
+          "explanation": ""
+        },
+        {
+          "section": "Direções",
+          "word": "道に迷いました。",
+          "reading": "みちにまよいました。",
+          "romanization": "Michi ni mayoimashita.",
+          "translation": "Estou perdido(a).",
+          "explanation": "literalmente indica ter se perdido no caminho."
+        },
+        {
+          "section": "Horários e Datas",
+          "word": "今日は何日ですか。",
+          "reading": "きょうはなんにちですか。",
+          "romanization": "Kyō wa nannichi desu ka?",
+          "translation": "Que dia do mês é hoje?",
+          "explanation": ""
+        },
+        {
+          "section": "Horários e Datas",
+          "word": "今日は何曜日ですか。",
+          "reading": "きょうはなんようびですか。",
+          "romanization": "Kyō wa nan'yōbi desu ka?",
+          "translation": "Que dia da semana é hoje?",
+          "explanation": ""
+        },
+        {
+          "section": "Horários e Datas",
+          "word": "今日は月曜日です。",
+          "reading": "きょうはげつようびです。",
+          "romanization": "Kyō wa getsuyōbi desu.",
+          "translation": "Hoje é segunda-feira.",
+          "explanation": ""
+        },
+        {
+          "section": "Horários e Datas",
+          "word": "明日は火曜日です。",
+          "reading": "あしたはかようびです。",
+          "romanization": "Ashita wa kayōbi desu.",
+          "translation": "Amanhã é terça-feira.",
+          "explanation": ""
+        },
+        {
+          "section": "Horários e Datas",
+          "word": "三時です。",
+          "reading": "さんじです。",
+          "romanization": "Sanji desu.",
+          "translation": "São três horas.",
+          "explanation": ""
+        },
+        {
+          "section": "Horários e Datas",
+          "word": "三時半です。",
+          "reading": "さんじはんです。",
+          "romanization": "Sanji han desu.",
+          "translation": "São três e meia.",
+          "explanation": ""
+        },
+        {
+          "section": "Horários e Datas",
+          "word": "何時に始まりますか。",
+          "reading": "なんじにはじまりますか。",
+          "romanization": "Nanji ni hajimarimasu ka?",
+          "translation": "A que horas começa?",
+          "explanation": ""
+        },
+        {
+          "section": "Horários e Datas",
+          "word": "何時に終わりますか。",
+          "reading": "なんじにおわりますか。",
+          "romanization": "Nanji ni owarimasu ka?",
+          "translation": "A que horas termina?",
+          "explanation": ""
+        },
+        {
+          "section": "Horários e Datas",
+          "word": "明日会いましょう。",
+          "reading": "あしたあいましょう。",
+          "romanization": "Ashita aimashō.",
+          "translation": "Vamos nos encontrar amanhã.",
+          "explanation": "〜ましょう é uma forma educada de proposta ou convite."
+        }
+      ]
+    }
+  }
+}
