@@ -10,7 +10,7 @@ from ankiistudio.models import WikimediaMediaResult
 
 
 COMMONS_API = "https://commons.wikimedia.org/w/api.php"
-USER_AGENT = "AnkiiStudio/0.10.0 (https://github.com/LucasTsukasa)"
+USER_AGENT = "AnkiiStudio/0.11.0-beta.5 (https://github.com/LucasTsukasa)"
 
 
 def _clean_metadata(value: object) -> str:
@@ -22,6 +22,9 @@ def _clean_metadata(value: object) -> str:
 
 
 class WikimediaService:
+    key = "wikimedia"
+    label = "Wikimedia Commons"
+
     def __init__(self, timeout: float = 30.0) -> None:
         self.timeout = timeout
 
@@ -80,6 +83,7 @@ class WikimediaService:
             metadata = info.get("extmetadata") or {}
             results.append(
                 WikimediaMediaResult(
+                    provider="wikimedia",
                     title=str(page.get("title", "")),
                     page_id=page.get("pageid"),
                     file_url=str(info.get("url", "")),

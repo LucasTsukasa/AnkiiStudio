@@ -96,6 +96,8 @@ class PromptService:
     def _component_rules(
         cls,
         language: str,
+        translation_language: str,
+        translation_language_label: str,
         front_components: list[str],
         back_components: list[str],
     ) -> list[str]:
@@ -134,8 +136,17 @@ class PromptService:
                 ]
             )
 
-        # Imagens são pesquisadas pelo próprio AnkiiStudio: conteúdo original primeiro, tradução depois.
-        rules.append('Use `image_search_terms: []` e `image_path: ""`; não crie termos alternativos de busca de imagem.')
+        # A busca automática usa termos visuais explícitos quando existirem; sem eles, usa primeiro o conteúdo original.
+        if "image" in selected:
+            rules.append(
+                "Preencha `image_search_terms` com 1 a 3 buscas visuais concretas, preferencialmente em inglês, "
+                "que representem diretamente o significado do conteúdo. Para conceitos abstratos, descreva uma cena "
+                "visual inequívoca (ex.: 'scared person frightened expression'). Para kana, letras ou símbolos isolados, "
+                "use `image_search_terms: []` para permitir a busca pelo próprio caractere."
+            )
+        else:
+            rules.append('Use `image_search_terms: []`.')
+        rules.append('Use `image_path: ""`; a imagem será obtida posteriormente pelo AnkiiStudio.')
 
         # Existe apenas um componente de áudio. A síntese sempre usa `word`.
         rules.extend(
@@ -156,12 +167,20 @@ class PromptService:
 
         if "translation" in selected:
             rules.append(
-                "Traduza para português brasileiro de forma direta e natural. Não coloque explicações, observações ou descrições fonéticas dentro de `translation`."
+                f"Escreva `translation` em {translation_language_label} ({translation_language}), de forma direta e natural. "
+                "Não coloque explicações, observações ou descrições fonéticas dentro de `translation`."
+            )
+        if "example" in selected:
+            rules.append(
+                f"Quando `example_translation` for preenchido, escreva-o em {translation_language_label} ({translation_language})."
             )
         if "explanation" in selected:
-            rules.append("Forneça explicações objetivas, corretas e separadas da tradução.")
+            rules.append(
+                f"Escreva `explanation` em {translation_language_label} ({translation_language}), com explicações objetivas, corretas e separadas da tradução."
+            )
         if "mnemonic" in selected:
             rules.append(
+                f"Escreva `mnemonic` em {translation_language_label} ({translation_language}). "
                 "Use mnemônicos curtos e deixe claro o caráter mnemônico; não apresente associações inventadas como etimologia."
             )
 
@@ -200,6 +219,8 @@ class PromptService:
         cls,
         *,
         language: str = "ja",
+        translation_language: str = "pt",
+        ui_language: str = "pt_BR",
         template_key: str,
         topic: str,
         quantity: int,
@@ -209,7 +230,9 @@ class PromptService:
         custom_content: list[str] | None = None,
     ) -> str:
         language = normalize_language_code(language)
+        translation_language = normalize_language_code(translation_language)
         language_label = get_language_label(language)
+        translation_language_label = get_language_label(translation_language)
         template_label = TEMPLATE_LABELS.get(template_key, template_key)
         topic_line = topic.strip() or "sem recorte adicional"
         topic_items = cls._split_csv(topic)
@@ -243,13 +266,20 @@ class PromptService:
             "Não invente fatos linguísticos, traduções, leituras, etimologias ou classificações apenas para preencher campos.",
             "Não invente caminhos, URLs ou nomes de arquivos de mídia.",
             "Não gere valores artificiais para `id`, `project_id`, `created_at` ou `updated_at`; omita-os quando o schema permitir.",
-            f'O campo `language` deve ser exatamente "{language}"; `format_version` deve ser "1.0" e `category` deve ser "{template_key}".',
+            "Use `structure_key` vazio; o AnkiiStudio distribui as variações de estrutura após receber o conteúdo.",
+            f'O campo `language` deve ser exatamente "{language}" e `translation_language` deve ser exatamente "{translation_language}"; `format_version` deve ser "1.0" e `category` deve ser "{template_key}".',
             f'O campo `deck_name` deve ser exatamente {json.dumps(deck_name, ensure_ascii=False)}.',
             "O JSON Schema é a autoridade final sobre nomes de campos, tipos e estrutura.",
             "Retorne somente um objeto JSON válido, sem Markdown, comentários ou texto fora do JSON.",
         ]
         rules = mandatory_rules + cls._template_rules(language, template_key, template_label)
-        rules += cls._component_rules(language, front_components, back_components)
+        rules += cls._component_rules(
+            language,
+            translation_language,
+            translation_language_label,
+            front_components,
+            back_components,
+        )
         numbered_rules = cls._format_numbered_rules(rules)
 
         custom_block = ""
@@ -258,7 +288,7 @@ class PromptService:
                 f"- {item}" for item in custom_items
             )
 
-        return f'''Você é um especialista sênior em ensino de {language_label} para falantes de português brasileiro e em criação de materiais de estudo com flashcards.
+        return f'''Você é um especialista sênior em ensino de {language_label} para falantes de {translation_language_label} e em criação de materiais de estudo com flashcards.
 
 Sua tarefa é gerar um baralho estruturado para o AnkiiStudio. Priorize correção linguística, utilidade pedagógica, naturalidade, consistência entre os campos e aderência estrita ao formato solicitado.
 
@@ -266,6 +296,8 @@ Sua tarefa é gerar um baralho estruturado para o AnkiiStudio. Priorize correç�
 Nome do baralho: {deck_name}
 Idioma-alvo: {language_label}
 Código do idioma: {language}
+Idioma da tradução: {translation_language_label}
+Código do idioma da tradução: {translation_language}
 Modelo: {template_label}
 Categoria interna: {template_key}
 Quantidade: {quantity}
@@ -289,7 +321,7 @@ Antes de responder, confira internamente que:
 - `section` está preenchido e consistente;
 - campos pedagógicos não selecionados permanecem vazios;
 - nenhum caminho ou arquivo de mídia foi inventado;
-- `format_version`, `language`, `category` e `deck_name` têm os valores exigidos;
+- `format_version`, `language`, `translation_language`, `category` e `deck_name` têm os valores exigidos;
 - a saída respeita o JSON Schema;
 - o resultado é JSON sintaticamente válido;
 - não existe texto fora do JSON.

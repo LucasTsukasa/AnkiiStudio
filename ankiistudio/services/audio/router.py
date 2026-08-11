@@ -8,7 +8,7 @@ from ankiistudio.services.audio.base import AudioGenerationResult, AudioProvider
 
 
 class AudioRouter:
-    PRIORITY = ["wikimedia", "voicevox", "gemini", "elevenlabs"]
+    PRIORITY = ["tatoeba", "wikimedia", "voicevox", "gemini", "elevenlabs"]
 
     def __init__(self, providers: dict[str, AudioProvider]) -> None:
         self.providers = providers

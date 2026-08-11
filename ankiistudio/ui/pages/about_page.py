@@ -8,6 +8,7 @@ from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QPushButton, QVBoxLay
 
 from ankiistudio.constants import APP_NAME, APP_VERSION, GITHUB_URL
 from ankiistudio.database import Database
+from ankiistudio.i18n import tr
 from ankiistudio.ui.widgets import PageHeader, PageScrollArea, SectionCard
 
 
@@ -131,5 +132,5 @@ class AboutPage(QWidget):
 
     def refresh(self) -> None:
         self.media_count.setText(
-            f"{self.database.count_media_assets()} mídias registradas localmente"
+            tr(f"{self.database.count_media_assets()} mídias registradas localmente")
         )

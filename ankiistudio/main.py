@@ -10,6 +10,7 @@ from PySide6.QtWidgets import QApplication, QMessageBox
 from ankiistudio.config import AppPaths
 from ankiistudio.constants import APP_NAME, APP_VERSION, ORGANIZATION_NAME
 from ankiistudio.database import Database
+from ankiistudio.i18n import UiLanguageManager, set_current_language, tr
 from ankiistudio.ui.main_window import MainWindow
 from ankiistudio.ui.theme import build_stylesheet
 
@@ -38,6 +39,11 @@ def main() -> int:
         paths.ensure()
         configure_logging(paths)
         database = Database(paths.database_path)
+        ui_language = database.get_setting("ui_language", "pt_BR")
+        set_current_language(ui_language)
+        language_manager = UiLanguageManager(ui_language)
+        app.installEventFilter(language_manager)
+        app._ankiistudio_language_manager = language_manager  # type: ignore[attr-defined]
         resource_dir = Path(__file__).resolve().parent / "resources"
         app.setStyleSheet(build_stylesheet(resource_dir, database.get_setting("appearance_theme", "dark")))
         window = MainWindow(database, paths, resource_dir)
@@ -49,8 +55,8 @@ def main() -> int:
     except Exception as exc:
         QMessageBox.critical(
             None,
-            "Falha ao iniciar o AnkiiStudio",
-            f"O aplicativo não pôde ser iniciado:\n\n{exc}",
+            tr("Falha ao iniciar o AnkiiStudio"),
+            tr("O aplicativo não pôde ser iniciado:") + f"\n\n{exc}",
         )
         logging.exception("Falha fatal durante a inicialização")
         return 1

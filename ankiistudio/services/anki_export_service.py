@@ -6,7 +6,7 @@ from pathlib import Path
 import genanki
 
 from ankiistudio.constants import COMPONENT_LABELS
-from ankiistudio.models import FlashcardData, ProjectData
+from ankiistudio.models import CardStructureVariation, FlashcardData, ProjectData
 from ankiistudio.services.card_template_service import build_card_css, render_components_template
 
 
@@ -49,6 +49,7 @@ def _stable_id(prefix: str, value: str) -> int:
     raw = int.from_bytes(digest[:4], "big")
     return (1 << 30) + (raw % (1 << 30))
 
+
 def _valid_file(path_text: str) -> bool:
     if not path_text:
         return False
@@ -81,9 +82,13 @@ def _note_guid_key(project: ProjectData, card: FlashcardData) -> str:
             card.translation,
             card.example,
             card.example_translation,
+            card.structure_key,
         ]
     )
-    return f"ankiistudio:{project.id or project.name}:content:{hashlib.sha256(content.encode('utf-8')).hexdigest()}"
+    return (
+        f"ankiistudio:{project.id or project.name}:content:"
+        f"{hashlib.sha256(content.encode('utf-8')).hexdigest()}"
+    )
 
 
 class StableNote(genanki.Note):
@@ -98,26 +103,37 @@ class StableNote(genanki.Note):
 
 class AnkiExportService:
     @staticmethod
-    def analyze_cards(project: ProjectData, cards: list[FlashcardData]) -> tuple[list[str], list[str]]:
+    def _variation_for_card(project: ProjectData, card: FlashcardData) -> CardStructureVariation:
+        return project.structure_for_card(card)
+
+    @classmethod
+    def analyze_cards(
+        cls, project: ProjectData, cards: list[FlashcardData]
+    ) -> tuple[list[str], list[str]]:
         if not cards:
             return ["Não há cartões selecionados para exportar."], []
         errors: list[str] = []
         warnings: list[str] = []
         for card in cards:
+            variation = cls._variation_for_card(project, card)
             front_has_content = any(
-                _component_has_value(component, card) for component in project.front_components
+                _component_has_value(component, card) for component in variation.front_components
             )
             if not front_has_content:
-                errors.append(f"{card.word}: a frente do cartão ficaria vazia")
+                errors.append(
+                    f"{card.word}: a frente do cartão ficaria vazia ({variation.name})"
+                )
                 continue
             missing = [
                 component
-                for component in dict.fromkeys(project.front_components + project.back_components)
+                for component in dict.fromkeys(
+                    variation.front_components + variation.back_components
+                )
                 if not _component_has_value(component, card)
             ]
             if missing:
                 labels = ", ".join(COMPONENT_LABELS.get(item, item) for item in missing)
-                warnings.append(f"{card.word}: faltando {labels}")
+                warnings.append(f"{card.word}: faltando {labels} ({variation.name})")
         return errors, warnings
 
     @classmethod
@@ -133,6 +149,29 @@ class AnkiExportService:
             )
         return warnings
 
+    @staticmethod
+    def _build_models(project: ProjectData) -> dict[str, genanki.Model]:
+        models: dict[str, genanki.Model] = {}
+        for variation in project.structure_variations():
+            model = genanki.Model(
+                _stable_id(
+                    "model",
+                    f"{project.id}:{project.name}:{variation.key}",
+                ),
+                f"AnkiiStudio - {project.name} - {variation.name}",
+                fields=[{"name": field} for field in _FIELD_ORDER],
+                templates=[
+                    {
+                        "name": variation.name,
+                        "qfmt": render_components_template(variation.front_components),
+                        "afmt": render_components_template(variation.back_components),
+                    }
+                ],
+                css=build_card_css(project.card_theme),
+            )
+            models[variation.key] = model
+        return models
+
     def export(
         self,
         project: ProjectData,
@@ -141,22 +180,12 @@ class AnkiExportService:
     ) -> Path:
         self.validate_cards(project, cards)
         destination.parent.mkdir(parents=True, exist_ok=True)
+        models = self._build_models(project)
+        fallback_model = next(iter(models.values()))
 
-        model = genanki.Model(
-            _stable_id("model", f"{project.id}:{project.name}"),
-            f"AnkiiStudio - {project.name}",
-            fields=[{"name": field} for field in _FIELD_ORDER],
-            templates=[
-                {
-                    "name": "Cartão AnkiiStudio",
-                    "qfmt": render_components_template(project.front_components),
-                    "afmt": render_components_template(project.back_components),
-                }
-            ],
-            css=build_card_css(project.card_theme),
-        )
-
-        section_order = {name.casefold(): index for index, name in enumerate(project.deck_sections)}
+        section_order = {
+            name.casefold(): index for index, name in enumerate(project.deck_sections)
+        }
         grouped: dict[str, list[FlashcardData]] = {}
         for card in cards:
             grouped.setdefault(card.section.strip(), []).append(card)
@@ -179,6 +208,8 @@ class AnkiExportService:
                 deck_name,
             )
             for card in grouped[section]:
+                variation = project.structure_for_card(card)
+                model = models.get(variation.key, fallback_model)
                 image_html = ""
                 if _valid_file(card.image_path):
                     media_files.add(card.image_path)

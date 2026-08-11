@@ -26,7 +26,8 @@ from ankiistudio.constants import (
 )
 from ankiistudio.data.japanese_seed import builtin_card_count
 from ankiistudio.database import Database
-from ankiistudio.models import ProjectData
+from ankiistudio.i18n import current_language, language_items, tr, ui_language_to_translation_code
+from ankiistudio.models import CardStructureVariation, ProjectData
 from ankiistudio.services.gemini_service import GeminiContentService
 from ankiistudio.services.project_service import ProjectService
 from ankiistudio.services.prompt_service import PromptService
@@ -75,6 +76,8 @@ class CreatePage(QWidget):
         self._workers: list[Worker] = []
         self._updating_templates = False
         self._compact_layout = False
+        self._structure_variations: list[CardStructureVariation] = []
+        self._loading_structure = False
 
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
@@ -102,8 +105,14 @@ class CreatePage(QWidget):
         self.name_input = QLineEdit()
         self.name_input.setPlaceholderText("Ex.: Frases para viagem")
         self.language_combo = SearchableComboBox()
-        self.language_combo.set_items([(label, code) for code, label in LANGUAGE_LABELS.items()], "ja")
+        self.language_combo._i18n_skip_items = True
+        self.language_combo.set_items(language_items(), "ja")
         self.language_combo.lineEdit().setPlaceholderText("Selecione ou pesquise um idioma")
+        self.translation_language_combo = SearchableComboBox()
+        self.translation_language_combo._i18n_skip_items = True
+        default_translation_language = ui_language_to_translation_code(current_language())
+        self.translation_language_combo.set_items(language_items(), default_translation_language)
+        self.translation_language_combo.lineEdit().setPlaceholderText("Selecione ou pesquise o idioma da tradução")
         self.template_combo = SearchableComboBox()
         self.template_combo.lineEdit().setPlaceholderText("Selecione ou pesquise um modelo")
 
@@ -119,6 +128,7 @@ class CreatePage(QWidget):
 
         self.name_cell = self._field_cell("Nome do projeto", self.name_input)
         self.language_cell = self._field_cell("Idioma", self.language_combo)
+        self.translation_language_cell = self._field_cell("Idioma da tradução", self.translation_language_combo)
         self.template_cell = self._field_cell("Modelo", self.template_combo)
         self.custom_content_cell = self._field_cell(
             "Conteúdos personalizados",
@@ -134,6 +144,7 @@ class CreatePage(QWidget):
         for cell in (
             self.name_cell,
             self.language_cell,
+            self.translation_language_cell,
             self.template_cell,
             self.custom_content_cell,
             self.topic_cell,
@@ -169,6 +180,32 @@ class CreatePage(QWidget):
             "3. Estrutura automática",
             "Modelos padrão carregam a estrutura recomendada. Você pode adicionar, remover e reorganizar componentes antes de criar o projeto.",
         )
+        structure_controls = QGridLayout()
+        structure_controls.setHorizontalSpacing(8)
+        structure_controls.setVerticalSpacing(6)
+        self.structure_selector = QComboBox()
+        self.structure_name_input = QLineEdit()
+        self.structure_name_input.setPlaceholderText("Nome da variação")
+        self.add_structure_button = QPushButton("+ Adicionar variação")
+        self.remove_structure_button = QPushButton("Remover variação")
+        self.add_structure_button.setObjectName("SubtleButton")
+        self.remove_structure_button.setObjectName("SubtleButton")
+        structure_controls.addWidget(QLabel("Variação"), 0, 0)
+        structure_controls.addWidget(self.structure_selector, 0, 1)
+        structure_controls.addWidget(QLabel("Nome"), 1, 0)
+        structure_controls.addWidget(self.structure_name_input, 1, 1)
+        structure_controls.addWidget(self.add_structure_button, 0, 2)
+        structure_controls.addWidget(self.remove_structure_button, 1, 2)
+        structure_controls.setColumnStretch(1, 1)
+        structure_card.root.addLayout(structure_controls)
+
+        structure_hint = QLabel(
+            "Com duas ou mais variações, os cartões são distribuídos aleatoriamente de forma equilibrada entre as estruturas."
+        )
+        structure_hint.setObjectName("MutedLabel")
+        structure_hint.setWordWrap(True)
+        structure_card.root.addWidget(structure_hint)
+
         self.structure_grid = QGridLayout()
         self.structure_grid.setHorizontalSpacing(12)
         self.structure_grid.setVerticalSpacing(12)
@@ -178,6 +215,13 @@ class CreatePage(QWidget):
         self.structure_grid.addWidget(self.back_editor, 0, 1)
         structure_card.root.addLayout(self.structure_grid)
         layout.addWidget(structure_card)
+
+        self.structure_selector.currentIndexChanged.connect(self._structure_selected)
+        self.structure_name_input.editingFinished.connect(self._save_current_structure)
+        self.front_editor.changed.connect(self._save_current_structure)
+        self.back_editor.changed.connect(self._save_current_structure)
+        self.add_structure_button.clicked.connect(self._add_structure_variation)
+        self.remove_structure_button.clicked.connect(self._remove_structure_variation)
 
         actions = QHBoxLayout()
         self.prompt_button = QPushButton("Gerar prompt para a IA")
@@ -230,6 +274,82 @@ class CreatePage(QWidget):
             items.append(item)
         return items
 
+    def _refresh_structure_selector(self, current_index: int = 0) -> None:
+        self.structure_selector.blockSignals(True)
+        self.structure_selector.clear()
+        for index, variation in enumerate(self._structure_variations, start=1):
+            self.structure_selector.addItem(f"{index}. {variation.name}", variation.key)
+        if self._structure_variations:
+            self.structure_selector.setCurrentIndex(max(0, min(current_index, len(self._structure_variations) - 1)))
+        self.structure_selector.blockSignals(False)
+        self.remove_structure_button.setEnabled(len(self._structure_variations) > 1)
+
+    def _reset_structure_variations(self, front: list[str], back: list[str]) -> None:
+        self._loading_structure = True
+        self._structure_variations = [
+            CardStructureVariation(name="Variação 1", front_components=front, back_components=back)
+        ]
+        self._refresh_structure_selector(0)
+        self.structure_name_input.setText(self._structure_variations[0].name)
+        self.front_editor.set_components(front)
+        self.back_editor.set_components(back)
+        self._loading_structure = False
+
+    def _save_current_structure(self) -> None:
+        if self._loading_structure or not self._structure_variations:
+            return
+        index = self.structure_selector.currentIndex()
+        if index < 0 or index >= len(self._structure_variations):
+            return
+        name = self.structure_name_input.text().strip() or f"Variação {index + 1}"
+        self._structure_variations[index] = self._structure_variations[index].model_copy(
+            update={
+                "name": name,
+                "front_components": self.front_editor.components(),
+                "back_components": self.back_editor.components(),
+            }
+        )
+        self.structure_selector.setItemText(index, f"{index + 1}. {name}")
+
+    def _structure_selected(self, index: int) -> None:
+        if self._loading_structure or index < 0 or index >= len(self._structure_variations):
+            return
+        self._loading_structure = True
+        variation = self._structure_variations[index]
+        self.structure_name_input.setText(variation.name)
+        self.front_editor.set_components(list(variation.front_components))
+        self.back_editor.set_components(list(variation.back_components))
+        self._loading_structure = False
+
+    def _add_structure_variation(self) -> None:
+        self._save_current_structure()
+        if self._structure_variations:
+            base = self._structure_variations[max(0, self.structure_selector.currentIndex())]
+            variation = CardStructureVariation(
+                name=f"Variação {len(self._structure_variations) + 1}",
+                front_components=list(base.front_components),
+                back_components=list(base.back_components),
+            )
+        else:
+            variation = CardStructureVariation(
+                name="Variação 1", front_components=["word"], back_components=["translation"]
+            )
+        self._structure_variations.append(variation)
+        index = len(self._structure_variations) - 1
+        self._refresh_structure_selector(index)
+        self._structure_selected(index)
+
+    def _remove_structure_variation(self) -> None:
+        if len(self._structure_variations) <= 1:
+            return
+        index = self.structure_selector.currentIndex()
+        if index < 0:
+            return
+        self._structure_variations.pop(index)
+        target = min(index, len(self._structure_variations) - 1)
+        self._refresh_structure_selector(target)
+        self._structure_selected(target)
+
     def resizeEvent(self, event) -> None:  # type: ignore[override]
         self._apply_responsive_layout()
         super().resizeEvent(event)
@@ -243,6 +363,7 @@ class CreatePage(QWidget):
         for cell in (
             self.name_cell,
             self.language_cell,
+            self.translation_language_cell,
             self.template_cell,
             self.custom_content_cell,
             self.topic_cell,
@@ -253,17 +374,19 @@ class CreatePage(QWidget):
         if compact:
             self.content_grid.addWidget(self.name_cell, 0, 0)
             self.content_grid.addWidget(self.language_cell, 1, 0)
-            self.content_grid.addWidget(self.template_cell, 2, 0)
-            self.content_grid.addWidget(self.custom_content_cell, 3, 0)
-            self.content_grid.addWidget(self.topic_cell, 4, 0)
-            self.content_grid.addWidget(self.quantity_cell, 5, 0)
+            self.content_grid.addWidget(self.translation_language_cell, 2, 0)
+            self.content_grid.addWidget(self.template_cell, 3, 0)
+            self.content_grid.addWidget(self.custom_content_cell, 4, 0)
+            self.content_grid.addWidget(self.topic_cell, 5, 0)
+            self.content_grid.addWidget(self.quantity_cell, 6, 0)
         else:
             self.content_grid.addWidget(self.name_cell, 0, 0, 1, 2)
             self.content_grid.addWidget(self.language_cell, 1, 0)
-            self.content_grid.addWidget(self.template_cell, 1, 1)
-            self.content_grid.addWidget(self.custom_content_cell, 2, 0, 1, 2)
-            self.content_grid.addWidget(self.topic_cell, 3, 0)
-            self.content_grid.addWidget(self.quantity_cell, 3, 1)
+            self.content_grid.addWidget(self.translation_language_cell, 1, 1)
+            self.content_grid.addWidget(self.template_cell, 2, 0, 1, 2)
+            self.content_grid.addWidget(self.custom_content_cell, 3, 0, 1, 2)
+            self.content_grid.addWidget(self.topic_cell, 4, 0)
+            self.content_grid.addWidget(self.quantity_cell, 4, 1)
 
         for button in self.mode_buttons.values():
             self.mode_grid.removeWidget(button)
@@ -282,6 +405,27 @@ class CreatePage(QWidget):
             self.structure_grid.addWidget(self.front_editor, 0, 0)
             self.structure_grid.addWidget(self.back_editor, 0, 1)
 
+    def retranslate_ui(self) -> None:
+        selected_language = str(self.language_combo.currentData() or "ja")
+        selected_translation = str(self.translation_language_combo.currentData() or "pt")
+
+        self.language_combo.blockSignals(True)
+        self.translation_language_combo.blockSignals(True)
+        try:
+            self.language_combo.set_items(language_items(), selected_language)
+            self.translation_language_combo.set_items(language_items(), selected_translation)
+        finally:
+            self.language_combo.blockSignals(False)
+            self.translation_language_combo.blockSignals(False)
+
+        for index in range(self.template_combo.count()):
+            key = str(self.template_combo.itemData(index) or "")
+            if key in TEMPLATE_LABELS:
+                self.template_combo.setItemText(index, tr(TEMPLATE_LABELS[key]))
+        refresh = getattr(self.template_combo, "refresh_search_source", None)
+        if callable(refresh):
+            refresh()
+
     def _language_changed(self, _index: int | None = None) -> None:
         language_data = self.language_combo.currentData()
         if language_data is None:
@@ -289,7 +433,7 @@ class CreatePage(QWidget):
         language = str(language_data)
         self._updating_templates = True
         items = [
-            (TEMPLATE_LABELS[key], key)
+            (tr(TEMPLATE_LABELS[key]), key)
             for key in TEMPLATES_BY_LANGUAGE.get(language, ["custom"])
         ]
         self.template_combo.blockSignals(True)
@@ -309,8 +453,7 @@ class CreatePage(QWidget):
         front, back = TEMPLATE_DEFAULT_STRUCTURES.get(
             template_key, TEMPLATE_DEFAULT_STRUCTURES["custom"]
         )
-        self.front_editor.set_components(list(front))
-        self.back_editor.set_components(list(back))
+        self._reset_structure_variations(list(front), list(back))
 
         self.topic_input.setEnabled(is_custom)
         self.quantity_spin.setEnabled(is_custom)
@@ -347,22 +490,32 @@ class CreatePage(QWidget):
             button.setChecked(key == mode)
         self.prompt_button.setVisible(mode == "import")
         self.create_button.setText(
-            "Importar e criar projeto" if mode == "import" else "Criar projeto"
+            tr("Importar e criar projeto") if mode == "import" else tr("Criar projeto")
         )
 
     def _build_project(self) -> ProjectData:
         name = self.name_input.text().strip()
         if not name:
             raise ValueError("Informe um nome para o projeto.")
-        front = self.front_editor.components()
-        back = self.back_editor.components()
-        if not front or not back:
-            raise ValueError("A frente e o verso precisam ter ao menos um componente.")
+        self._save_current_structure()
+        if not self._structure_variations:
+            raise ValueError("Adicione ao menos uma variação de estrutura.")
+        for variation in self._structure_variations:
+            if not variation.front_components or not variation.back_components:
+                raise ValueError(
+                    f"A variação “{variation.name}” precisa ter ao menos um componente na frente e no verso."
+                )
+        front = list(self._structure_variations[0].front_components)
+        back = list(self._structure_variations[0].back_components)
 
         language_data = self.language_combo.currentData()
         if language_data is None:
             raise ValueError("Selecione um idioma da lista.")
         language = str(language_data)
+        translation_language_data = self.translation_language_combo.currentData()
+        if translation_language_data is None:
+            raise ValueError("Selecione o idioma da tradução.")
+        translation_language = str(translation_language_data)
         template_key = str(self.template_combo.currentData() or "custom")
         is_standard = language == "ja" and template_key != "custom"
         custom_content = self._parse_custom_content(self.custom_content_input.text())
@@ -374,24 +527,29 @@ class CreatePage(QWidget):
         return ProjectData(
             name=name,
             language=language,
+            translation_language=translation_language,
             template_key=template_key,
             topic="" if is_standard else self.topic_input.text().strip(),
             custom_content=custom_content if template_key == "custom" else [],
             creation_mode="builtin" if is_standard else self.creation_mode,
             front_components=front,
             back_components=back,
+            card_structures=[item.model_copy(deep=True) for item in self._structure_variations],
+            structure_distribution="balanced_random",
             audio_providers=list(DEFAULT_AUDIO_PROVIDERS),
         )
 
     def _build_prompt(self, project: ProjectData) -> str:
         return PromptService.build(
             language=project.language,
+            translation_language=project.translation_language,
+            ui_language=current_language(),
             template_key=project.template_key,
             topic=project.topic,
             quantity=self.quantity_spin.value(),
             deck_name=project.name,
-            front_components=project.front_components,
-            back_components=project.back_components,
+            front_components=project.prompt_front_components(),
+            back_components=project.prompt_back_components(),
             custom_content=project.custom_content,
         )
 

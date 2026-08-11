@@ -129,4 +129,42 @@ def test_prompt_audio_never_forces_example_and_kana_stays_kana() -> None:
     assert "texto sintetizado será sempre o próprio `word`" in prompt
     assert "não o transforme em palavra" in prompt
     assert "あ → A" in prompt
-    assert "não crie termos alternativos de busca de imagem" in prompt
+    assert "1 a 3 buscas visuais concretas" in prompt
+
+
+def test_prompt_respects_independent_translation_language() -> None:
+    prompt = PromptService.build(
+        language="ja",
+        translation_language="en",
+        template_key="custom",
+        topic="",
+        quantity=4,
+        deck_name="Japanese in English",
+        front_components=["word"],
+        back_components=["translation", "explanation"],
+        custom_content=["Basic vocabulary"],
+    )
+    assert "Idioma-alvo: Japonês" in prompt
+    assert "Idioma da tradução: Inglês" in prompt
+    assert 'translation_language` deve ser exatamente "en"' in prompt
+    assert "Escreva `translation` em Inglês (en)" in prompt
+    assert "Escreva `explanation` em Inglês (en)" in prompt
+
+
+def test_prompt_supports_chinese_as_translation_language() -> None:
+    prompt = PromptService.build(
+        language="ja",
+        translation_language="zh",
+        template_key="custom",
+        topic="",
+        quantity=3,
+        deck_name="Japanese to Chinese",
+        front_components=["word"],
+        back_components=["translation", "explanation"],
+        custom_content=["Basic vocabulary"],
+    )
+    assert "Idioma-alvo: Japonês" in prompt
+    assert "Idioma da tradução: Chinês" in prompt
+    assert 'translation_language` deve ser exatamente "zh"' in prompt
+    assert "Escreva `translation` em Chinês (zh)" in prompt
+    assert "Escreva `explanation` em Chinês (zh)" in prompt

@@ -1,42 +1,48 @@
-# Virtual environments
-.venv/
-venv/
-
 # Python
 __pycache__/
 *.py[cod]
 *.pyd
+*.so
+*.egg-info/
 
-# Testing
-.pytest_cache/
-.coverage
-htmlcov/
+# Ambientes virtuais
+.venv/
+venv/
+env/
 
-# Build
+# Build / distribuição
 build/
 dist/
 release/
-*.egg-info/
+*.spec.bak
 
-# Runtime data
-/data/
-*.db
-*.sqlite
-*.sqlite3
-*.log
+# Testes / cobertura
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.ruff_cache/
 
-# Secrets
+# IDE / sistema operacional
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Segredos locais acidentais
 .env
 .env.*
 *.key
 
-# IDE
-.vscode/
-.idea/
+# Dados persistentes da versão portátil
+/data/
+*.log
+*.db
+*.sqlite
+*.sqlite3
 
-# Windows
-Thumbs.db
-Desktop.ini
-
-# macOS
-.DS_Store
+# Temporários
+*.tmp
+*.temp
+~$*

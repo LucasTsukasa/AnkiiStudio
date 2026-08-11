@@ -83,7 +83,7 @@ def test_create_page_is_searchable_responsive_and_default_template_is_custom() -
     assert '"custom": "Personalizado"' in constants
     assert 'TEMPLATES_BY_LANGUAGE' in constants
     assert 'self.template_combo.set_items(items, "custom")' in source
-    assert 'self.language_combo.set_items([(label, code) for code, label in LANGUAGE_LABELS.items()], "ja")' in source
+    assert 'self.language_combo.set_items(language_items(), "ja")' in source
     assert "self.custom_content_cell.setVisible(is_custom)" in source
     assert "SearchableComboBox" in source
     assert "RESPONSIVE_BREAKPOINT = 820" in source
@@ -98,8 +98,8 @@ def test_standard_templates_autoload_their_default_structure() -> None:
     assert '"katakana": (["word"], ["romanization", "translation", "explanation"])' in constants
     assert '"basic_phrases": (["word"], ["romanization", "translation", "explanation"])' in constants
     assert "TEMPLATE_DEFAULT_STRUCTURES.get" in create
-    assert "self.front_editor.set_components(list(front))" in create
-    assert "self.back_editor.set_components(list(back))" in create
+    assert "self._reset_structure_variations(list(front), list(back))" in create
+    assert "self._reset_structure_variations(list(front), list(back))" in create
 
 
 def test_standard_templates_lock_generation_inputs_and_use_builtin_mode() -> None:
@@ -216,11 +216,11 @@ def test_voice_profiles_are_managed_in_audio_page_and_keys_remain_in_settings() 
     assert "Speaker ID Natural A" not in settings
 
 
-def test_application_version_is_0_9_0_everywhere() -> None:
-    assert 'APP_VERSION = "0.10.0"' in read("ankiistudio/constants.py")
-    assert '__version__ = "0.10.0"' in read("ankiistudio/__init__.py")
-    assert 'version = "0.10.0"' in read("pyproject.toml")
-    assert "AnkiiStudio/0.10.0" in read("ankiistudio/services/wikimedia_service.py")
+def test_application_version_is_beta_everywhere() -> None:
+    assert 'APP_VERSION = "0.11.0-beta.5"' in read("ankiistudio/constants.py")
+    assert '__version__ = "0.11.0-beta.5"' in read("ankiistudio/__init__.py")
+    assert 'version = "0.11.0b5"' in read("pyproject.toml")
+    assert "AnkiiStudio/0.11.0-beta.5" in read("ankiistudio/services/wikimedia_service.py")
     assert not (ROOT / "scripts" / "AnkiiStudio.iss").exists()
 
 
@@ -242,8 +242,8 @@ def test_bulk_media_and_export_selection_are_preserved() -> None:
     assert 'self.bulk_audio_button = QPushButton("Áudios para todos")' in projects
     assert 'self.export_selected_button = QPushButton("Exportar selecionados")' in projects
     assert 'self.export_all_button = QPushButton("Exportar todos")' in projects
-    assert "self.bulk_image_button.setEnabled(has_project and uses_images)" in projects
-    assert "self.bulk_audio_button.setEnabled(has_project and uses_audio)" in projects
+    assert "self.bulk_image_button.setEnabled(has_project and project_uses_images)" in projects
+    assert "self.bulk_audio_button.setEnabled(has_project and project_uses_audio)" in projects
 
 
 def test_projects_editor_hides_fields_outside_selected_structure() -> None:
@@ -390,7 +390,7 @@ def test_portable_only_storage_and_build_are_configured() -> None:
     assert 'self.base_dir = self.app_dir / "data"' in config
     assert "platformdirs" not in config
     assert "user_data_dir" not in config
-    assert "AnkiiStudio-Portable-0.10.0.zip" in build
+    assert "AnkiiStudio-Portable-0.11.0-beta.5.zip" in build
     assert "AnkiiStudio.iss" not in build
     assert not (ROOT / "scripts" / "AnkiiStudio.iss").exists()
 
@@ -398,3 +398,145 @@ def test_portable_only_storage_and_build_are_configured() -> None:
 def test_user_supplied_png_and_ico_are_adopted() -> None:
     assert (ICONS / "app.png").is_file()
     assert (ICONS / "app.ico").is_file()
+
+
+def test_beta_adds_tatoeba_and_local_audio_import_without_new_tts_providers() -> None:
+    constants = read("ankiistudio/constants.py")
+    audio_page = read("ankiistudio/ui/pages/audio_page.py")
+    projects = read("ankiistudio/ui/pages/projects_page.py")
+    assert '"tatoeba": "Tatoeba' in constants
+    assert 'DEFAULT_AUDIO_PROVIDERS = ["tatoeba", "wikimedia", "voicevox", "gemini", "elevenlabs"]' in constants
+    assert 'for key in ("tatoeba", "gemini", "voicevox", "wikimedia", "elevenlabs")' in audio_page
+    assert 'self.import_audio_button = QPushButton("Importar áudio")' in projects
+    assert 'self.batch_import_audio_button = QPushButton("Importar áudios em lote")' in projects
+    assert "AudioBatchImportDialog" in projects
+    for provider in ("azure", "polly", "openai", "google_cloud"):
+        assert f'"{provider}"' not in constants
+
+
+def test_create_page_supports_multiple_balanced_structure_variations() -> None:
+    create = read("ankiistudio/ui/pages/create_page.py")
+    models = read("ankiistudio/models.py")
+    project_service = read("ankiistudio/services/project_service.py")
+    assert 'QPushButton("+ Adicionar variação")' in create
+    assert "self._structure_variations" in create
+    assert 'structure_distribution="balanced_random"' in create
+    assert "class CardStructureVariation" in models
+    assert "assign_structure_variations" in project_service
+    assert "random.SystemRandom().shuffle(keys)" in project_service
+
+
+def test_readme_documents_beta_features_without_language_specific_model_listing() -> None:
+    readme = read("README.md")
+    assert "Variações de estrutura" in readme
+    assert "Tatoeba" in readme
+    assert "Importar áudio" in readme
+    assert "importação em lote" in readme.casefold()
+    assert "Modelos padrão de japonês" not in readme
+
+
+def test_beta4_keeps_update_checker_and_current_optional_image_sources() -> None:
+    settings = read("ankiistudio/ui/pages/settings_page.py")
+    main = read("ankiistudio/ui/main_window.py")
+    sources = read("ankiistudio/services/image_sources.py")
+    updater = read("ankiistudio/services/update_service.py")
+    assert 'QCheckBox("Procurar atualizações automaticamente")' in settings
+    assert 'QPushButton("Procurar atualizações agora")' in settings
+    assert 'QCheckBox("Wikimedia Commons")' in settings
+    assert 'QCheckBox("Pixabay")' in settings
+    assert 'QCheckBox("Pexels")' in settings
+    assert 'Openverse' not in settings
+    assert 'Openverse' not in sources
+    assert 'image_source_wikimedia", "1"' in settings
+    assert 'image_source_pixabay", "0"' in settings
+    assert 'image_source_pexels", "0"' in settings
+    assert "UpdateService" in main
+    assert "schedule_install_and_restart" in updater
+    assert "PixabayImageProvider" in sources
+    assert "PexelsImageProvider" in sources
+
+
+def test_beta2_projects_support_media_removal_import_and_batch_card_edits() -> None:
+    projects = read("ankiistudio/ui/pages/projects_page.py")
+    database = read("ankiistudio/database.py")
+    assert 'self.import_image_button = QPushButton("Importar imagem")' in projects
+    assert 'self.remove_image_button = QPushButton("Remover imagem")' in projects
+    assert 'self.remove_audio_button = QPushButton("Remover áudio")' in projects
+    assert "self._pending_cards" in projects
+    assert "resolve_pending_changes" in projects
+    assert 'QTableWidget.SelectionMode.ExtendedSelection' in projects
+    assert "self.database.delete_cards(card_ids)" in projects
+    assert "def update_cards" in database
+    assert "def delete_cards" in database
+
+
+def test_beta2_image_prompt_and_search_prefer_semantic_terms() -> None:
+    prompt = read("ankiistudio/services/prompt_service.py")
+    media = read("ankiistudio/services/media_service.py")
+    assert "1 a 3 buscas visuais concretas" in prompt
+    assert "card.image_search_terms" in media
+    assert "card.translation" in media
+    assert "_wikimedia_result_matches_non_latin_term" in media
+
+
+def test_beta4_uses_external_language_packs_and_live_ui_switching() -> None:
+    main = read("ankiistudio/main.py")
+    main_window = read("ankiistudio/ui/main_window.py")
+    settings = read("ankiistudio/ui/pages/settings_page.py")
+    create = read("ankiistudio/ui/pages/create_page.py")
+    models = read("ankiistudio/models.py")
+    database = read("ankiistudio/database.py")
+    i18n = read("ankiistudio/i18n.py")
+    spec = read("AnkiiStudio.spec")
+    assert (ROOT / "ankiistudio/languages/pt_BR.json").is_file()
+    assert (ROOT / "ankiistudio/languages/en_US.json").is_file()
+    assert 'LANGUAGES_DIR = Path(__file__).resolve().parent / "languages"' in i18n
+    assert 'def set_language(self, language: str)' in i18n
+    assert 'languageChanged = Signal(str)' in i18n
+    assert 'UiLanguageManager' in main
+    assert 'ui_language_changed = Signal(str)' in settings
+    assert 'self.ui_language_changed.emit(language)' in settings
+    assert 'self.settings_page.ui_language_changed.connect(self._change_ui_language)' in main_window
+    assert 'manager.set_language(language)' in main_window
+    assert 'language_files' in spec
+    assert 'self.translation_language_combo = SearchableComboBox()' in create
+    assert '"Idioma da tradução"' in create
+    assert 'translation_language: str = "pt"' in models
+    assert "translation_language TEXT NOT NULL DEFAULT 'pt'" in database
+
+
+def test_beta4_manual_image_search_has_source_filter_and_compact_visual_results() -> None:
+    projects = read("ankiistudio/ui/pages/projects_page.py")
+    media = read("ankiistudio/services/media_service.py")
+    dialog = read("ankiistudio/ui/dialogs/image_search_dialog.py")
+    theme = read("ankiistudio/ui/theme.py")
+    assert 'CardImageService.manual_search_terms(self.current_card)' in projects
+    assert 'def manual_search_terms' in media
+    assert 'card.translation' in media and 'card.romanization' in media and 'card.reading' in media
+    assert 'QLabel("Outras sugestões de busca")' in dialog
+    assert 'QToolButton()' in dialog
+    assert 'ImageSourceFilterButton' in dialog
+    assert 'ImageSearchService.PROVIDER_KEYS' in dialog
+    assert 'action.setEnabled(enabled)' in dialog
+    assert 'provider_keys=provider_keys' in dialog
+    assert 'self.preview.setMaximumHeight(215)' in dialog
+    assert 'ImageResultList' in dialog
+    assert 'ImageSuggestionRow' in dialog
+    assert 'ImageSearchPanel' in theme
+    assert 'class _WorkerBridge(QObject)' in dialog
+
+
+def test_beta4_removes_openverse_from_active_application_code() -> None:
+    settings = read("ankiistudio/ui/pages/settings_page.py")
+    sources = read("ankiistudio/services/image_sources.py")
+    dialog = read("ankiistudio/ui/dialogs/image_search_dialog.py")
+    assert "Openverse" not in settings
+    assert "openverse" not in settings.casefold()
+    assert "Openverse" not in sources
+    assert "openverse" not in sources.casefold()
+    assert "Openverse" not in dialog
+    assert 'PROVIDER_KEYS = ("wikimedia", "pixabay", "pexels")' in sources
+    assert '"wikimedia": "Wikimedia Commons"' in sources
+    assert '"pixabay": "Pixabay"' in sources
+    assert '"pexels": "Pexels"' in sources
+

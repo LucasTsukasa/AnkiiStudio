@@ -72,7 +72,33 @@ QLabel#Brand {{ font-size: 19px; font-weight: 800; color: {c['text']}; backgroun
 QLabel#BrandMark {{ font-size: 22px; font-weight: 900; color: {c['primary']}; background: transparent; }}
 QLabel#HeroName {{ font-size: 28px; font-weight: 850; color: {c['text']}; background: transparent; }}
 QLabel#DeveloperName {{ font-size: 15px; font-weight: 750; color: {c['text']}; background: transparent; }}
-QLabel#ImagePreview {{ background: {c['input']}; border: 1px solid {c['border']}; border-radius: 12px; }}
+QLabel#ImagePreview {{ background: {c['input']}; border: 1px solid {c['border']}; border-radius: 12px; padding: 6px; }}
+QLabel#ImageMetadata {{ color: {c['text_soft']}; background: transparent; }}
+QLabel#ImageSearchWarning {{
+    background: {c['danger_bg']}; color: {c['danger_text']}; border: 1px solid {c['danger_border']};
+    border-radius: 8px; padding: 7px 9px;
+}}
+QFrame#ImageSearchPanel {{ background: {c['card']}; border: 1px solid {c['border']}; border-radius: 12px; }}
+QFrame#ImageSuggestionRow {{ background: {c['card']}; border: 1px solid {c['border']}; border-radius: 10px; }}
+QFrame#ImageSearchDivider {{ color: {c['border']}; background: {c['border']}; border: 0; max-height: 1px; }}
+QListWidget#ImageResultList, QListWidget#ImageSuggestionList {{
+    background: transparent; border: 0; padding: 2px;
+}}
+QListWidget#ImageResultList::item, QListWidget#ImageSuggestionList::item {{
+    background: {c['input']}; border: 1px solid {c['border']}; border-radius: 9px; padding: 6px;
+}}
+QListWidget#ImageResultList::item:hover, QListWidget#ImageSuggestionList::item:hover {{
+    border-color: {c['border_hover']}; background: {c['card']};
+}}
+QListWidget#ImageResultList::item:selected, QListWidget#ImageSuggestionList::item:selected {{
+    background: {c['selected']}; border: 1px solid {c['selected_border']}; color: {c['text']};
+}}
+QToolButton#ImageSourceFilterButton {{
+    background: {c['input']}; border: 1px solid {c['border']}; border-radius: 9px; padding: 7px;
+}}
+QToolButton#ImageSourceFilterButton:hover {{ background: {c['card']}; border-color: {c['primary']}; }}
+QToolButton#ImageSourceFilterButton::menu-indicator {{ image: none; width: 0px; }}
+QScrollArea#ImageSuggestionScroll {{ background: transparent; border: 0; }}
 QPushButton#NavButton {{
     background: transparent; border: 0; border-radius: 9px; padding: 10px 12px;
     text-align: left; color: {c['muted']}; font-size: 13px; font-weight: 600;

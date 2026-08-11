@@ -22,6 +22,7 @@ from PySide6.QtWidgets import (
 from ankiistudio.config import AppPaths, SecretStore
 from ankiistudio.constants import AUDIO_PROVIDER_LABELS, DEFAULT_VOICEVOX_URL, language_label
 from ankiistudio.database import Database
+from ankiistudio.i18n import language_display_name, tr
 from ankiistudio.models import ProjectData
 from ankiistudio.services.audio.voicevox import VoicevoxProvider
 from ankiistudio.services.audio_profile_service import AudioProfileService, AudioVoiceProfile
@@ -35,6 +36,7 @@ from ankiistudio.ui.workers import Worker
 
 _PROVIDER_DESCRIPTIONS = {
     "voicevox": "Síntese local para japonês. Selecione o personagem e o estilo diretamente a partir do VOICEVOX Engine.",
+    "tatoeba": "Procura correspondência exata do conteúdo em gravações humanas reutilizáveis do Tatoeba e preserva autoria/licença.",
     "wikimedia": "Usa gravações humanas quando houver conteúdo compatível no Wikimedia Commons.",
     "gemini": "Usa os perfis Gemini TTS habilitados para o idioma do projeto, respeitando modelo e voz de cada perfil.",
     "elevenlabs": "Usa os perfis ElevenLabs habilitados para o idioma do projeto, com Voice ID e modelo próprios.",
@@ -117,7 +119,7 @@ class AudioPage(QWidget):
         self.provider_cards: dict[str, SectionCard] = {}
         self.profile_lists: dict[str, QListWidget] = {}
 
-        for key in ("gemini", "voicevox", "wikimedia", "elevenlabs"):
+        for key in ("tatoeba", "gemini", "voicevox", "wikimedia", "elevenlabs"):
             card = SectionCard()
             card.setObjectName("ProviderCard")
             header = QHBoxLayout()
@@ -254,7 +256,7 @@ class AudioPage(QWidget):
 
         for card in self.provider_cards.values():
             self.provider_grid.removeWidget(card)
-        for index, key in enumerate(("gemini", "voicevox", "wikimedia", "elevenlabs")):
+        for index, key in enumerate(("tatoeba", "gemini", "voicevox", "wikimedia", "elevenlabs")):
             if compact:
                 self.provider_grid.addWidget(self.provider_cards[key], index, 0)
             else:
@@ -355,19 +357,20 @@ class AudioPage(QWidget):
     def _refresh_provider_statuses(self) -> None:
         project = self.current_project
         language = project.language if project else "ja"
-        language_name = language_label(language)
+        language_name = language_display_name(language)
         gemini_key = bool(SecretStore.get("GEMINI_API_KEY"))
         eleven_key = bool(SecretStore.get("ELEVENLABS_API_KEY"))
         gemini_profiles = self.profile_service.list_for("gemini", language)
         eleven_profiles = self.profile_service.list_for("elevenlabs", language)
         self.provider_status["gemini"].setText(
-            f"● {len(gemini_profiles)} voz(es)" if gemini_key and gemini_profiles else ("○ Sem API key" if not gemini_key else f"○ Sem voz para {language_name}")
+            tr(f"● {len(gemini_profiles)} voz(es)") if gemini_key and gemini_profiles else (tr("○ Sem API key") if not gemini_key else tr(f"○ Sem voz para {language_name}"))
         )
         self.provider_status["elevenlabs"].setText(
-            f"● {len(eleven_profiles)} voz(es)" if eleven_key and eleven_profiles else ("○ Sem API key" if not eleven_key else f"○ Sem voz para {language_name}")
+            tr(f"● {len(eleven_profiles)} voz(es)") if eleven_key and eleven_profiles else (tr("○ Sem API key") if not eleven_key else tr(f"○ Sem voz para {language_name}"))
         )
-        self.provider_status["wikimedia"].setText("● Disponível")
-        self.provider_status["voicevox"].setText("○ Local" if language == "ja" else "○ Somente japonês")
+        self.provider_status["tatoeba"].setText(tr("● Disponível sem API key"))
+        self.provider_status["wikimedia"].setText(tr("● Disponível"))
+        self.provider_status["voicevox"].setText(tr("○ Local") if language == "ja" else tr("○ Somente japonês"))
 
     def refresh_gemini_usage(self, *_args) -> None:
         profiles = self.profile_service.load()
@@ -380,7 +383,7 @@ class AudioPage(QWidget):
                 seen.add(profile.model)
                 models.append(profile.model)
         if not models:
-            self.gemini_usage_label.setText("Adicione um perfil Gemini para acompanhar o uso observado por modelo.")
+            self.gemini_usage_label.setText(tr("Adicione um perfil Gemini para acompanhar o uso observado por modelo."))
             return
         lines: list[str] = []
         for model in models:
@@ -397,7 +400,7 @@ class AudioPage(QWidget):
             else:
                 info = "limite ainda não observado"
             lines.append(f"{model}: {info}; {status['successes_24h']} sucesso(s) nas últimas 24h")
-        self.gemini_usage_label.setText("Uso observado:\n" + "\n".join(lines))
+        self.gemini_usage_label.setText(tr("Uso observado:\n" + "\n".join(lines)))
 
     def load_project(self) -> None:
         project_id = self.project_combo.currentData()
@@ -612,14 +615,17 @@ class AudioPage(QWidget):
         # Cada novo lote começa limpo; falhas permanentes passam a ser bloqueadas
         # somente durante a execução atual para evitar dezenas de requisições 400 idênticas.
         self.service.reset_provider_failures()
-        cards = self.database.list_cards(self.current_project.id)
+        cards = [
+            card for card in self.database.list_cards(self.current_project.id)
+            if self.current_project.card_uses_component(card, "audio")
+        ]
         if not cards:
-            QMessageBox.warning(self, "Sem cartões", "Este projeto não possui cartões.")
+            QMessageBox.warning(self, "Sem cartões", "Nenhum cartão deste projeto utiliza Áudio.")
             return
         if QMessageBox.question(
             self,
             "Gerar áudios",
-            f"Gerar os áudios ausentes de {len(cards)} cartões? Serviços por API podem consumir cota.",
+            f"Gerar os áudios ausentes de {len(cards)} cartões que utilizam Áudio? Serviços por API podem consumir cota.",
         ) != QMessageBox.StandardButton.Yes:
             return
         self.generate_button.setEnabled(False)

@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import random
+
 from ankiistudio.constants import DEFAULT_AUDIO_PROVIDERS, TEMPLATE_SECTIONS
 from ankiistudio.data.japanese_seed import create_builtin_cards
+from ankiistudio.data.japanese_localization_en import localize_section
 from ankiistudio.database import Database
 from ankiistudio.models import FlashcardData, ImportedDeck, ProjectData
 
@@ -40,18 +43,60 @@ class ProjectService:
         }
         return labels.get(project.template_key, "Geral")
 
+    @staticmethod
+    def assign_structure_variations(
+        project: ProjectData,
+        cards: list[FlashcardData],
+        *,
+        shuffle: bool = True,
+    ) -> list[FlashcardData]:
+        """Distribui variações de cartão de forma aleatória e equilibrada.
+
+        A diferença de quantidade entre duas variações é no máximo um cartão.
+        A escolha de quais conteúdos recebem cada variação é embaralhada.
+        """
+        variations = project.structure_variations()
+        if not cards:
+            return []
+        if len(variations) == 1:
+            key = variations[0].key
+            return [card.model_copy(update={"structure_key": key}) for card in cards]
+
+        keys = [variations[index % len(variations)].key for index in range(len(cards))]
+        if shuffle:
+            random.SystemRandom().shuffle(keys)
+        return [
+            card.model_copy(update={"structure_key": structure_key})
+            for card, structure_key in zip(cards, keys, strict=True)
+        ]
+
+    @staticmethod
+    def next_structure_key(project: ProjectData, existing_cards: list[FlashcardData]) -> str:
+        """Escolhe uma das variações menos utilizadas para um cartão criado manualmente."""
+        variations = project.structure_variations()
+        if len(variations) == 1:
+            return variations[0].key
+        counts = {variation.key: 0 for variation in variations}
+        for card in existing_cards:
+            if card.structure_key in counts:
+                counts[card.structure_key] += 1
+        minimum = min(counts.values())
+        candidates = [key for key, count in counts.items() if count == minimum]
+        return random.SystemRandom().choice(candidates)
+
     @classmethod
     def sanitize_cards_for_structure(
         cls,
         project: ProjectData,
         cards: list[FlashcardData],
     ) -> list[FlashcardData]:
-        selected = set(project.front_components + project.back_components)
         requested_groups = cls.requested_groups(project)
         default_section = cls._default_section(project)
         sanitized: list[FlashcardData] = []
 
         for card in cards:
+            variation = project.structure_for_card(card)
+            selected = set(variation.front_components + variation.back_components)
             updates: dict[str, object] = {}
             section = card.section.strip()
             if not section:
@@ -127,6 +172,8 @@ class ProjectService:
     @staticmethod
     def _ordered_sections(project: ProjectData, cards: list[FlashcardData]) -> list[str]:
         standard = list(TEMPLATE_SECTIONS.get(project.template_key, []))
+        if project.translation_language == "en":
+            standard = [localize_section(item) for item in standard]
         derived = ProjectService.derive_sections(cards)
         existing = {item.casefold() for item in standard}
         standard.extend(item for item in derived if item.casefold() not in existing)
@@ -135,13 +182,21 @@ class ProjectService:
     def create_builtin(self, project: ProjectData, quantity: int) -> int:
         if project.language != "ja":
             raise ValueError("Modelos padrão estão disponíveis somente para Japonês nesta versão.")
+        if project.translation_language not in {"pt", "en"}:
+            raise ValueError(
+                "Nesta versão beta, o conteúdo interno dos modelos padrão possui tradução localizada em Português e Inglês. "
+                "Para outros idiomas de tradução, use o modelo Personalizado com Gemini API ou Importar de uma IA."
+            )
         if project.template_key not in TEMPLATE_SECTIONS:
             raise ValueError(
                 "O modelo Personalizado deve ser criado com Gemini API, Importar de uma IA ou Projeto vazio."
             )
-        cards = create_builtin_cards(project.template_key)
+        cards = create_builtin_cards(
+            project.template_key, translation_language=project.translation_language
+        )
         if not cards:
             raise ValueError("O modelo selecionado não possui conteúdo para o recorte informado.")
+        cards = self.assign_structure_variations(project, cards)
         cards = self.sanitize_cards_for_structure(project, cards)
         self.validate_requested_group_coverage(project, cards)
         project.deck_sections = self._ordered_sections(project, cards)
@@ -152,7 +207,10 @@ class ProjectService:
     def create_from_import(self, project: ProjectData, imported: ImportedDeck) -> int:
         if imported.language != project.language:
             raise ValueError("O idioma do conteúdo importado não corresponde ao idioma do projeto.")
-        cards = self.sanitize_cards_for_structure(project, imported.cards)
+        if imported.translation_language != project.translation_language:
+            raise ValueError("O idioma da tradução do conteúdo importado não corresponde ao idioma de tradução do projeto.")
+        cards = self.assign_structure_variations(project, imported.cards)
+        cards = self.sanitize_cards_for_structure(project, cards)
         self.validate_requested_group_coverage(project, cards)
         project.deck_sections = self._ordered_sections(project, cards)
         project_id = self.database.create_project(project)

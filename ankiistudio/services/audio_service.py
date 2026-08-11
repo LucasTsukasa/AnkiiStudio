@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import hashlib
+import json
+import shutil
 from pathlib import Path
 
 from ankiistudio.config import AppPaths, SecretStore
@@ -11,6 +13,7 @@ from ankiistudio.services.audio.elevenlabs import ElevenLabsProvider
 from ankiistudio.services.audio.gemini_tts import GeminiTTSProvider
 from ankiistudio.services.audio.profile_pool import AudioProviderPool
 from ankiistudio.services.audio.router import AudioRouter
+from ankiistudio.services.audio.tatoeba_audio import TatoebaAudioProvider
 from ankiistudio.services.audio.voicevox import VoicevoxProvider
 from ankiistudio.services.audio.wikimedia_audio import WikimediaAudioProvider
 from ankiistudio.services.audio_profile_service import AudioProfileService, AudioVoiceProfile
@@ -85,6 +88,7 @@ class ProjectAudioService:
 
     def _build_router(self, project: ProjectData) -> AudioRouter:
         providers = {
+            "tatoeba": TatoebaAudioProvider(project.language),
             "voicevox": VoicevoxProvider(
                 self.database.get_setting("voicevox_url", DEFAULT_VOICEVOX_URL),
                 project.voicevox_style_id,
@@ -120,8 +124,8 @@ class ProjectAudioService:
         del words, sentences  # parâmetros mantidos apenas por compatibilidade com chamadas antigas
         if card.id is None or card.project_id is None:
             raise ValueError("O cartão precisa estar salvo antes de gerar áudio.")
-        if not project.uses_audio:
-            raise ValueError("A estrutura deste projeto não utiliza Áudio.")
+        if not project.card_uses_component(card, "audio"):
+            raise ValueError("A estrutura deste cartão não utiliza Áudio.")
         if not card.word.strip():
             raise ValueError("O cartão não possui conteúdo principal para sintetizar.")
 
@@ -149,12 +153,81 @@ class ProjectAudioService:
             raise RuntimeError("O provedor informou sucesso, mas o arquivo de áudio não foi criado corretamente.")
         card.word_audio_path = result.local_path
         card.sentence_audio_path = ""
-        self._register_asset(project, card, result, "audio")
         self.database.update_card(card)
+        self.database.delete_media_assets_for_card(card.id, "audio")
+        self._register_asset(project, card, result, "audio")
         return card
 
+    def import_audio_file(
+        self,
+        project: ProjectData,
+        card: FlashcardData,
+        source: Path,
+    ) -> FlashcardData:
+        if project.id is None or card.id is None or card.project_id is None:
+            raise ValueError("O projeto e o cartão precisam estar salvos antes de importar áudio.")
+        if not project.card_uses_component(card, "audio"):
+            raise ValueError("A estrutura deste cartão não utiliza Áudio.")
+        source = Path(source)
+        if not source.is_file() or source.stat().st_size <= 0:
+            raise ValueError("O arquivo de áudio selecionado não existe ou está vazio.")
+        suffix = source.suffix.lower() or ".audio"
+        digest = hashlib.sha256(source.read_bytes()).hexdigest()[:16]
+        destination_dir = self.paths.audio_dir / f"project_{project.id}"
+        destination_dir.mkdir(parents=True, exist_ok=True)
+        destination = destination_dir / f"card_{card.id}_import_{digest}{suffix}"
+        if not destination.exists():
+            shutil.copy2(source, destination)
+        previous_paths = {path for path in (card.word_audio_path, card.sentence_audio_path) if path}
+        card.word_audio_path = str(destination)
+        card.sentence_audio_path = ""
+        self.database.update_card(card)
+        self.database.delete_media_assets_for_card(card.id, "audio")
+        self.database.add_media_asset(
+            MediaAsset(
+                project_id=project.id,
+                card_id=card.id,
+                kind="audio",
+                provider="import",
+                local_path=str(destination),
+                source_title=source.name,
+                metadata_json=json.dumps(
+                    {"original_filename": source.name, "imported": True},
+                    ensure_ascii=False,
+                ),
+            )
+        )
+        for old_path in previous_paths:
+            if old_path != str(destination):
+                self._delete_unreferenced_audio(old_path)
+        return card
+
+    def remove_audio(self, card: FlashcardData) -> FlashcardData:
+        if card.id is None:
+            raise ValueError("Cartão sem identificador.")
+        previous_paths = {path for path in (card.word_audio_path, card.sentence_audio_path) if path}
+        card.word_audio_path = ""
+        card.sentence_audio_path = ""
+        self.database.update_card(card)
+        self.database.delete_media_assets_for_card(card.id, "audio")
+        for old_path in previous_paths:
+            self._delete_unreferenced_audio(old_path)
+        return card
+
+    def _delete_unreferenced_audio(self, raw_path: str) -> None:
+        if not raw_path or self.database.count_card_media_path_references(raw_path, "audio") > 0:
+            return
+        path = Path(raw_path)
+        try:
+            resolved = path.resolve()
+            audio_root = self.paths.audio_dir.resolve()
+            if path.is_file() and (resolved.parent == audio_root or audio_root in resolved.parents):
+                path.unlink()
+        except OSError:
+            pass
+
     def audio_status(self, project: ProjectData, card: FlashcardData) -> tuple[bool, list[str]]:
-        if not project.uses_audio:
+        if not project.card_uses_component(card, "audio"):
             return True, []
         if self._valid_file(card.audio_path):
             return True, []

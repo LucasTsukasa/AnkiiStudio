@@ -1,0 +1,606 @@
+{
+  "code": "en_US",
+  "name": "English",
+  "translations": {
+    "Início": "Home",
+    "Criar": "Create",
+    "Projetos": "Projects",
+    "Modelos": "Models",
+    "Áudios": "Audio",
+    "Configurações": "Settings",
+    "Sobre": "About",
+    "Adicionar": "Add",
+    "Editar": "Edit",
+    "Remover": "Remove",
+    "Cancelar": "Cancel",
+    "Salvar": "Save",
+    "Sim": "Yes",
+    "Não": "No",
+    "Pesquisar": "Search",
+    "Idioma": "Language",
+    "Nome": "Name",
+    "Modelo": "Model",
+    "Frente": "Front",
+    "Verso": "Back",
+    "Imagem": "Image",
+    "Áudio": "Audio",
+    "Tradução": "Translation",
+    "Leitura": "Reading",
+    "Exemplo": "Example",
+    "Explicação": "Explanation",
+    "Mnemônico": "Mnemonic",
+    "Conteúdo principal": "Main content",
+    "Romaji / Romanização": "Romaji / Romanization",
+    "Personalizado": "Custom",
+    "Frases Básicas": "Basic Phrases",
+    "Padrão": "Default",
+    "Variação": "Variation",
+    "Variação 1": "Variation 1",
+    "Principal": "Main",
+    "Geral": "General",
+    "Baralho principal": "Main deck",
+    "Selecione um projeto": "Select a project",
+    "Selecione uma voz": "Select a voice",
+    "Selecione um resultado": "Select a result",
+    "Nenhuma imagem encontrada.": "No images found.",
+    "Nenhum áudio encontrado": "No audio found",
+    "Nenhuma imagem": "No image",
+    "Nenhum cartão": "No cards",
+    "Sem projeto": "No project",
+    "Sem provedores": "No providers",
+    "Concluído": "Completed",
+    "Falhou": "Failed",
+    "já existente": "already exists",
+    "processando": "processing",
+    "concluído": "completed",
+    "falhou": "failed",
+    "Escuro": "Dark",
+    "Claro": "Light",
+    "Automático — recomendado": "Automatic — recommended",
+    "Aplicativo desktop para criação, organização e exportação de flashcards compatíveis com o Anki.": "Desktop application for creating, organizing and exporting Anki-compatible flashcards.",
+    "Informações do projeto, autoria, licença e uso de serviços externos.": "Project information, authorship, license and use of external services.",
+    "Sobre o aplicativo": "About the application",
+    "Desenvolvedor": "Developer",
+    "Repositório, histórico de versões e código-fonte do projeto.": "Project repository, release history and source code.",
+    "Abrir GitHub": "Open GitHub",
+    "Licença": "License",
+    "Conteúdo e mídias de terceiros": "Third-party content and media",
+    "O código-fonte do AnkiiStudio é distribuído sob a GNU General Public License v3.0 (GPL-3.0). Dependências e serviços de terceiros permanecem sujeitos às respectivas licenças e termos de uso.": "AnkiiStudio source code is distributed under the GNU General Public License v3.0 (GPL-3.0). Third-party dependencies and services remain subject to their respective licenses and terms of use.",
+    "Idiomas: catálogo ISO amplo · modelos padrão atuais em Japonês": "Languages: broad ISO catalog · current built-in models in Japanese",
+    "Criar projeto": "Create project",
+    "Configure o conteúdo e defina exatamente o que aparecerá na frente e no verso dos cartões.": "Configure the content and define exactly what will appear on the front and back of the cards.",
+    "1. Conteúdo": "1. Content",
+    "Selecione o idioma e o modelo. Modelos padrão usam a base revisada; Personalizado permite definir o conteúdo livremente.": "Select the target language and model. Built-in models use the reviewed internal content; Custom lets you define the content freely.",
+    "Nome do projeto": "Project name",
+    "Idioma da tradução": "Translation language",
+    "Selecione ou pesquise um idioma": "Select or search for a language",
+    "Selecione ou pesquise um modelo": "Select or search for a model",
+    "Selecione ou pesquise o idioma da tradução": "Select or search for the translation language",
+    "Conteúdos personalizados": "Custom content",
+    "Separe conteúdos diferentes por vírgulas; cada item será tratado como requisito de estudo.": "Separate different content items with commas; each item will be treated as a study requirement.",
+    "Tema / contexto (opcional)": "Topic / context (optional)",
+    "Refina o assunto ou a situação usada na geração do modelo Personalizado.": "Refines the subject or situation used when generating a Custom model.",
+    "Quantidade de cartões": "Number of cards",
+    "2. Como criar": "2. Creation method",
+    "Modelos padrão usam sempre o Conteúdo padrão. No modelo Personalizado, escolha a origem do conteúdo.": "Built-in models always use Built-in content. For Custom models, choose the content source.",
+    "Conteúdo padrão": "Built-in content",
+    "Usa a base revisada incluída no AnkiiStudio.": "Uses the reviewed content included with AnkiiStudio.",
+    "Gera o conteúdo diretamente pela API configurada.": "Generates content directly through the configured API.",
+    "Importar de uma IA": "Import from an AI",
+    "Gera um prompt estruturado e importa o JSON ou TXT resultante.": "Generates a structured prompt and imports the resulting JSON or TXT.",
+    "Projeto vazio": "Empty project",
+    "Cria somente a estrutura para preenchimento manual.": "Creates only the structure for manual entry.",
+    "3. Estrutura automática": "3. Automatic structure",
+    "Modelos padrão carregam a estrutura recomendada. Você pode adicionar, remover e reorganizar componentes antes de criar o projeto.": "Built-in models load the recommended structure. You can add, remove and reorder components before creating the project.",
+    "Nome da variação": "Variation name",
+    "+ Adicionar variação": "+ Add variation",
+    "Remover variação": "Remove variation",
+    "Com duas ou mais variações, os cartões são distribuídos aleatoriamente de forma equilibrada entre as estruturas.": "With two or more variations, cards are randomly and evenly distributed among the structures.",
+    "Gerar prompt para a IA": "Generate AI prompt",
+    "Importar e criar projeto": "Import and create project",
+    "Configuração incompleta": "Incomplete configuration",
+    "Projeto criado": "Project created",
+    "O projeto foi criado e está pronto para revisão.": "The project was created and is ready for review.",
+    "Projeto criado com sucesso.": "Project created successfully.",
+    "Gemini não configurada": "Gemini not configured",
+    "Gerando conteúdo com a Gemini API...": "Generating content with the Gemini API...",
+    "Não foi possível criar": "Could not create",
+    "Não foi possível importar": "Could not import",
+    "Erro ao salvar": "Save error",
+    "Gerencie a aparência, credenciais e conexões utilizadas pelo AnkiiStudio.": "Manage the appearance, credentials and connections used by AnkiiStudio.",
+    "Aparência": "Appearance",
+    "Tema do aplicativo": "Application theme",
+    "Idioma da interface": "Interface language",
+    "Idioma alterado": "Language changed",
+    "A chave é usada para geração de conteúdo e pelos perfis Gemini TTS configurados na aba Áudios.": "The key is used for content generation and Gemini TTS profiles configured on the Audio page.",
+    "Cole sua API key": "Paste your API key",
+    "API key": "API key",
+    "Modelo de texto": "Text model",
+    "A chave é utilizada pelos perfis de voz ElevenLabs configurados na aba Áudios.": "The key is used by ElevenLabs voice profiles configured on the Audio page.",
+    "Fontes de imagem": "Image sources",
+    "O Wikimedia Commons fica habilitado por padrão. Ative fontes adicionais somente quando quiser ampliar os resultados da busca.": "Wikimedia Commons is enabled by default. Enable additional sources only when you want broader search results.",
+    "Configure o endereço do engine local. Personagens e estilos são carregados diretamente na aba Áudios.": "Configure the local engine address. Characters and styles are loaded directly on the Audio page.",
+    "URL local": "Local URL",
+    "Testar conexão": "Test connection",
+    "Atualizações": "Updates",
+    "Quando habilitado, o AnkiiStudio procura novas versões publicadas no GitHub ao iniciar.": "When enabled, AnkiiStudio checks GitHub for newly published versions at startup.",
+    "Procurar atualizações automaticamente": "Automatically check for updates",
+    "Procurar atualizações agora": "Check for updates now",
+    "Salvar configurações": "Save settings",
+    "Configurações salvas.": "Settings saved.",
+    "Testando conexão com o VOICEVOX...": "Testing VOICEVOX connection...",
+    "URL ausente": "Missing URL",
+    "Informe a URL local do VOICEVOX.": "Enter the local VOICEVOX URL.",
+    "Habilite ao menos uma fonte de imagem.": "Enable at least one image source.",
+    "Informe a API key do Pixabay antes de habilitar essa fonte.": "Enter the Pixabay API key before enabling this source.",
+    "Informe a API key do Pexels antes de habilitar essa fonte.": "Enter the Pexels API key before enabling this source.",
+    "Falha ao salvar": "Failed to save",
+    "Pesquisar imagem": "Search image",
+    "Pesquisar imagem para o cartão": "Search image for card",
+    "Busca principal": "Main search",
+    "Outras sugestões de busca": "Other search suggestions",
+    "Resultados para": "Results for",
+    "Resultados principais": "Main results",
+    "Imagem selecionada": "Selected image",
+    "Usar imagem selecionada": "Use selected image",
+    "Pesquisando...": "Searching...",
+    "Pesquisa vazia": "Empty search",
+    "Informe um termo para pesquisar.": "Enter a search term.",
+    "licença não identificada": "license not identified",
+    "não identificada": "not identified",
+    "não informado": "not provided",
+    "Fonte": "Source",
+    "Autor": "Author",
+    "Dimensões": "Dimensions",
+    "Formato de imagem não suportado na prévia.": "Image format not supported in preview.",
+    "Selecione uma imagem.": "Select an image.",
+    "Erro na pesquisa": "Search error",
+    "Não foi possível carregar a miniatura.": "Could not load the thumbnail.",
+    "Algumas fontes apresentaram problemas": "Some sources had problems",
+    "Importar imagem": "Import image",
+    "Remover imagem": "Remove image",
+    "Imagens para todos": "Images for all",
+    "Imagem importada e associada ao cartão.": "Image imported and linked to the card.",
+    "Imagem removida do cartão.": "Image removed from the card.",
+    "Imagem associada e validada.": "Image linked and validated.",
+    "Baixando e otimizando a imagem...": "Downloading and optimizing the image...",
+    "Importar áudio": "Import audio",
+    "Remover áudio": "Remove audio",
+    "Importar áudios em lote": "Batch import audio",
+    "Selecionar arquivos": "Select files",
+    "Selecionar pasta": "Select folder",
+    "Importar correspondências": "Import matches",
+    "Se já existir áudio": "If audio already exists",
+    "Ignorar": "Skip",
+    "Substituir": "Replace",
+    "Arquivo": "File",
+    "Cartão": "Card",
+    "Status": "Status",
+    "Correspondência": "Match",
+    "Não encontrado": "Not found",
+    "Ambíguo": "Ambiguous",
+    "Formato não suportado": "Unsupported format",
+    "Já possui áudio": "Already has audio",
+    "Importação concluída": "Import completed",
+    "Associe arquivos aos cartões pelo nome do arquivo. Por exemplo, ‘あ.wav’ corresponde ao valor ‘あ’ no campo selecionado.": "Match files to cards by filename. For example, ‘あ.wav’ matches the value ‘あ’ in the selected field.",
+    "Selecione arquivos ou uma pasta para visualizar as correspondências.": "Select files or a folder to preview the matches.",
+    "A pasta selecionada não contém arquivos de áudio compatíveis.": "The selected folder does not contain compatible audio files.",
+    "Perfil de voz Gemini": "Gemini voice profile",
+    "Perfil de voz ElevenLabs": "ElevenLabs voice profile",
+    "Usar este perfil na geração": "Use this profile for generation",
+    "Modelo TTS": "TTS model",
+    "Voz": "Voice",
+    "Voice ID da ElevenLabs": "ElevenLabs Voice ID",
+    "Ajustes da voz": "Voice settings",
+    "Aumentar semelhança com a voz original": "Increase similarity to the original voice",
+    "Estabilidade": "Stability",
+    "Similaridade": "Similarity",
+    "Estilo": "Style",
+    "Velocidade": "Speed",
+    "Tom": "Pitch",
+    "Entonação": "Intonation",
+    "Volume": "Volume",
+    "Escala das pausas": "Pause scale",
+    "Ajustar voz do VOICEVOX": "Adjust VOICEVOX voice",
+    "Importar conteúdo da IA": "Import AI content",
+    "Cole aqui o JSON gerado pela IA...": "Paste the JSON generated by the AI here...",
+    "Selecionar JSON ou TXT": "Select JSON or TXT",
+    "Validar e importar": "Validate and import",
+    "Selecionar arquivo": "Select file",
+    "Conteúdo válido": "Valid content",
+    "Prompt para usar em uma IA": "Prompt to use with an AI",
+    "Copiar prompt": "Copy prompt",
+    "Salvar como TXT": "Save as TXT",
+    "Prompt copiado": "Prompt copied",
+    "O prompt foi copiado para a área de transferência.": "The prompt was copied to the clipboard.",
+    "Salvar prompt": "Save prompt",
+    "Selecionar todos": "Select all",
+    "Selecionar nenhum": "Select none",
+    "Salvar alterações": "Save changes",
+    "Excluir cartão": "Delete card",
+    "Excluir projeto": "Delete project",
+    "Adicionar cartão": "Add card",
+    "Exportar selecionados": "Export selected",
+    "Exportar todos": "Export all",
+    "Mídias": "Media",
+    "Gerar áudio": "Generate audio",
+    "Áudio deste cartão": "Audio for this card",
+    "Áudios para todos": "Audio for all",
+    "Importar imagem para o cartão": "Import image for card",
+    "Importar áudio para o cartão": "Import audio for card",
+    "Seleção necessária": "Selection required",
+    "Selecione um cartão.": "Select a card.",
+    "Não foi possível remover": "Could not remove",
+    "Remover a imagem associada a este cartão?": "Remove the image linked to this card?",
+    "Remover o áudio associado a este cartão?": "Remove the audio linked to this card?",
+    "Alterações não salvas": "Unsaved changes",
+    "Salvar alterações antes de continuar?": "Save changes before continuing?",
+    "Mídias ou campos ausentes": "Missing media or fields",
+    "Falha na exportação": "Export failed",
+    "Nada selecionado": "Nothing selected",
+    "Selecione ao menos um cartão para exportar.": "Select at least one card to export.",
+    "Projeto e modo": "Project and mode",
+    "A configuração é salva por projeto; arquivos válidos já existentes são preservados.": "Configuration is saved per project; existing valid files are preserved.",
+    "Seleção inteligente — recomendada": "Smart selection — recommended",
+    "Somente um provedor fixo": "Single fixed provider",
+    "Alternância aleatória": "Random rotation",
+    "Projeto": "Project",
+    "Modo": "Mode",
+    "Provedor fixo": "Fixed provider",
+    "Voz fixa": "Fixed voice",
+    "Provedores permitidos": "Allowed providers",
+    "Ative as fontes que podem participar da geração. Perfis de voz são organizados por idioma.": "Enable the sources that may participate in generation. Voice profiles are organized by language.",
+    "Geração": "Generation",
+    "Processa somente os áudios ausentes exigidos pela estrutura do projeto.": "Processes only missing audio required by the project structure.",
+    "Salvar configuração": "Save configuration",
+    "Gerar áudios ausentes": "Generate missing audio",
+    "Adicionar voz": "Add voice",
+    "Remover voz": "Remove voice",
+    "Carregar vozes": "Load voices",
+    "Ajustar voz": "Adjust voice",
+    "▶ Ouvir exemplo": "▶ Play sample",
+    "Configure a estratégia de geração e as vozes disponíveis para cada idioma.": "Configure the generation strategy and voices available for each language.",
+    "Configuração de áudio salva.": "Audio configuration saved.",
+    "Pré-visualização real": "Real preview",
+    "Usa o mesmo estilo dos cartões exportados para o Anki. Quando possível, exibe dados reais do primeiro cartão do projeto.": "Uses the same style as cards exported to Anki. When possible, it displays real data from the project's first card.",
+    "Adicionar subbaralho": "Add subdeck",
+    "Renomear subbaralho": "Rename subdeck",
+    "Excluir subbaralho": "Delete subdeck",
+    "Novo nome": "New name",
+    "Nome repetido": "Duplicate name",
+    "Já existe um subbaralho com esse nome.": "A subdeck with this name already exists.",
+    "Modelo inválido": "Invalid model",
+    "Frente e verso precisam ter conteúdo.": "Front and back must contain content.",
+    "Tema inválido": "Invalid theme",
+    "Modelo salvo": "Model saved",
+    "Estrutura, ordem dos subbaralhos e tema foram atualizados.": "Structure, subdeck order and theme were updated.",
+    "Atualização disponível": "Update available",
+    "Atualização pronta": "Update ready",
+    "O AnkiiStudio será fechado, atualizado e aberto novamente automaticamente.": "AnkiiStudio will close, update and reopen automatically.",
+    "Procurando atualizações no GitHub...": "Checking GitHub for updates...",
+    "Não foi possível verificar atualizações": "Could not check for updates",
+    "AnkiiStudio atualizado": "AnkiiStudio is up to date",
+    "Nenhuma atualização disponível.": "No updates available.",
+    "Atualização adiada.": "Update postponed.",
+    "Falha na atualização": "Update failed",
+    "Atualização baixada": "Update downloaded",
+    "Atualização baixada.": "Update downloaded.",
+    "Filtrar fontes": "Filter sources",
+    "Fontes desta pesquisa": "Sources for this search",
+    "Fontes habilitadas nas Configurações": "Sources enabled in Settings",
+    "Fonte desativada nas Configurações": "Source disabled in Settings",
+    "Selecione ao menos uma fonte ativa para pesquisar.": "Select at least one active source to search.",
+    "Resultados": "Results",
+    "Nenhum termo auxiliar disponível para este cartão.": "No auxiliary search term is available for this card.",
+    "Usar imagem": "Use image",
+    "Pesquisar nas fontes selecionadas": "Search selected sources",
+    "Idioma da interface atualizado.": "Interface language updated.",
+    "O idioma da interface foi alterado sem reiniciar o AnkiiStudio.": "The interface language was changed without restarting AnkiiStudio."
+  },
+  "fragments": [
+    [
+      "Uma nova ",
+      "A new "
+    ],
+    [
+      "pré-lançamento",
+      "pre-release"
+    ],
+    [
+      "versão estável",
+      "stable release"
+    ],
+    [
+      " do AnkiiStudio está disponível.",
+      " of AnkiiStudio is available."
+    ],
+    [
+      "Instalada:",
+      "Installed:"
+    ],
+    [
+      "Disponível:",
+      "Available:"
+    ],
+    [
+      "Deseja baixar a atualização agora?",
+      "Do you want to download the update now?"
+    ],
+    [
+      "Baixando AnkiiStudio ",
+      "Downloading AnkiiStudio "
+    ],
+    [
+      "Existem alterações não salvas antes de ",
+      "There are unsaved changes before "
+    ],
+    [
+      "trocar de projeto",
+      "switching projects"
+    ],
+    [
+      "sair do aplicativo",
+      "exiting the application"
+    ],
+    [
+      "exportar os cartões selecionados",
+      "exporting the selected cards"
+    ],
+    [
+      "exportar o projeto",
+      "exporting the project"
+    ],
+    [
+      "excluir o projeto",
+      "deleting the project"
+    ],
+    [
+      "atualizar o aplicativo",
+      "updating the application"
+    ],
+    [
+      "gerar áudio",
+      "generating audio"
+    ],
+    [
+      "importar áudios em lote",
+      "importing audio in batch"
+    ],
+    [
+      "gerar áudios em lote",
+      "generating audio in batch"
+    ],
+    [
+      "● ",
+      "● "
+    ],
+    [
+      " voz(es)",
+      " voice(s)"
+    ],
+    [
+      "○ Sem voz para ",
+      "○ No voice for "
+    ],
+    [
+      "○ Local",
+      "○ Local"
+    ],
+    [
+      "Uso observado:",
+      "Observed usage:"
+    ],
+    [
+      "nova tentativa estimada em ",
+      "estimated retry in "
+    ],
+    [
+      " restantes",
+      " remaining"
+    ],
+    [
+      "último limite detectado:",
+      "last detected limit:"
+    ],
+    [
+      "limite ainda não observado",
+      "limit not observed yet"
+    ],
+    [
+      " sucesso(s) nas últimas 24h",
+      " success(es) in the last 24h"
+    ],
+    [
+      " mídias registradas localmente",
+      " media items registered locally"
+    ],
+    [
+      "Arquivos: ",
+      "Files: "
+    ],
+    [
+      " · Correspondências: ",
+      " · Matches: "
+    ],
+    [
+      " · Sem cartão: ",
+      " · No card: "
+    ],
+    [
+      " · Ambíguos: ",
+      " · Ambiguous: "
+    ],
+    [
+      " · Já com áudio: ",
+      " · Already has audio: "
+    ],
+    [
+      "Importados: ",
+      "Imported: "
+    ],
+    [
+      "Ignorados por já possuir áudio: ",
+      "Skipped because audio already exists: "
+    ],
+    [
+      " cartões",
+      " cards"
+    ],
+    [
+      " cartão(ões)",
+      " card(s)"
+    ],
+    [
+      "VOICEVOX disponível. Versão: ",
+      "VOICEVOX available. Version: "
+    ],
+    [
+      "Áudios: ",
+      "Audio: "
+    ],
+    [
+      "Concluído: ",
+      "Completed: "
+    ],
+    [
+      " gerados",
+      " generated"
+    ],
+    [
+      " gerado",
+      " generated"
+    ],
+    [
+      " já existentes",
+      " already existed"
+    ],
+    [
+      " já existente",
+      " already exists"
+    ],
+    [
+      " falharam",
+      " failed"
+    ],
+    [
+      " falhou",
+      " failed"
+    ],
+    [
+      "Primeira falha: ",
+      "First failure: "
+    ],
+    [
+      "Busca concluída: ",
+      "Search completed: "
+    ],
+    [
+      "Importação em lote concluída: ",
+      "Batch import completed: "
+    ],
+    [
+      "A geração terminou, mas ainda faltam: ",
+      "Generation finished, but these are still missing: "
+    ],
+    [
+      "Sem cartões",
+      "No cards"
+    ],
+    [
+      "Salvar alterações (",
+      "Save changes ("
+    ],
+    [
+      "Excluir ",
+      "Delete "
+    ],
+    [
+      " cartões",
+      " cards"
+    ],
+    [
+      " cartão",
+      " card"
+    ],
+    [
+      "Versão ",
+      "Version "
+    ],
+    [
+      "Fonte: ",
+      "Source: "
+    ],
+    [
+      "Autor: ",
+      "Author: "
+    ],
+    [
+      "Licença: ",
+      "License: "
+    ],
+    [
+      "Dimensões: ",
+      "Dimensions: "
+    ],
+    [
+      "Resultados para “",
+      "Results for “"
+    ],
+    [
+      "Buscando…",
+      "Searching…"
+    ],
+    [
+      "Gerando…",
+      "Generating…"
+    ],
+    [
+      "Já com áudio:",
+      "Already has audio:"
+    ],
+    [
+      "Sem correspondência:",
+      "No match:"
+    ],
+    [
+      "Ambíguos:",
+      "Ambiguous:"
+    ],
+    [
+      "Formatos não suportados:",
+      "Unsupported formats:"
+    ],
+    [
+      "Falhas:",
+      "Failures:"
+    ],
+    [
+      "Arquivos:",
+      "Files:"
+    ],
+    [
+      "Correspondências:",
+      "Matches:"
+    ],
+    [
+      "cartão(ões) salvo(s).",
+      "card(s) saved."
+    ],
+    [
+      "cartão(ões) excluído(s).",
+      "card(s) deleted."
+    ],
+    [
+      "áudio(s) associado(s)",
+      "audio file(s) linked"
+    ],
+    [
+      "cartões receberam áudio",
+      "cards received audio"
+    ],
+    [
+      "já estavam completos",
+      "were already complete"
+    ]
+  ]
+}

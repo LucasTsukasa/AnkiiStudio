@@ -45,12 +45,15 @@ class Database:
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     name TEXT NOT NULL,
                     language TEXT NOT NULL DEFAULT 'ja',
+                    translation_language TEXT NOT NULL DEFAULT 'pt',
                     template_key TEXT NOT NULL,
                     topic TEXT NOT NULL DEFAULT '',
                     custom_content TEXT NOT NULL DEFAULT '[]',
                     creation_mode TEXT NOT NULL,
                     front_components TEXT NOT NULL,
                     back_components TEXT NOT NULL,
+                    card_structures TEXT NOT NULL DEFAULT '[]',
+                    structure_distribution TEXT NOT NULL DEFAULT 'balanced_random',
                     deck_sections TEXT NOT NULL DEFAULT '[]',
                     card_theme TEXT NOT NULL DEFAULT '{}',
                     audio_mode TEXT NOT NULL,
@@ -89,6 +92,7 @@ class Database:
                     image_path TEXT NOT NULL DEFAULT '',
                     word_audio_path TEXT NOT NULL DEFAULT '',
                     sentence_audio_path TEXT NOT NULL DEFAULT '',
+                    structure_key TEXT NOT NULL DEFAULT '',
                     created_at TEXT NOT NULL,
                     updated_at TEXT NOT NULL,
                     FOREIGN KEY(project_id) REFERENCES projects(id) ON DELETE CASCADE
@@ -131,7 +135,10 @@ class Database:
         }
         project_migrations = {
             "language": "ALTER TABLE projects ADD COLUMN language TEXT NOT NULL DEFAULT 'ja'",
+            "translation_language": "ALTER TABLE projects ADD COLUMN translation_language TEXT NOT NULL DEFAULT 'pt'",
             "custom_content": "ALTER TABLE projects ADD COLUMN custom_content TEXT NOT NULL DEFAULT '[]'",
+            "card_structures": "ALTER TABLE projects ADD COLUMN card_structures TEXT NOT NULL DEFAULT '[]'",
+            "structure_distribution": "ALTER TABLE projects ADD COLUMN structure_distribution TEXT NOT NULL DEFAULT 'balanced_random'",
             "deck_sections": "ALTER TABLE projects ADD COLUMN deck_sections TEXT NOT NULL DEFAULT '[]'",
             "card_theme": "ALTER TABLE projects ADD COLUMN card_theme TEXT NOT NULL DEFAULT '{}'",
             "fixed_audio_profile_id": "ALTER TABLE projects ADD COLUMN fixed_audio_profile_id TEXT NOT NULL DEFAULT ''",
@@ -152,6 +159,8 @@ class Database:
         }
         if "section" not in card_columns:
             connection.execute("ALTER TABLE cards ADD COLUMN section TEXT NOT NULL DEFAULT ''")
+        if "structure_key" not in card_columns:
+            connection.execute("ALTER TABLE cards ADD COLUMN structure_key TEXT NOT NULL DEFAULT ''")
         connection.execute(
             "CREATE INDEX IF NOT EXISTS idx_cards_project_section ON cards(project_id, section)"
         )
@@ -161,22 +170,25 @@ class Database:
             cursor = connection.execute(
                 """
                 INSERT INTO projects (
-                    name, language, template_key, topic, custom_content, creation_mode,
-                    front_components, back_components, deck_sections, card_theme,
+                    name, language, translation_language, template_key, topic, custom_content, creation_mode,
+                    front_components, back_components, card_structures, structure_distribution, deck_sections, card_theme,
                     audio_mode, audio_providers, fixed_audio_provider, fixed_audio_profile_id, voicevox_style_id, voicevox_style_label,
                     voicevox_speed_scale, voicevox_pitch_scale, voicevox_intonation_scale, voicevox_volume_scale, voicevox_pause_length_scale,
                     voice_variant, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     project.name,
                     project.language,
+                    project.translation_language,
                     project.template_key,
                     project.topic,
                     json.dumps(project.custom_content, ensure_ascii=False),
                     project.creation_mode,
                     json.dumps(project.front_components, ensure_ascii=False),
                     json.dumps(project.back_components, ensure_ascii=False),
+                    json.dumps([item.model_dump() for item in project.card_structures], ensure_ascii=False),
+                    project.structure_distribution,
                     json.dumps(project.deck_sections, ensure_ascii=False),
                     project.card_theme.model_dump_json(),
                     project.audio_mode,
@@ -205,8 +217,8 @@ class Database:
             connection.execute(
                 """
                 UPDATE projects SET
-                    name=?, language=?, template_key=?, topic=?, custom_content=?, creation_mode=?,
-                    front_components=?, back_components=?, deck_sections=?, card_theme=?,
+                    name=?, language=?, translation_language=?, template_key=?, topic=?, custom_content=?, creation_mode=?,
+                    front_components=?, back_components=?, card_structures=?, structure_distribution=?, deck_sections=?, card_theme=?,
                     audio_mode=?, audio_providers=?, fixed_audio_provider=?, fixed_audio_profile_id=?, voicevox_style_id=?, voicevox_style_label=?,
                     voicevox_speed_scale=?, voicevox_pitch_scale=?, voicevox_intonation_scale=?, voicevox_volume_scale=?, voicevox_pause_length_scale=?,
                     voice_variant=?, updated_at=?
@@ -215,12 +227,15 @@ class Database:
                 (
                     project.name,
                     project.language,
+                    project.translation_language,
                     project.template_key,
                     project.topic,
                     json.dumps(project.custom_content, ensure_ascii=False),
                     project.creation_mode,
                     json.dumps(project.front_components, ensure_ascii=False),
                     json.dumps(project.back_components, ensure_ascii=False),
+                    json.dumps([item.model_dump() for item in project.card_structures], ensure_ascii=False),
+                    project.structure_distribution,
                     json.dumps(project.deck_sections, ensure_ascii=False),
                     project.card_theme.model_dump_json(),
                     project.audio_mode,
@@ -269,8 +284,8 @@ class Database:
                         project_id, section, word, reading, romanization, translation,
                         example, example_reading, example_translation, explanation,
                         mnemonic, part_of_speech, level, tags, image_search_terms,
-                        image_path, word_audio_path, sentence_audio_path, created_at, updated_at
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        image_path, word_audio_path, sentence_audio_path, structure_key, created_at, updated_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
                         project_id,
@@ -291,6 +306,7 @@ class Database:
                         card.image_path,
                         card.word_audio_path,
                         card.sentence_audio_path,
+                        card.structure_key,
                         card.created_at,
                         card.updated_at,
                     ),
@@ -336,7 +352,7 @@ class Database:
                     section=?, word=?, reading=?, romanization=?, translation=?, example=?,
                     example_reading=?, example_translation=?, explanation=?, mnemonic=?,
                     part_of_speech=?, level=?, tags=?, image_search_terms=?, image_path=?,
-                    word_audio_path=?, sentence_audio_path=?, updated_at=?
+                    word_audio_path=?, sentence_audio_path=?, structure_key=?, updated_at=?
                 WHERE id=?
                 """,
                 (
@@ -357,6 +373,7 @@ class Database:
                     card.image_path,
                     card.word_audio_path,
                     card.sentence_audio_path,
+                    card.structure_key,
                     card.updated_at,
                     card.id,
                 ),
@@ -381,8 +398,75 @@ class Database:
             )
 
     def delete_card(self, card_id: int) -> None:
+        self.delete_cards([card_id])
+
+    def delete_cards(self, card_ids: list[int]) -> None:
+        ids = sorted({int(card_id) for card_id in card_ids if int(card_id) > 0})
+        if not ids:
+            return
+        placeholders = ",".join("?" for _ in ids)
         with self.connection() as connection:
-            connection.execute("DELETE FROM cards WHERE id=?", (card_id,))
+            connection.execute(f"DELETE FROM cards WHERE id IN ({placeholders})", ids)
+
+    def update_cards(self, cards: list[FlashcardData]) -> None:
+        if not cards:
+            return
+        project_ids: set[int] = set()
+        with self.connection() as connection:
+            for card in cards:
+                if card.id is None:
+                    raise ValueError("Cartão sem identificador.")
+                card.updated_at = utc_now_iso()
+                connection.execute(
+                    """
+                    UPDATE cards SET
+                        section=?, word=?, reading=?, romanization=?, translation=?, example=?,
+                        example_reading=?, example_translation=?, explanation=?, mnemonic=?,
+                        part_of_speech=?, level=?, tags=?, image_search_terms=?, image_path=?,
+                        word_audio_path=?, sentence_audio_path=?, structure_key=?, updated_at=?
+                    WHERE id=?
+                    """,
+                    (
+                        card.section, card.word, card.reading, card.romanization, card.translation,
+                        card.example, card.example_reading, card.example_translation, card.explanation,
+                        card.mnemonic, card.part_of_speech, card.level,
+                        json.dumps(card.tags, ensure_ascii=False),
+                        json.dumps(card.image_search_terms, ensure_ascii=False),
+                        card.image_path, card.word_audio_path, card.sentence_audio_path,
+                        card.structure_key, card.updated_at, card.id,
+                    ),
+                )
+                if card.project_id is not None:
+                    project_ids.add(int(card.project_id))
+            now = utc_now_iso()
+            for project_id in project_ids:
+                connection.execute("UPDATE projects SET updated_at=? WHERE id=?", (now, project_id))
+
+    def delete_media_assets_for_card(self, card_id: int, kind: str | None = None) -> None:
+        with self.connection() as connection:
+            if kind:
+                connection.execute(
+                    "DELETE FROM media_assets WHERE card_id=? AND kind=?", (card_id, kind)
+                )
+            else:
+                connection.execute("DELETE FROM media_assets WHERE card_id=?", (card_id,))
+
+    def count_card_media_path_references(self, path: str, kind: str) -> int:
+        if not path:
+            return 0
+        with self.connection() as connection:
+            if kind == "image":
+                row = connection.execute(
+                    "SELECT COUNT(*) AS total FROM cards WHERE image_path=?", (path,)
+                ).fetchone()
+            elif kind == "audio":
+                row = connection.execute(
+                    "SELECT COUNT(*) AS total FROM cards WHERE word_audio_path=? OR sentence_audio_path=?",
+                    (path, path),
+                ).fetchone()
+            else:
+                raise ValueError("Tipo de mídia inválido.")
+        return int(row["total"] if row else 0)
 
     def add_media_asset(self, asset: MediaAsset) -> int:
         with self.connection() as connection:
@@ -443,12 +527,15 @@ class Database:
             id=row["id"],
             name=row["name"],
             language=row["language"] if "language" in row.keys() else "ja",
+            translation_language=row["translation_language"] if "translation_language" in row.keys() else "pt",
             template_key=row["template_key"],
             topic=row["topic"],
             custom_content=json.loads(row["custom_content"]) if "custom_content" in row.keys() else [],
             creation_mode=row["creation_mode"],
             front_components=json.loads(row["front_components"]),
             back_components=json.loads(row["back_components"]),
+            card_structures=json.loads(row["card_structures"]) if "card_structures" in row.keys() else [],
+            structure_distribution=row["structure_distribution"] if "structure_distribution" in row.keys() else "balanced_random",
             deck_sections=json.loads(row["deck_sections"]) if "deck_sections" in row.keys() else [],
             card_theme=theme,
             audio_mode=row["audio_mode"],
@@ -489,6 +576,7 @@ class Database:
             image_path=row["image_path"],
             word_audio_path=row["word_audio_path"],
             sentence_audio_path=row["sentence_audio_path"],
+            structure_key=row["structure_key"] if "structure_key" in row.keys() else "",
             created_at=row["created_at"],
             updated_at=row["updated_at"],
         )

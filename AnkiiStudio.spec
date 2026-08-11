@@ -16,11 +16,18 @@ data_files = [
 ]
 distribution_docs = [(str(project_root / "LICENSE"), ".")]
 
+language_dir = project_root / "ankiistudio" / "languages"
+language_files = [
+    (str(path), "ankiistudio/languages")
+    for path in language_dir.iterdir()
+    if path.is_file() and path.suffix.lower() == ".json"
+]
+
 a = Analysis(
     [str(project_root / "run.py")],
     pathex=[str(project_root)],
     binaries=[],
-    datas=icon_datas + data_files + distribution_docs,
+    datas=icon_datas + data_files + language_files + distribution_docs,
     hiddenimports=["keyring.backends.Windows", "PySide6.QtMultimedia"],
     hookspath=[],
     hooksconfig={},

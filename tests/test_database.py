@@ -242,3 +242,118 @@ def test_existing_database_is_migrated_with_voicevox_settings(tmp_path: Path) ->
         "voicevox_volume_scale",
         "voicevox_pause_length_scale",
     } <= columns
+
+
+def test_existing_database_is_migrated_with_structure_variation_columns(tmp_path: Path) -> None:
+    path = tmp_path / "legacy-structures.db"
+    connection = sqlite3.connect(path)
+    connection.execute(
+        """
+        CREATE TABLE projects (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL, template_key TEXT NOT NULL, topic TEXT NOT NULL DEFAULT '',
+            creation_mode TEXT NOT NULL, front_components TEXT NOT NULL, back_components TEXT NOT NULL,
+            audio_mode TEXT NOT NULL, audio_providers TEXT NOT NULL, fixed_audio_provider TEXT NOT NULL,
+            voice_variant TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+        )
+        """
+    )
+    connection.execute(
+        """
+        CREATE TABLE cards (
+            id INTEGER PRIMARY KEY AUTOINCREMENT, project_id INTEGER NOT NULL, word TEXT NOT NULL,
+            reading TEXT NOT NULL DEFAULT '', romanization TEXT NOT NULL DEFAULT '', translation TEXT NOT NULL DEFAULT '',
+            example TEXT NOT NULL DEFAULT '', example_reading TEXT NOT NULL DEFAULT '', example_translation TEXT NOT NULL DEFAULT '',
+            explanation TEXT NOT NULL DEFAULT '', mnemonic TEXT NOT NULL DEFAULT '', part_of_speech TEXT NOT NULL DEFAULT '',
+            level TEXT NOT NULL DEFAULT '', tags TEXT NOT NULL DEFAULT '[]', image_search_terms TEXT NOT NULL DEFAULT '[]',
+            image_path TEXT NOT NULL DEFAULT '', word_audio_path TEXT NOT NULL DEFAULT '', sentence_audio_path TEXT NOT NULL DEFAULT '',
+            created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+        )
+        """
+    )
+    connection.commit()
+    connection.close()
+    Database(path)
+    connection = sqlite3.connect(path)
+    project_columns = {row[1] for row in connection.execute("PRAGMA table_info(projects)")}
+    card_columns = {row[1] for row in connection.execute("PRAGMA table_info(cards)")}
+    connection.close()
+    assert {"card_structures", "structure_distribution"} <= project_columns
+    assert "structure_key" in card_columns
+
+
+def test_batch_update_and_delete_cards(tmp_path: Path) -> None:
+    db = Database(tmp_path / "batch-cards.db")
+    project_id = db.create_project(
+        ProjectData(
+            name="Edição em lote",
+            template_key="custom",
+            front_components=["word"],
+            back_components=["translation"],
+        )
+    )
+    card_ids = db.add_cards(
+        project_id,
+        [
+            FlashcardData(word="猫", translation="gato"),
+            FlashcardData(word="犬", translation="cachorro"),
+            FlashcardData(word="鳥", translation="pássaro"),
+        ],
+    )
+    first = db.get_card(card_ids[0])
+    second = db.get_card(card_ids[1])
+    assert first is not None and second is not None
+
+    db.update_cards(
+        [
+            first.model_copy(update={"translation": "felino"}),
+            second.model_copy(update={"translation": "cão"}),
+        ]
+    )
+    assert db.get_card(card_ids[0]).translation == "felino"  # type: ignore[union-attr]
+    assert db.get_card(card_ids[1]).translation == "cão"  # type: ignore[union-attr]
+
+    db.delete_cards(card_ids[:2])
+    assert db.get_card(card_ids[0]) is None
+    assert db.get_card(card_ids[1]) is None
+    assert db.get_card(card_ids[2]) is not None
+
+
+def test_project_translation_language_roundtrip_and_legacy_default(tmp_path: Path) -> None:
+    db = Database(tmp_path / "translation-language.db")
+    project = ProjectData(
+        name="Japanese for English speakers",
+        language="ja",
+        translation_language="en",
+        template_key="custom",
+        custom_content=["Vocabulary"],
+        front_components=["word"],
+        back_components=["translation"],
+    )
+    project_id = db.create_project(project)
+    loaded = db.get_project(project_id)
+    assert loaded is not None
+    assert loaded.translation_language == "en"
+
+
+def test_existing_database_is_migrated_with_translation_language(tmp_path: Path) -> None:
+    path = tmp_path / "legacy-translation-language.db"
+    connection = sqlite3.connect(path)
+    connection.execute(
+        """
+        CREATE TABLE projects (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL, template_key TEXT NOT NULL, topic TEXT NOT NULL DEFAULT '',
+            creation_mode TEXT NOT NULL, front_components TEXT NOT NULL, back_components TEXT NOT NULL,
+            audio_mode TEXT NOT NULL, audio_providers TEXT NOT NULL, fixed_audio_provider TEXT NOT NULL,
+            voice_variant TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+        )
+        """
+    )
+    connection.commit()
+    connection.close()
+    Database(path)
+    connection = sqlite3.connect(path)
+    columns = {row[1] for row in connection.execute("PRAGMA table_info(projects)")}
+    connection.close()
+    assert "translation_language" in columns

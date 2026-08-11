@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ankiistudio"
-version = "0.10.0"
+version = "0.11.0b5"
 description = "Aplicativo desktop para criação, organização e exportação de flashcards compatíveis com o Anki."
 requires-python = ">=3.11"
 license = { file = "LICENSE" }
@@ -32,7 +32,7 @@ ankiistudio = "ankiistudio.main:main"
 include = ["ankiistudio*"]
 
 [tool.setuptools.package-data]
-ankiistudio = ["resources/icons/*.svg", "resources/icons/*.png", "resources/icons/*.ico", "data/*.json"]
+ankiistudio = ["resources/icons/*.svg", "resources/icons/*.png", "resources/icons/*.ico", "data/*.json", "languages/*.json"]
 
 [tool.ruff]
 line-length = 100

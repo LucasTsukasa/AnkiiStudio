@@ -4,6 +4,87 @@ Todas as alterações relevantes do AnkiiStudio são registradas neste arquivo.
 
 O formato segue os princípios de [Keep a Changelog](https://keepachangelog.com/) e o projeto utiliza versionamento semântico durante o desenvolvimento.
 
+## [0.11.0-beta.5] - 2026-08-10
+
+### Corrigido
+- Busca automática/em lote de imagens para cartões sem `image_search_terms` agora pesquisa primeiro o Conteúdo principal original do cartão. Kana como `お` é consultado como `お`, em vez de usar primeiro a tradução latina `O`.
+- A tradução permanece disponível apenas como fallback quando a busca pelo conteúdo original não encontra uma imagem utilizável.
+- Cartões que possuem `image_search_terms` explícitos preservam a prioridade desses termos visuais, mantendo o comportamento já aprovado para palavras e conceitos com consultas auxiliares específicas.
+
+## [0.11.0-beta.4] - 2026-08-10
+
+### Adicionado
+- Filtro de fontes na pesquisa manual de imagens, acessível pelo ícone ao lado do campo de busca e limitado às fontes habilitadas nas Configurações.
+- Pacotes de idioma separados em `ankiistudio/languages/`, inicialmente para Português (Brasil) e Inglês.
+
+### Alterado
+- Troca do idioma da interface passa a ocorrer imediatamente pelas Configurações, sem necessidade de reiniciar o AnkiiStudio.
+- Janela **Pesquisar imagem** recebeu novo layout com resultados em miniaturas, pré-visualização mais compacta, metadados organizados e sugestões auxiliares em blocos menores.
+- Pixabay e Pexels permanecem como fontes opcionais, enquanto Wikimedia Commons continua habilitado por padrão.
+
+### Removido
+- Integração com Openverse, incluindo configuração, fonte de pesquisa, lógica de consulta e interface associada.
+
+## [0.11.0-beta.3] - 2026-08-10
+
+### Adicionado
+- Interface em Inglês, com Português (Brasil) mantido como idioma padrão e seleção persistente em Configurações.
+- Campo **Idioma da tradução** na criação de projetos, independente do idioma da interface e do idioma estudado.
+- Localização em Inglês dos campos destinados ao estudante no conteúdo interno revisado disponível nesta versão.
+- Buscas auxiliares na pesquisa manual de imagem de um único cartão, utilizando tradução, romanização, leitura e termos visuais disponíveis.
+
+### Alterado
+- A pesquisa manual de imagem usa sempre o conteúdo principal original do cartão como consulta principal; termos auxiliares não substituem essa consulta.
+- A pré-visualização da imagem selecionada foi reduzida para abrir espaço às sugestões auxiliares, separadas por um divisor visual neutro.
+- Falhas individuais das fontes de imagem passam a ficar visíveis na pesquisa manual em vez de serem ocultadas quando outra fonte retorna resultados.
+- Projetos persistem o idioma da tradução; projetos antigos recebem Português como valor compatível de migração.
+
+### Corrigido
+- Encerramento do aplicativo durante pesquisas manuais de imagem causado por callbacks assíncronos que podiam alcançar a interface fora do ciclo seguro da thread Qt.
+- Busca manual de kana como `あ` sendo substituída pela tradução `A` antes da consulta.
+
+## [0.11.0-beta.2] - 2026-08-10
+
+### Adicionado
+- Verificação opcional de atualizações publicadas no GitHub, com busca automática configurável, verificação manual e fluxo de download/atualização da distribuição portátil para Windows.
+- Pixabay e Pexels como fontes opcionais de imagens; Wikimedia Commons permanece habilitado por padrão.
+- Configuração segura das API keys de Pixabay e Pexels pelo gerenciador de credenciais do sistema.
+- Importação manual e remoção de imagem no cartão selecionado.
+- Remoção do áudio associado ao cartão selecionado.
+- Edição de vários cartões com alterações pendentes em memória e salvamento conjunto.
+- Aviso de alterações não salvas antes de fechar, trocar de projeto, exportar ou executar operações que dependem dos dados persistidos.
+- Exclusão de múltiplos cartões selecionados em uma única ação.
+
+### Alterado
+- Busca de imagens passa a priorizar termos visuais explícitos e, na ausência deles, a tradução antes do conteúdo original.
+- O prompt de geração de cartões volta a solicitar termos concretos de busca de imagem quando o cartão utiliza imagem.
+- Resultados de várias fontes de imagem são combinados sem permitir que uma única biblioteca monopolize a primeira lista apresentada ao usuário.
+- Consultas do Pixabay são mantidas em cache persistente por 24 horas.
+
+### Corrigido
+- Seleção automática de imagens semanticamente inadequadas em consultas não latinas, incluindo casos em que um termo japonês podia resultar em uma fotografia sem relação clara com o significado do cartão.
+- Fluxo de edição que exigia salvar cada cartão individualmente antes de avançar para o próximo.
+- Exclusão limitada a um único cartão mesmo quando várias linhas estavam selecionadas.
+
+## [0.11.0-beta.1] - 2026-08-10
+
+### Adicionado
+- Integração com o Tatoeba para buscar gravações humanas por correspondência exata do conteúdo, preservando metadados de origem, autoria e licença.
+- Importação manual de um arquivo de áudio para o cartão selecionado.
+- Importação de áudios em lote por nome de arquivo, com correspondência por Conteúdo principal, Leitura, Romaji/Romanização ou Tradução.
+- Pré-visualização da importação em lote, com identificação de correspondências, conflitos, casos ambíguos e arquivos sem cartão correspondente.
+- Suporte a múltiplas variações de estrutura em um mesmo projeto.
+- Distribuição aleatória equilibrada dos cartões entre as variações configuradas.
+
+### Alterado
+- Geração e validação de mídias passam a respeitar a variação de estrutura atribuída a cada cartão.
+- Exportação `.apkg` cria o modelo de nota correspondente à variação de cada cartão.
+- O README foi atualizado para apresentar as novas fontes de áudio, importação em lote e variações de estrutura sem vincular a apresentação do projeto a um idioma específico.
+
+### Compatibilidade
+- Projetos antigos sem variações continuam utilizando a estrutura única já salva.
+- Campos de estrutura e áudio legados continuam reconhecidos para abertura de projetos anteriores.
+
 ## [0.10.0] - 2026-08-09
 
 ### Alterado

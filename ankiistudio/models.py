@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Literal
+from uuid import uuid4
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -39,6 +40,31 @@ class DeckThemeSettings(BaseModel):
         return value
 
 
+
+
+class CardStructureVariation(BaseModel):
+    key: str = Field(default_factory=lambda: uuid4().hex[:12], min_length=1, max_length=64)
+    name: str = Field(default="Variação", min_length=1, max_length=80)
+    front_components: list[str]
+    back_components: list[str]
+
+    @field_validator("front_components", "back_components", mode="before")
+    @classmethod
+    def normalize_structure_components(cls, value: object) -> list[str]:
+        if not isinstance(value, list):
+            return []
+        normalized: list[str] = []
+        seen: set[str] = set()
+        for raw in value:
+            key = str(raw).strip()
+            alias = LEGACY_COMPONENT_ALIASES.get(key, key)
+            if not alias or alias in seen:
+                continue
+            seen.add(alias)
+            normalized.append(alias)
+        return normalized
+
+
 class FlashcardData(BaseModel):
     id: int | None = None
     project_id: int | None = None
@@ -61,6 +87,7 @@ class FlashcardData(BaseModel):
     # sentence_audio_path permanece apenas para compatibilidade com projetos antigos.
     word_audio_path: str = ""
     sentence_audio_path: str = ""
+    structure_key: str = ""
     created_at: str = Field(default_factory=utc_now_iso)
     updated_at: str = Field(default_factory=utc_now_iso)
 
@@ -85,12 +112,15 @@ class ProjectData(BaseModel):
     id: int | None = None
     name: str = Field(min_length=1, max_length=160)
     language: str = "ja"
+    translation_language: str = "pt"
     template_key: str
     topic: str = ""
     custom_content: list[str] = Field(default_factory=list)
     creation_mode: Literal["builtin", "gemini", "import", "manual"] = "builtin"
     front_components: list[str]
     back_components: list[str]
+    card_structures: list[CardStructureVariation] = Field(default_factory=list)
+    structure_distribution: Literal["balanced_random"] = "balanced_random"
     deck_sections: list[str] = Field(default_factory=list)
     card_theme: DeckThemeSettings = Field(default_factory=DeckThemeSettings)
     audio_mode: Literal["intelligent", "fixed", "random"] = "intelligent"
@@ -113,6 +143,11 @@ class ProjectData(BaseModel):
     def normalize_project_language(cls, value: object) -> str:
         return normalize_language_code(str(value or "ja"))
 
+    @field_validator("translation_language", mode="before")
+    @classmethod
+    def normalize_translation_language(cls, value: object) -> str:
+        return normalize_language_code(str(value or "pt"))
+
     @field_validator("front_components", "back_components", mode="before")
     @classmethod
     def normalize_components(cls, value: object) -> list[str]:
@@ -129,8 +164,65 @@ class ProjectData(BaseModel):
             normalized.append(alias)
         return normalized
 
+    def structure_variations(self) -> list[CardStructureVariation]:
+        if self.card_structures:
+            return self.card_structures
+        return [
+            CardStructureVariation(
+                key="default",
+                name="Padrão",
+                front_components=list(self.front_components),
+                back_components=list(self.back_components),
+            )
+        ]
+
+    def structure_for_key(self, structure_key: str = "") -> CardStructureVariation:
+        variations = self.structure_variations()
+        if structure_key:
+            for variation in variations:
+                if variation.key == structure_key:
+                    return variation
+        return variations[0]
+
+    def structure_for_card(self, card: "FlashcardData") -> CardStructureVariation:
+        return self.structure_for_key(card.structure_key)
+
+    def card_uses_component(self, card: "FlashcardData", component: str) -> bool:
+        variation = self.structure_for_card(card)
+        return component in (variation.front_components + variation.back_components)
+
+    def required_components(self) -> list[str]:
+        ordered: list[str] = []
+        seen: set[str] = set()
+        for variation in self.structure_variations():
+            for component in variation.front_components + variation.back_components:
+                if component not in seen:
+                    seen.add(component)
+                    ordered.append(component)
+        return ordered
+
+    def prompt_front_components(self) -> list[str]:
+        ordered: list[str] = []
+        seen: set[str] = set()
+        for variation in self.structure_variations():
+            for component in variation.front_components:
+                if component not in seen:
+                    seen.add(component)
+                    ordered.append(component)
+        return ordered
+
+    def prompt_back_components(self) -> list[str]:
+        ordered: list[str] = []
+        seen: set[str] = set(self.prompt_front_components())
+        for variation in self.structure_variations():
+            for component in variation.back_components:
+                if component not in seen:
+                    seen.add(component)
+                    ordered.append(component)
+        return ordered
+
     def uses_component(self, component: str) -> bool:
-        return component in self.front_components or component in self.back_components
+        return component in self.required_components()
 
     @property
     def uses_images(self) -> bool:
@@ -153,11 +245,12 @@ class ProjectData(BaseModel):
 class ImportedDeck(BaseModel):
     format_version: str = "1.0"
     language: str = "ja"
+    translation_language: str = "pt"
     category: str
     deck_name: str
     cards: list[FlashcardData]
 
-    @field_validator("language")
+    @field_validator("language", "translation_language")
     @classmethod
     def normalize_language(cls, value: str) -> str:
         return normalize_language_code(value)
@@ -184,7 +277,8 @@ class MediaAsset(BaseModel):
         return Path(self.local_path)
 
 
-class WikimediaMediaResult(BaseModel):
+class ImageSearchResult(BaseModel):
+    provider: str = "wikimedia"
     title: str
     page_id: int | None = None
     file_url: str
@@ -198,3 +292,7 @@ class WikimediaMediaResult(BaseModel):
     license_url: str = ""
     credit: str = ""
     description: str = ""
+
+
+# Compatibilidade para extensões e testes que ainda importam o nome antigo.
+WikimediaMediaResult = ImageSearchResult

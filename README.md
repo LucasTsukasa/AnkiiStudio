@@ -43,15 +43,23 @@ Os projetos são exportados diretamente em `.apkg`, sem depender do AnkiConnect.
 
 - Criação e gerenciamento de projetos de flashcards.
 - Estrutura configurável de frente e verso.
+- Múltiplas variações de estrutura no mesmo projeto, distribuídas de forma aleatória e equilibrada.
 - Exportação direta para `.apkg`.
 - Organização em baralhos e subbaralhos.
 - Suporte a múltiplos idiomas.
+- Interface disponível em Português (Brasil) e Inglês.
+- Idioma de tradução configurável de forma independente por projeto.
 - Modelos de flashcards prontos para idiomas compatíveis.
 - Modelo personalizado para criação de estruturas próprias.
 - Geração de conteúdo com Google Gemini.
 - Importação de conteúdo estruturado por JSON/TXT.
-- Busca e processamento de imagens pelo Wikimedia Commons.
-- Áudio por Wikimedia Commons, VOICEVOX, Gemini TTS e ElevenLabs.
+- Busca e processamento de imagens com Wikimedia Commons por padrão e fontes adicionais opcionais.
+- Áudio por Tatoeba, Wikimedia Commons, VOICEVOX, Gemini TTS e ElevenLabs.
+- Importação individual e em lote de arquivos de áudio próprios.
+- Importação e remoção manual de imagens e áudios por cartão.
+- Edição de vários cartões com salvamento conjunto de alterações pendentes.
+- Exclusão simultânea de múltiplos cartões selecionados.
+- Verificação opcional de novas versões publicadas no GitHub.
 - Perfis de voz configuráveis por idioma.
 - Ajustes de voz por provedor.
 - Reprodução de áudio dentro do aplicativo.
@@ -96,6 +104,14 @@ Além dos modelos disponíveis, o modo **Personalizado** permite criar baralhos 
 
 A disponibilidade de modelos prontos pode evoluir conforme novos conteúdos forem adicionados ao projeto.
 
+### Idioma da interface e idioma da tradução
+
+O idioma da interface é uma preferência global e atualmente pode ser definido como **Português (Brasil)** ou **English**. A alteração é aplicada imediatamente, sem reiniciar o aplicativo, e permanece salva para as próximas execuções.
+
+Cada projeto também possui um **Idioma da tradução** independente do idioma estudado e do idioma da interface. Esse idioma orienta os campos destinados ao estudante, como tradução, explicação, mnemônico e tradução de exemplos quando o conteúdo é gerado ou importado. Projetos existentes mantêm a configuração já salva mesmo que o idioma da interface seja alterado.
+
+O catálogo de idiomas de tradução acompanha o catálogo multilíngue do aplicativo. O conteúdo interno revisado incluído com o programa possui localização própria em Português e Inglês nesta versão; outros idiomas podem ser utilizados nos fluxos Personalizado com geração ou importação de conteúdo.
+
 ## Estrutura dos flashcards
 
 Os cartões podem ser compostos por diferentes componentes:
@@ -111,6 +127,12 @@ Os cartões podem ser compostos por diferentes componentes:
 - Mnemônico
 
 A estrutura disponível pode variar conforme o modelo utilizado e pode ser personalizada quando o modelo permitir.
+
+### Variações de estrutura
+
+Um mesmo projeto pode conter mais de uma variação de cartão. Cada variação possui sua própria composição de frente e verso.
+
+Quando duas ou mais variações são configuradas, o AnkiiStudio distribui os conteúdos de forma **aleatória e equilibrada** entre elas. Isso permite combinar diferentes formas de estudo — por exemplo, reconhecimento, compreensão auditiva, produção e associação visual — dentro do mesmo baralho, sem duplicar automaticamente todos os conteúdos.
 
 ## Criação de conteúdo
 
@@ -130,15 +152,28 @@ Alguns modelos podem utilizar conteúdo fornecido diretamente pelo AnkiiStudio, 
 
 ## Imagens
 
-O AnkiiStudio utiliza o **Wikimedia Commons** como fonte de imagens.
+O **Wikimedia Commons** permanece como a fonte de imagens habilitada por padrão. Em **Configurações**, o usuário pode ativar fontes adicionais quando quiser ampliar os resultados da busca:
 
-O aplicativo pesquisa, seleciona e processa as mídias antes de vinculá-las aos cartões, incluindo suporte a imagens rasterizadas provenientes de arquivos vetoriais disponíveis no Commons.
+- Pixabay
+- Pexels
 
-Quando disponíveis, informações de origem, autoria e licença são preservadas internamente.
+Pixabay e Pexels utilizam as API keys configuradas pelo próprio usuário. As fontes adicionais permanecem desabilitadas até serem ativadas manualmente.
+
+Na pesquisa manual, um filtro ao lado do campo de busca permite restringir temporariamente a consulta às fontes que já estão habilitadas nas Configurações. Fontes desativadas continuam visíveis no filtro, mas não podem ser selecionadas até serem habilitadas globalmente.
+
+O aplicativo pesquisa, seleciona, baixa e otimiza as mídias antes de vinculá-las aos cartões. Na busca automática/em lote, termos visuais explícitos (`image_search_terms`) continuam tendo prioridade quando existem. Quando o cartão não possui esses termos, o **Conteúdo principal original** é pesquisado primeiro e a tradução é usada apenas como fallback. Assim, caracteres como `お` são consultados como `お`, em vez de começar pela tradução latina `O`. O AnkiiStudio também reduz a aceitação de resultados do Wikimedia sem relação clara com consultas não latinas.
+
+Na pesquisa manual de um único cartão, o **conteúdo principal original** é mantido como consulta principal. Tradução, leitura, romanização e termos visuais disponíveis no cartão aparecem como buscas auxiliares em miniaturas menores, permitindo comparar alternativas sem substituir o termo original. A janela apresenta os resultados em miniaturas visuais, com pré-visualização compacta, metadados organizados e sugestões auxiliares em seções menores.
+
+Também é possível **importar uma imagem local** diretamente para um cartão ou **remover a imagem associada**. Quando disponíveis, informações de origem, autoria e licença das imagens obtidas por fontes externas são preservadas internamente.
 
 ## Áudio
 
-O AnkiiStudio pode utilizar diferentes provedores de áudio.
+O AnkiiStudio pode utilizar gravações humanas, síntese de voz e arquivos fornecidos pelo próprio usuário.
+
+### Tatoeba
+
+O AnkiiStudio pode procurar uma gravação humana correspondente ao conteúdo do cartão no Tatoeba. Quando uma correspondência reutilizável está disponível, a gravação pode ser associada ao cartão com os metadados de origem, autoria e licença preservados.
 
 ### Wikimedia Commons
 
@@ -167,6 +202,30 @@ Os perfis podem incluir ajustes como:
 - Speaker Boost.
 
 > A disponibilidade de modelos, vozes, cotas e recursos depende dos serviços externos e do plano utilizado em cada plataforma.
+
+### Importar áudio
+
+Arquivos locais podem ser associados diretamente aos cartões, sem depender de serviços externos.
+
+A importação em lote permite selecionar vários arquivos ou uma pasta e relacionar cada áudio ao cartão pelo nome do arquivo. O campo usado para a correspondência pode ser escolhido pelo usuário, incluindo conteúdo principal, leitura, romanização ou tradução.
+
+Exemplo:
+
+```text
+あ.wav  →  cartão com conteúdo “あ”
+い.wav  →  cartão com conteúdo “い”
+う.wav  →  cartão com conteúdo “う”
+```
+
+Antes da aplicação, o AnkiiStudio apresenta as correspondências encontradas e identifica arquivos sem cartão correspondente, casos ambíguos e cartões que já possuem áudio.
+
+## Edição de cartões
+
+Alterações feitas em cartões podem permanecer pendentes enquanto o usuário navega entre diferentes itens do mesmo projeto. O botão **Salvar alterações** grava todas as modificações pendentes em conjunto.
+
+Ao tentar fechar o aplicativo, trocar de projeto, exportar ou executar uma operação que dependa dos dados persistidos, o AnkiiStudio avisa quando existem alterações não salvas e permite salvar, continuar sem salvar ou cancelar a ação.
+
+A tabela de cartões também suporta seleção múltipla para exclusão de vários cartões em uma única confirmação.
 
 ## Exportação para o Anki
 
@@ -211,6 +270,12 @@ AnkiiStudio/
 
 A versão portátil não exige uma instalação local do Python.
 
+## Atualizações
+
+Em **Configurações**, a opção **Procurar atualizações automaticamente** controla a verificação de novas versões publicadas no GitHub. Quando habilitada, a consulta é feita na inicialização. Também existe uma ação para verificar manualmente a qualquer momento.
+
+Quando uma versão mais recente compatível com o canal atual é encontrada, o usuário escolhe se deseja baixá-la. Na distribuição portátil para Windows, o pacote é preparado para substituir os arquivos do aplicativo preservando a pasta `data/` e reiniciar o AnkiiStudio após a atualização.
+
 ## Dados locais
 
 Os dados criados durante o uso ficam na pasta `data/` da versão portátil:
@@ -238,6 +303,8 @@ Serviços externos podem exigir credenciais próprias, como:
 
 - Google Gemini
 - ElevenLabs
+- Pixabay
+- Pexels
 
 Cada usuário deve utilizar suas próprias credenciais e respeitar os termos dos respectivos serviços.
 
@@ -298,6 +365,7 @@ O processo utiliza PyInstaller e gera o pacote de distribuição na pasta `relea
 AnkiiStudio/
 ├── ankiistudio/
 │   ├── data/
+│   ├── languages/
 │   ├── resources/
 │   ├── services/
 │   └── ui/
@@ -316,6 +384,7 @@ AnkiiStudio/
 |---|---|
 | `ankiistudio/` | Código principal da aplicação |
 | `ankiistudio/data/` | Conteúdo interno distribuído com o programa |
+| `ankiistudio/languages/` | Pacotes de tradução da interface |
 | `ankiistudio/resources/` | Ícones e recursos visuais |
 | `ankiistudio/services/` | Serviços, integrações e regras de negócio |
 | `ankiistudio/ui/` | Interface gráfica |

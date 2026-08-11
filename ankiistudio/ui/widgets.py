@@ -19,6 +19,7 @@ from PySide6.QtWidgets import (
 )
 
 from ankiistudio.constants import COMPONENT_LABELS
+from ankiistudio.i18n import tr
 from ankiistudio.services.search_rank import normalize_search_text, search_score
 
 
@@ -326,7 +327,7 @@ class StatusBanner(QFrame):
         self.hide()
 
     def show_message(self, text: str, error: bool = False) -> None:
-        self.label.setText(text)
+        self.label.setText(tr(text))
         border = "#B84A55" if error else "#19D978"
         self.setStyleSheet(f"QFrame#Card {{ border:1px solid {border}; border-radius:10px; }}")
         self.show()
@@ -383,7 +384,7 @@ class ComponentOrderEditor(QFrame):
         add_row = QHBoxLayout()
         self.component_combo = QComboBox()
         for key, label in COMPONENT_LABELS.items():
-            self.component_combo.addItem(label, key)
+            self.component_combo.addItem(tr(label), key)
         add_button = QPushButton("Adicionar")
         add_button.setObjectName("SubtleButton")
         add_button.clicked.connect(self.add_component)
@@ -421,7 +422,7 @@ class ComponentOrderEditor(QFrame):
         self.changed.emit()
 
     def _append(self, key: str) -> None:
-        label = COMPONENT_LABELS.get(key, key)
+        label = tr(COMPONENT_LABELS.get(key, key))
         self.list_widget.addItem(label)
         item = self.list_widget.item(self.list_widget.count() - 1)
         item.setData(Qt.ItemDataRole.UserRole, key)

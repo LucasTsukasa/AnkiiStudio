@@ -26,13 +26,17 @@ from PySide6.QtWidgets import (
 
 from ankiistudio.config import AppPaths
 from ankiistudio.database import Database
+from ankiistudio.i18n import tr
 from ankiistudio.models import FlashcardData, ProjectData
 from ankiistudio.services.anki_export_service import AnkiExportService
 from ankiistudio.services.audio_service import ProjectAudioService
+from ankiistudio.services.audio_import_service import AudioImportService, SUPPORTED_AUDIO_EXTENSIONS
 from ankiistudio.services.image_service import ImageService
-from ankiistudio.services.media_service import CardImageService
-from ankiistudio.services.wikimedia_service import WikimediaService
+from ankiistudio.services.image_sources import ImageSearchService
+from ankiistudio.services.media_service import CardImageService, SUPPORTED_IMAGE_EXTENSIONS
+from ankiistudio.services.project_service import ProjectService
 from ankiistudio.ui.dialogs.image_search_dialog import ImageSearchDialog
+from ankiistudio.ui.dialogs.audio_batch_import_dialog import AudioBatchImportDialog
 from ankiistudio.ui.widgets import AdaptiveSplitter, PageHeader, PageScrollArea, SectionCard, StatusBanner
 from ankiistudio.ui.workers import Worker
 
@@ -47,8 +51,12 @@ class ProjectsPage(QWidget):
         self.thread_pool = QThreadPool.globalInstance()
         self.current_project: ProjectData | None = None
         self.current_card: FlashcardData | None = None
-        self.image_service = CardImageService(database, WikimediaService(), ImageService(paths.images_dir))
+        self._pending_cards: dict[int, FlashcardData] = {}
+        self._loading_form = False
+        self.image_search_service = ImageSearchService(database)
+        self.image_service = CardImageService(database, self.image_search_service, ImageService(paths.images_dir))
         self.audio_service = ProjectAudioService(database, paths)
+        self.audio_import_service = AudioImportService(self.audio_service)
         self.export_service = AnkiExportService()
         self._workers: list[Worker] = []
 
@@ -112,7 +120,7 @@ class ProjectsPage(QWidget):
         self.table.setMinimumHeight(330)
         self.table.setHorizontalHeaderLabels(["Exportar", "Grupo", "Palavra", "Tradução", "Imagem", "Áudio"])
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
-        self.table.setSelectionMode(QTableWidget.SelectionMode.SingleSelection)
+        self.table.setSelectionMode(QTableWidget.SelectionMode.ExtendedSelection)
         self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.table.verticalHeader().setVisible(False)
         header = self.table.horizontalHeader()
@@ -183,34 +191,64 @@ class ProjectsPage(QWidget):
             label_widget = QLabel(label)
             self._field_labels[widget] = label_widget
             self.form.addRow(label_widget, widget)
+        self.section_combo.currentIndexChanged.connect(self._editor_changed)
+        for line_edit in (self.word, self.reading, self.romanization, self.translation, self.example):
+            line_edit.textEdited.connect(self._editor_changed)
+        self.explanation.textChanged.connect(self._editor_changed)
+        self.mnemonic.textChanged.connect(self._editor_changed)
         editor_card.root.addLayout(self.form)
         editor_content_layout.addWidget(editor_card)
 
         media_card = SectionCard(
             "Mídias",
-            "As ações em massa processam apenas as mídias exigidas pela estrutura do projeto.",
+            "Gere mídias automaticamente ou associe arquivos de áudio próprios aos cartões.",
         )
         media_row = QGridLayout()
         media_row.setHorizontalSpacing(8)
         media_row.setVerticalSpacing(8)
-        self.image_button = QPushButton("Imagem deste cartão")
+        self.image_button = QPushButton("Pesquisar imagem")
         self.bulk_image_button = QPushButton("Imagens para todos")
+        self.import_image_button = QPushButton("Importar imagem")
+        self.remove_image_button = QPushButton("Remover imagem")
         self.audio_button = QPushButton("Áudio deste cartão")
         self.bulk_audio_button = QPushButton("Áudios para todos")
+        self.import_audio_button = QPushButton("Importar áudio")
+        self.batch_import_audio_button = QPushButton("Importar áudios em lote")
+        self.remove_audio_button = QPushButton("Remover áudio")
         self.save_button = QPushButton("Salvar alterações")
-        for button in (self.image_button, self.bulk_image_button, self.audio_button, self.bulk_audio_button):
+        for button in (
+            self.image_button,
+            self.bulk_image_button,
+            self.import_image_button,
+            self.audio_button,
+            self.bulk_audio_button,
+            self.import_audio_button,
+            self.batch_import_audio_button,
+        ):
             button.setObjectName("SubtleButton")
+        self.remove_image_button.setObjectName("DangerButton")
+        self.remove_audio_button.setObjectName("DangerButton")
         self.save_button.setObjectName("PrimaryButton")
         self.image_button.clicked.connect(self.search_image)
         self.bulk_image_button.clicked.connect(self.generate_all_images)
+        self.import_image_button.clicked.connect(self.import_card_image)
+        self.remove_image_button.clicked.connect(self.remove_card_image)
         self.audio_button.clicked.connect(self.generate_card_audio)
         self.bulk_audio_button.clicked.connect(self.generate_all_audio)
+        self.import_audio_button.clicked.connect(self.import_card_audio)
+        self.batch_import_audio_button.clicked.connect(self.import_audio_batch)
+        self.remove_audio_button.clicked.connect(self.remove_card_audio)
         self.save_button.clicked.connect(self.save_card)
         media_row.addWidget(self.image_button, 0, 0)
         media_row.addWidget(self.bulk_image_button, 0, 1)
-        media_row.addWidget(self.audio_button, 1, 0)
-        media_row.addWidget(self.bulk_audio_button, 1, 1)
-        media_row.addWidget(self.save_button, 2, 0, 1, 2)
+        media_row.addWidget(self.import_image_button, 1, 0)
+        media_row.addWidget(self.remove_image_button, 1, 1)
+        media_row.addWidget(self.audio_button, 2, 0)
+        media_row.addWidget(self.bulk_audio_button, 2, 1)
+        media_row.addWidget(self.import_audio_button, 3, 0)
+        media_row.addWidget(self.batch_import_audio_button, 3, 1)
+        media_row.addWidget(self.remove_audio_button, 4, 0, 1, 2)
+        media_row.addWidget(self.save_button, 5, 0, 1, 2)
         media_card.root.addLayout(media_row)
         editor_content_layout.addWidget(media_card)
         editor_content_layout.addStretch(1)
@@ -246,7 +284,11 @@ class ProjectsPage(QWidget):
         project = self.current_project
         if project is None:
             return
-        selected = set(project.front_components + project.back_components)
+        if self.current_card is not None:
+            variation = project.structure_for_card(self.current_card)
+            selected = set(variation.front_components + variation.back_components)
+        else:
+            selected = set(project.required_components())
         self._set_field_visible(self.section_combo, True)
         self._set_field_visible(self.word, True)
         self._set_field_visible(self.reading, "reading" in selected)
@@ -256,9 +298,24 @@ class ProjectsPage(QWidget):
         self._set_field_visible(self.explanation, "explanation" in selected)
         self._set_field_visible(self.mnemonic, "mnemonic" in selected)
 
+    def _selected_card_ids(self) -> list[int]:
+        ids: list[int] = []
+        selection_model = self.table.selectionModel()
+        if selection_model is None:
+            return ids
+        for index in selection_model.selectedRows():
+            item = self.table.item(index.row(), 0)
+            if item is None:
+                continue
+            card_id = item.data(Qt.ItemDataRole.UserRole)
+            if card_id is not None and int(card_id) not in ids:
+                ids.append(int(card_id))
+        return ids
+
     def _update_action_states(self) -> None:
         has_project = self.current_project is not None and self.current_project.id is not None
         has_card = self.current_card is not None and self.current_card.id is not None
+        selected_ids = self._selected_card_ids()
         for button in (
             self.export_selected_button,
             self.export_all_button,
@@ -268,19 +325,47 @@ class ProjectsPage(QWidget):
             self.select_none_button,
         ):
             button.setEnabled(has_project)
-        self.delete_card_button.setEnabled(has_card)
-        self.save_button.setEnabled(has_card)
+        self.delete_card_button.setEnabled(bool(selected_ids))
+        self.delete_card_button.setText(
+            tr(f"Excluir {len(selected_ids)} cartões") if len(selected_ids) > 1 else tr("Excluir cartão")
+        )
+        self.save_button.setEnabled(bool(self._pending_cards))
+        self.save_button.setText(
+            tr(f"Salvar alterações ({len(self._pending_cards)})")
+            if self._pending_cards
+            else tr("Salvar alterações")
+        )
 
-        uses_images = bool(has_project and self.current_project and self.current_project.uses_images)
-        uses_audio = bool(has_project and self.current_project and self.current_project.uses_audio)
-        self.image_button.setEnabled(has_card and uses_images)
-        self.bulk_image_button.setEnabled(has_project and uses_images)
-        self.audio_button.setEnabled(has_card and uses_audio)
-        self.bulk_audio_button.setEnabled(has_project and uses_audio)
-        self.image_button.setToolTip("" if uses_images else "Este modelo não utiliza Imagem.")
-        self.bulk_image_button.setToolTip("" if uses_images else "Este modelo não utiliza Imagem.")
-        self.audio_button.setToolTip("" if uses_audio else "Este projeto não utiliza Áudio.")
-        self.bulk_audio_button.setToolTip("" if uses_audio else "Este projeto não utiliza Áudio.")
+        project_uses_images = bool(has_project and self.current_project and self.current_project.uses_images)
+        project_uses_audio = bool(has_project and self.current_project and self.current_project.uses_audio)
+        card_uses_images = bool(
+            has_card and self.current_project and self.current_card
+            and self.current_project.card_uses_component(self.current_card, "image")
+        )
+        card_uses_audio = bool(
+            has_card and self.current_project and self.current_card
+            and self.current_project.card_uses_component(self.current_card, "audio")
+        )
+        has_image = bool(has_card and self.current_card and self.current_card.image_path)
+        has_audio = bool(has_card and self.current_card and self.current_card.audio_path)
+        self.image_button.setEnabled(card_uses_images)
+        self.import_image_button.setEnabled(card_uses_images)
+        self.remove_image_button.setEnabled(card_uses_images and has_image)
+        self.bulk_image_button.setEnabled(has_project and project_uses_images)
+        self.audio_button.setEnabled(card_uses_audio)
+        self.bulk_audio_button.setEnabled(has_project and project_uses_audio)
+        self.import_audio_button.setEnabled(card_uses_audio)
+        self.remove_audio_button.setEnabled(card_uses_audio and has_audio)
+        self.batch_import_audio_button.setEnabled(has_project and project_uses_audio)
+        self.image_button.setToolTip("" if card_uses_images else "A variação deste cartão não utiliza Imagem.")
+        self.import_image_button.setToolTip("" if card_uses_images else "A variação deste cartão não utiliza Imagem.")
+        self.remove_image_button.setToolTip("" if has_image else "Este cartão não possui imagem associada.")
+        self.bulk_image_button.setToolTip("" if project_uses_images else "Este projeto não utiliza Imagem.")
+        self.audio_button.setToolTip("" if card_uses_audio else "A variação deste cartão não utiliza Áudio.")
+        self.import_audio_button.setToolTip("" if card_uses_audio else "A variação deste cartão não utiliza Áudio.")
+        self.remove_audio_button.setToolTip("" if has_audio else "Este cartão não possui áudio associado.")
+        self.bulk_audio_button.setToolTip("" if project_uses_audio else "Este projeto não utiliza Áudio.")
+        self.batch_import_audio_button.setToolTip("" if project_uses_audio else "Este projeto não utiliza Áudio.")
 
     def refresh(self, select_project_id: int | None = None) -> None:
         current = select_project_id
@@ -291,9 +376,11 @@ class ProjectsPage(QWidget):
         projects = self.database.list_projects()
         for project in projects:
             self.project_combo.addItem(project.name, project.id)
-        self.project_combo.blockSignals(False)
         if not projects:
+            self.project_combo.blockSignals(False)
             self.current_project = None
+            self.current_card = None
+            self._pending_cards.clear()
             self.table.setRowCount(0)
             self.clear_form()
             self._update_action_states()
@@ -305,13 +392,25 @@ class ProjectsPage(QWidget):
                     index = candidate
                     break
         self.project_combo.setCurrentIndex(index)
+        self.project_combo.blockSignals(False)
         self.load_project()
 
     def load_project(self) -> None:
         project_id = self.project_combo.currentData()
         if project_id is None:
             return
-        self.current_project = self.database.get_project(int(project_id))
+        project_id = int(project_id)
+        previous_id = self.current_project.id if self.current_project is not None else None
+        if previous_id is not None and previous_id != project_id and self._pending_cards:
+            if not self.resolve_pending_changes("trocar de projeto"):
+                old_index = self.project_combo.findData(previous_id)
+                if old_index >= 0:
+                    self.project_combo.blockSignals(True)
+                    self.project_combo.setCurrentIndex(old_index)
+                    self.project_combo.blockSignals(False)
+                return
+        self.current_project = self.database.get_project(project_id)
+        self.current_card = None
         self._populate_section_combo()
         self._apply_structure_visibility()
         self.populate_cards()
@@ -330,18 +429,23 @@ class ProjectsPage(QWidget):
         self.section_combo.setCurrentIndex(index if index >= 0 else 0)
         self.section_combo.blockSignals(False)
 
-    def populate_cards(self) -> None:
+    def populate_cards(self, select_card_id: int | None = None) -> None:
         checked_ids = set(self.checked_card_ids())
         had_rows = self.table.rowCount() > 0
+        if select_card_id is None and self.current_card is not None:
+            select_card_id = self.current_card.id
+        self.table.blockSignals(True)
         self.table.setRowCount(0)
         self.current_card = None
         self.clear_form()
-        self._update_action_states()
         if self.current_project is None or self.current_project.id is None:
+            self.table.blockSignals(False)
+            self._update_action_states()
             return
         cards = self.database.list_cards(self.current_project.id)
-        self.table.setRowCount(len(cards))
-        for row, card in enumerate(cards):
+        display_cards = [self._pending_cards.get(int(card.id or 0), card) for card in cards]
+        self.table.setRowCount(len(display_cards))
+        for row, card in enumerate(display_cards):
             check_item = QTableWidgetItem()
             check_item.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsUserCheckable)
             check_item.setCheckState(
@@ -350,19 +454,27 @@ class ProjectsPage(QWidget):
             check_item.setData(Qt.ItemDataRole.UserRole, card.id)
             self.table.setItem(row, 0, check_item)
 
-            image_ok = self.image_service.has_valid_image(card)
-            audio_ok, _ = self.audio_service.audio_status(self.current_project, card) if self.current_project.uses_audio else (False, [])
+            needs_image = self.current_project.card_uses_component(card, "image")
+            needs_audio = self.current_project.card_uses_component(card, "audio")
+            image_ok = self.image_service.has_valid_image(card) if needs_image else False
+            audio_ok, _ = self.audio_service.audio_status(self.current_project, card)
             values = [
                 card.section or "Principal",
                 card.word,
                 card.translation,
-                "Sim" if image_ok else "Não",
-                "Sim" if audio_ok else "Não",
+                ("Sim" if image_ok else "Não") if needs_image else "—",
+                ("Sim" if audio_ok else "Não") if needs_audio else "—",
             ]
             for column, value in enumerate(values, start=1):
                 self.table.setItem(row, column, QTableWidgetItem(value))
-        if cards:
-            self.table.selectRow(0)
+        self.table.blockSignals(False)
+        target_row = -1
+        if select_card_id is not None:
+            target_row = self._row_for_card_id(select_card_id)
+        if target_row < 0 and display_cards:
+            target_row = 0
+        if target_row >= 0:
+            self.table.selectRow(target_row)
         else:
             self._update_action_states()
 
@@ -386,39 +498,54 @@ class ProjectsPage(QWidget):
     def load_selected_card(self) -> None:
         rows = self.table.selectionModel().selectedRows()
         if not rows:
+            self.current_card = None
+            self.clear_form()
+            self._update_action_states()
             return
-        item = self.table.item(rows[0].row(), 0)
+        row = self.table.currentRow()
+        selected_row_numbers = {index.row() for index in rows}
+        if row not in selected_row_numbers:
+            row = rows[0].row()
+        item = self.table.item(row, 0)
         if item is None:
             return
-        card_id = item.data(Qt.ItemDataRole.UserRole)
-        self.current_card = self.database.get_card(int(card_id))
+        card_id = int(item.data(Qt.ItemDataRole.UserRole))
+        self.current_card = self._pending_cards.get(card_id) or self.database.get_card(card_id)
         if self.current_card:
             self.fill_form(self.current_card)
         self._update_action_states()
 
     def fill_form(self, card: FlashcardData) -> None:
-        self._populate_section_combo(card.section)
-        self.word.setText(card.word)
-        self.reading.setText(card.reading)
-        self.romanization.setText(card.romanization)
-        self.translation.setText(card.translation)
-        self.example.setText(card.example)
-        self.explanation.setPlainText(card.explanation)
-        self.mnemonic.setPlainText(card.mnemonic)
-        self._apply_structure_visibility()
+        self._loading_form = True
+        try:
+            self._populate_section_combo(card.section)
+            self.word.setText(card.word)
+            self.reading.setText(card.reading)
+            self.romanization.setText(card.romanization)
+            self.translation.setText(card.translation)
+            self.example.setText(card.example)
+            self.explanation.setPlainText(card.explanation)
+            self.mnemonic.setPlainText(card.mnemonic)
+            self._apply_structure_visibility()
+        finally:
+            self._loading_form = False
 
     def clear_form(self) -> None:
-        self._populate_section_combo("")
-        for widget in (
-            self.word,
-            self.reading,
-            self.romanization,
-            self.translation,
-            self.example,
-        ):
-            widget.clear()
-        self.explanation.clear()
-        self.mnemonic.clear()
+        self._loading_form = True
+        try:
+            self._populate_section_combo("")
+            for widget in (
+                self.word,
+                self.reading,
+                self.romanization,
+                self.translation,
+                self.example,
+            ):
+                widget.clear()
+            self.explanation.clear()
+            self.mnemonic.clear()
+        finally:
+            self._loading_form = False
 
     def collect_card(self) -> FlashcardData:
         if self.current_card is None:
@@ -436,70 +563,251 @@ class ProjectsPage(QWidget):
             }
         )
 
-    def save_card(self) -> None:
+    def _editor_changed(self, *_args) -> None:
+        if self._loading_form or self.current_card is None or self.current_card.id is None:
+            return
+        draft = self.collect_card()
+        card_id = int(draft.id)
+        self._pending_cards[card_id] = draft
+        self.current_card = draft
+        row = self._row_for_card_id(card_id)
+        if row >= 0:
+            for column, value in ((1, draft.section or "Principal"), (2, draft.word), (3, draft.translation)):
+                item = self.table.item(row, column)
+                if item is not None:
+                    item.setText(value)
+        self.status.show_message("Há alterações não salvas.")
+        self._update_action_states()
+
+    def save_pending_changes(self) -> bool:
+        if self.current_card is not None and self.current_card.id is not None and not self._loading_form:
+            # textEdited/textChanged já mantêm o rascunho atualizado; esta captura cobre alterações via teclado/combobox.
+            if int(self.current_card.id) in self._pending_cards:
+                self._pending_cards[int(self.current_card.id)] = self.collect_card()
+        if not self._pending_cards:
+            return True
+        drafts = list(self._pending_cards.values())
+        invalid = [card.word or f"Cartão #{card.id}" for card in drafts if not card.word.strip()]
+        if invalid:
+            QMessageBox.warning(
+                self,
+                "Conteúdo principal obrigatório",
+                "Preencha o conteúdo principal antes de salvar todas as alterações.",
+            )
+            return False
+        selected_id = self.current_card.id if self.current_card is not None else None
         try:
-            card = self.collect_card()
-            self.database.update_card(card)
+            self.database.update_cards(drafts)
         except Exception as exc:
             QMessageBox.critical(self, "Não foi possível salvar", str(exc))
-            return
-        self.current_card = card
-        self.status.show_message("Cartão salvo.")
-        self.populate_cards()
+            return False
+        count = len(drafts)
+        self._pending_cards.clear()
+        self.status.show_message(f"{count} cartão(ões) salvo(s).")
+        self.populate_cards(select_card_id=selected_id)
         self.changed.emit()
+        return True
+
+    def save_card(self) -> None:
+        self.save_pending_changes()
+
+    def discard_pending_changes(self) -> None:
+        selected_id = self.current_card.id if self.current_card is not None else None
+        self._pending_cards.clear()
+        if self.current_project is not None:
+            self.populate_cards(select_card_id=selected_id)
+
+    def resolve_pending_changes(self, action: str) -> bool:
+        if not self._pending_cards:
+            return True
+        message = QMessageBox(self)
+        message.setIcon(QMessageBox.Icon.Warning)
+        message.setWindowTitle("Alterações não salvas")
+        message.setText(tr(f"Existem alterações não salvas antes de {action}."))
+        message.setInformativeText("Deseja salvar as alterações antes de continuar?")
+        message.setStandardButtons(
+            QMessageBox.StandardButton.Save
+            | QMessageBox.StandardButton.Discard
+            | QMessageBox.StandardButton.Cancel
+        )
+        save_button = message.button(QMessageBox.StandardButton.Save)
+        discard_button = message.button(QMessageBox.StandardButton.Discard)
+        cancel_button = message.button(QMessageBox.StandardButton.Cancel)
+        if save_button is not None:
+            save_button.setText(tr("Salvar alterações"))
+        if discard_button is not None:
+            discard_button.setText(tr("Continuar sem salvar"))
+        if cancel_button is not None:
+            cancel_button.setText(tr("Cancelar"))
+        result = message.exec()
+        if result == QMessageBox.StandardButton.Save:
+            return self.save_pending_changes()
+        if result == QMessageBox.StandardButton.Discard:
+            self.discard_pending_changes()
+            return True
+        return False
+
+    def confirm_close(self) -> bool:
+        return self.resolve_pending_changes("sair do aplicativo")
 
     def add_card(self) -> None:
         if self.current_project is None or self.current_project.id is None:
             QMessageBox.warning(self, "Sem projeto", "Selecione um projeto.")
             return
-        ids = self.database.add_cards(self.current_project.id, [FlashcardData(word="Novo cartão")])
-        self.populate_cards()
-        for row in range(self.table.rowCount()):
-            if self.table.item(row, 0).data(Qt.ItemDataRole.UserRole) == ids[0]:
-                self.table.selectRow(row)
-                break
+        existing_cards = self.database.list_cards(self.current_project.id)
+        structure_key = ProjectService.next_structure_key(self.current_project, existing_cards)
+        ids = self.database.add_cards(
+            self.current_project.id,
+            [FlashcardData(word="Novo cartão", structure_key=structure_key)],
+        )
+        self.populate_cards(select_card_id=ids[0])
         self.changed.emit()
 
     def delete_card(self) -> None:
-        if self.current_card is None or self.current_card.id is None:
-            QMessageBox.warning(self, "Sem cartão", "Selecione um cartão para excluir.")
+        card_ids = self._selected_card_ids()
+        if not card_ids:
+            QMessageBox.warning(self, "Sem cartão", "Selecione ao menos um cartão para excluir.")
             return
-        if QMessageBox.question(self, "Excluir cartão", f"Excluir o cartão “{self.current_card.word}”?",) != QMessageBox.StandardButton.Yes:
+        if len(card_ids) == 1:
+            card = self._pending_cards.get(card_ids[0]) or self.database.get_card(card_ids[0])
+            label = card.word if card is not None else f"#{card_ids[0]}"
+            question = f"Excluir o cartão “{label}”?"
+            title = "Excluir cartão"
+        else:
+            question = f"Excluir os {len(card_ids)} cartões selecionados?"
+            title = "Excluir cartões"
+        if QMessageBox.question(self, title, question) != QMessageBox.StandardButton.Yes:
             return
-        self.database.delete_card(self.current_card.id)
+        self.database.delete_cards(card_ids)
+        for card_id in card_ids:
+            self._pending_cards.pop(card_id, None)
+        self.current_card = None
         self.populate_cards()
+        self.status.show_message(f"{len(card_ids)} cartão(ões) excluído(s).")
         self.changed.emit()
 
     def delete_project(self) -> None:
         if self.current_project is None or self.current_project.id is None:
             QMessageBox.warning(self, "Sem projeto", "Selecione um projeto para excluir.")
             return
-        if QMessageBox.question(self, "Excluir projeto", f"Excluir o projeto “{self.current_project.name}” e todos os seus cartões?",) != QMessageBox.StandardButton.Yes:
+        if self._pending_cards and not self.resolve_pending_changes("excluir o projeto"):
             return
-        self.database.delete_project(self.current_project.id)
+        if QMessageBox.question(
+            self,
+            "Excluir projeto",
+            f"Excluir o projeto “{self.current_project.name}” e todos os seus cartões?",
+        ) != QMessageBox.StandardButton.Yes:
+            return
+        project_id = self.current_project.id
+        self.database.delete_project(project_id)
+        self._pending_cards.clear()
+        self.current_card = None
+        self.current_project = None
         self.refresh()
         self.changed.emit()
+
+    def _persisted_current_card(self) -> FlashcardData | None:
+        if self.current_card is None or self.current_card.id is None:
+            return None
+        return self.database.get_card(int(self.current_card.id))
+
+    def _merge_media_into_draft(self, updated: FlashcardData) -> FlashcardData:
+        if updated.id is None:
+            return updated
+        card_id = int(updated.id)
+        draft = self._pending_cards.get(card_id)
+        if draft is not None:
+            draft = draft.model_copy(
+                update={
+                    "image_path": updated.image_path,
+                    "word_audio_path": updated.word_audio_path,
+                    "sentence_audio_path": updated.sentence_audio_path,
+                }
+            )
+            self._pending_cards[card_id] = draft
+            return draft
+        return updated
 
     def search_image(self) -> None:
         if self.current_project is None or self.current_card is None:
             QMessageBox.warning(self, "Seleção necessária", "Selecione um cartão.")
             return
-        if not self.current_project.uses_images:
+        if not self.current_project.card_uses_component(self.current_card, "image"):
             return
-        term = self.current_card.word
-        dialog = ImageSearchDialog(term, WikimediaService(), self)
+        term, auxiliary_terms = CardImageService.manual_search_terms(self.current_card)
+        dialog = ImageSearchDialog(
+            term,
+            self.image_search_service,
+            self,
+            auxiliary_terms=auxiliary_terms,
+        )
         if not dialog.exec() or dialog.selected_result is None:
             return
+        persisted = self._persisted_current_card()
+        if persisted is None:
+            return
         self.status.show_message("Baixando e otimizando a imagem...")
-        worker = Worker(self.image_service.apply_wikimedia_image, self.current_project, self.current_card, dialog.selected_result)
+        worker = Worker(
+            self.image_service.apply_search_result,
+            self.current_project,
+            persisted,
+            dialog.selected_result,
+        )
         worker.signals.result.connect(self._image_applied)
         worker.signals.error.connect(lambda message: self.status.show_message(message, error=True))
         self._keep_worker(worker)
 
-    def _image_applied(self, card: object) -> None:
-        self.current_card = card
-        self.status.show_message("Imagem associada e validada.")
-        self.populate_cards()
+    def import_card_image(self) -> None:
+        project = self.current_project
+        if project is None or self.current_card is None:
+            return
+        if not project.card_uses_component(self.current_card, "image"):
+            return
+        patterns = " ".join(f"*{ext}" for ext in sorted(SUPPORTED_IMAGE_EXTENSIONS))
+        filename, _ = QFileDialog.getOpenFileName(
+            self,
+            "Importar imagem para o cartão",
+            "",
+            f"Arquivos de imagem ({patterns});;Todos os arquivos (*)",
+        )
+        if not filename:
+            return
+        persisted = self._persisted_current_card()
+        if persisted is None:
+            return
+        try:
+            updated = self.image_service.import_image_file(project, persisted, Path(filename))
+        except Exception as exc:
+            QMessageBox.critical(self, "Não foi possível importar", str(exc))
+            return
+        self._image_applied(updated, message="Imagem importada e associada ao cartão.")
+
+    def remove_card_image(self) -> None:
+        if self.current_card is None or not self.current_card.image_path:
+            return
+        if QMessageBox.question(
+            self,
+            "Remover imagem",
+            "Remover a imagem associada a este cartão?",
+        ) != QMessageBox.StandardButton.Yes:
+            return
+        persisted = self._persisted_current_card()
+        if persisted is None:
+            return
+        try:
+            updated = self.image_service.remove_image(persisted)
+        except Exception as exc:
+            QMessageBox.critical(self, "Não foi possível remover", str(exc))
+            return
+        self._image_applied(updated, message="Imagem removida do cartão.")
+
+    def _image_applied(self, card: object, message: str = "Imagem associada e validada.") -> None:
+        if not isinstance(card, FlashcardData):
+            return
+        self.current_card = self._merge_media_into_draft(card)
+        card_id = self.current_card.id
+        self.status.show_message(message)
+        self.populate_cards(select_card_id=card_id)
         self.changed.emit()
 
     def _row_for_card_id(self, card_id: int | None) -> int:
@@ -556,13 +864,18 @@ class ProjectsPage(QWidget):
         project = self.current_project
         if project is None or project.id is None or not project.uses_images:
             return
-        cards = self.database.list_cards(project.id)
+        if self._pending_cards and not self.resolve_pending_changes("buscar imagens em lote"):
+            return
+        cards = [
+            card for card in self.database.list_cards(project.id)
+            if project.card_uses_component(card, "image")
+        ]
         if not cards:
             return
         if QMessageBox.question(
             self,
             "Buscar imagens",
-            f"Buscar automaticamente imagens ausentes para {len(cards)} cartões no Wikimedia Commons?",
+            f"Buscar automaticamente imagens ausentes para {len(cards)} cartões usando as fontes habilitadas nas Configurações?",
         ) != QMessageBox.StandardButton.Yes:
             return
         self.bulk_image_button.setEnabled(False)
@@ -585,7 +898,7 @@ class ProjectsPage(QWidget):
                     state = "existing"
                 else:
                     try:
-                        self.image_service.apply_best_wikimedia_image(project, card)
+                        self.image_service.apply_best_image(project, card)
                         completed += 1
                         state = "done"
                     except Exception as exc:
@@ -618,35 +931,122 @@ class ProjectsPage(QWidget):
         self.changed.emit()
 
     def generate_card_audio(self) -> None:
-        if self.current_project is None or self.current_card is None or not self.current_project.uses_audio:
+        if (
+            self.current_project is None
+            or self.current_card is None
+            or not self.current_project.card_uses_component(self.current_card, "audio")
+        ):
+            return
+        if self._pending_cards and not self.resolve_pending_changes("gerar áudio"):
+            return
+        persisted = self._persisted_current_card()
+        if persisted is None:
             return
         self.status.show_message("Gerando apenas os áudios usados pela estrutura deste cartão...")
-        worker = Worker(self.audio_service.generate_for_card, self.current_project, self.current_card)
+        worker = Worker(self.audio_service.generate_for_card, self.current_project, persisted)
         worker.signals.result.connect(self._audio_generated)
         worker.signals.error.connect(lambda message: self.status.show_message(message, error=True))
         self._keep_worker(worker)
 
-    def _audio_generated(self, card: object) -> None:
-        self.current_card = card
-        ok, missing = self.audio_service.audio_status(self.current_project, card)
+    def import_card_audio(self) -> None:
+        project = self.current_project
+        card = self.current_card
+        if (
+            project is None
+            or card is None
+            or not project.card_uses_component(card, "audio")
+        ):
+            return
+        patterns = " ".join(f"*{ext}" for ext in sorted(SUPPORTED_AUDIO_EXTENSIONS))
+        filename, _ = QFileDialog.getOpenFileName(
+            self,
+            "Importar áudio para o cartão",
+            "",
+            f"Arquivos de áudio ({patterns});;Todos os arquivos (*)",
+        )
+        if not filename:
+            return
+        persisted = self._persisted_current_card()
+        if persisted is None:
+            return
+        try:
+            updated = self.audio_service.import_audio_file(project, persisted, Path(filename))
+        except Exception as exc:
+            QMessageBox.critical(self, "Não foi possível importar", str(exc))
+            return
+        self._audio_generated(updated, success_message="Áudio importado e associado ao cartão.")
+
+    def remove_card_audio(self) -> None:
+        if self.current_card is None or not self.current_card.audio_path:
+            return
+        if QMessageBox.question(
+            self,
+            "Remover áudio",
+            "Remover o áudio associado a este cartão?",
+        ) != QMessageBox.StandardButton.Yes:
+            return
+        persisted = self._persisted_current_card()
+        if persisted is None:
+            return
+        try:
+            updated = self.audio_service.remove_audio(persisted)
+        except Exception as exc:
+            QMessageBox.critical(self, "Não foi possível remover", str(exc))
+            return
+        self._audio_generated(updated, success_message="Áudio removido do cartão.")
+
+    def import_audio_batch(self) -> None:
+        project = self.current_project
+        if project is None or project.id is None or not project.uses_audio:
+            return
+        if self._pending_cards and not self.resolve_pending_changes("importar áudios em lote"):
+            return
+        selected_id = self.current_card.id if self.current_card is not None else None
+        cards = self.database.list_cards(project.id)
+        dialog = AudioBatchImportDialog(project, cards, self.audio_import_service, self)
+        if not dialog.exec():
+            return
+        summary = dialog.summary
+        if summary is not None:
+            self.status.show_message(
+                f"Importação em lote concluída: {summary.imported} áudio(s) associado(s), "
+                f"{summary.skipped_existing} existente(s) ignorado(s).",
+                error=bool(summary.errors),
+            )
+        self.populate_cards(select_card_id=selected_id)
+        self.changed.emit()
+
+    def _audio_generated(self, card: object, success_message: str = "Áudio gerado, arquivo validado e associado ao cartão.") -> None:
+        if not isinstance(card, FlashcardData):
+            return
+        self.current_card = self._merge_media_into_draft(card)
+        card_id = self.current_card.id
+        ok, missing = self.audio_service.audio_status(self.current_project, self.current_card)
         if ok:
-            self.status.show_message("Áudio gerado, arquivo validado e associado ao cartão.")
+            self.status.show_message(success_message)
+        elif not self.current_card.audio_path and success_message.startswith("Áudio removido"):
+            self.status.show_message(success_message)
         else:
             self.status.show_message("A geração terminou, mas ainda faltam: " + ", ".join(missing), error=True)
-        self.populate_cards()
+        self.populate_cards(select_card_id=card_id)
         self.changed.emit()
 
     def generate_all_audio(self) -> None:
         project = self.current_project
         if project is None or project.id is None or not project.uses_audio:
             return
-        cards = self.database.list_cards(project.id)
+        if self._pending_cards and not self.resolve_pending_changes("gerar áudios em lote"):
+            return
+        cards = [
+            card for card in self.database.list_cards(project.id)
+            if project.card_uses_component(card, "audio")
+        ]
         if not cards:
             return
         if QMessageBox.question(
             self,
             "Gerar áudios",
-            f"Gerar os áudios ausentes de {len(cards)} cartões? Serviços por API podem consumir sua cota.",
+            f"Gerar os áudios ausentes de {len(cards)} cartões que utilizam Áudio? Serviços por API podem consumir sua cota.",
         ) != QMessageBox.StandardButton.Yes:
             return
         self.bulk_audio_button.setEnabled(False)
@@ -759,12 +1159,16 @@ class ProjectsPage(QWidget):
     def export_selected(self) -> None:
         if self.current_project is None or self.current_project.id is None:
             return
+        if not self.resolve_pending_changes("exportar os cartões selecionados"):
+            return
         cards = self.database.list_cards_by_ids(self.current_project.id, self.checked_card_ids())
         self._export_cards(cards, "Exportar cartões selecionados")
 
     def export_project(self) -> None:
         if self.current_project is None or self.current_project.id is None:
             QMessageBox.warning(self, "Sem projeto", "Selecione um projeto para exportar.")
+            return
+        if not self.resolve_pending_changes("exportar o projeto"):
             return
         cards = self.database.list_cards(self.current_project.id)
         self._export_cards(cards, "Exportar todos os cartões")

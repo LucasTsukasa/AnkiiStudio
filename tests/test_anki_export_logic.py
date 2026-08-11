@@ -142,3 +142,30 @@ def test_export_still_blocks_when_front_would_be_empty(tmp_path: Path, monkeypat
         assert "sem conteúdo na frente" in str(exc)
     else:
         raise AssertionError("A exportação deveria bloquear uma frente completamente vazia.")
+
+
+def test_export_uses_different_models_for_structure_variations(tmp_path: Path, monkeypatch) -> None:
+    module = load_export_module(monkeypatch)
+    from ankiistudio.models import CardStructureVariation
+
+    project = ProjectData(
+        id=11,
+        name="Variações",
+        template_key="custom",
+        front_components=["word"],
+        back_components=["translation"],
+        card_structures=[
+            CardStructureVariation(key="recognition", name="Reconhecimento", front_components=["word"], back_components=["translation"]),
+            CardStructureVariation(key="production", name="Produção", front_components=["translation"], back_components=["word"]),
+        ],
+    )
+    cards = [
+        FlashcardData(id=1, project_id=11, word="猫", translation="gato", structure_key="recognition"),
+        FlashcardData(id=2, project_id=11, word="犬", translation="cachorro", structure_key="production"),
+    ]
+    module.AnkiExportService().export(project, cards, tmp_path / "variations.apkg")
+    notes = FakePackage.last.decks[0].notes
+    assert len(notes) == 2
+    assert notes[0].model.name.endswith("Reconhecimento")
+    assert notes[1].model.name.endswith("Produção")
+    assert notes[0].model.model_id != notes[1].model.model_id

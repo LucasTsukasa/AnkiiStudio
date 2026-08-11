@@ -31,6 +31,23 @@ class FakeWikimedia:
         return b"raw-image", "image/jpeg"
 
 
+class FakeKanaWikimedia(FakeWikimedia):
+    def search(self, term: str, *, kind: str, limit: int):
+        self.searches.append(term)
+        if self.succeed_on is not None and term != self.succeed_on:
+            return []
+        return [
+            WikimediaMediaResult(
+                title="File:Hiragana letter O.svg",
+                file_url="https://example.invalid/o.svg",
+                thumbnail_url="https://example.invalid/o.png",
+                description_url="https://commons.wikimedia.org/wiki/File:Hiragana_letter_O.svg",
+                mime="image/svg+xml",
+                license_name="CC0",
+            )
+        ]
+
+
 class FakeImageService:
     def __init__(self, directory: Path) -> None:
         self.directory = directory
@@ -70,22 +87,70 @@ def _saved_project_and_card(tmp_path: Path, wikimedia: FakeWikimedia):
     return project, card, service
 
 
-def test_best_wikimedia_image_uses_original_content_before_ai_terms(tmp_path: Path) -> None:
-    wikimedia = FakeWikimedia(succeed_on="猫")
+def test_best_image_prioritizes_concrete_ai_search_terms(tmp_path: Path) -> None:
+    wikimedia = FakeWikimedia(succeed_on="domestic cat")
     project, card, service = _saved_project_and_card(tmp_path, wikimedia)
-    updated = service.apply_best_wikimedia_image(project, card)
+    updated = service.apply_best_image(project, card)
     assert Path(updated.image_path).is_file()
-    assert wikimedia.searches == ["猫"]
-    assert "domestic cat" not in wikimedia.searches
+    assert wikimedia.searches == ["domestic cat"]
 
 
-def test_best_wikimedia_image_falls_back_to_translation_only_after_original(tmp_path: Path) -> None:
+def test_best_image_falls_back_from_concrete_term_to_translation(tmp_path: Path) -> None:
     wikimedia = FakeWikimedia(succeed_on="gato")
     project, card, service = _saved_project_and_card(tmp_path, wikimedia)
-    updated = service.apply_best_wikimedia_image(project, card)
+    updated = service.apply_best_image(project, card)
     assert Path(updated.image_path).is_file()
-    assert wikimedia.searches == ["猫", "gato"]
-    assert "domestic cat" not in wikimedia.searches
+    assert wikimedia.searches == ["domestic cat", "gato"]
+
+
+def test_bulk_image_search_uses_exact_original_word_when_no_visual_terms(tmp_path: Path) -> None:
+    database = Database(tmp_path / "kana.db")
+    project = ProjectData(
+        name="Hiragana",
+        template_key="hiragana",
+        front_components=["image", "word"],
+        back_components=["translation"],
+    )
+    project_id = database.create_project(project)
+    project = database.get_project(project_id)
+    card_id = database.add_cards(
+        project_id,
+        [FlashcardData(word="お", translation="O", image_search_terms=[])],
+    )[0]
+    card = database.get_card(card_id)
+    assert project is not None and card is not None
+
+    wikimedia = FakeKanaWikimedia(succeed_on="お")
+    service = CardImageService(database, wikimedia, FakeImageService(tmp_path / "images"))
+    updated = service.apply_best_image(project, card)
+
+    assert Path(updated.image_path).is_file()
+    assert wikimedia.searches == ["お"]
+
+
+def test_bulk_image_search_falls_back_to_translation_after_original_word(tmp_path: Path) -> None:
+    database = Database(tmp_path / "kana-fallback.db")
+    project = ProjectData(
+        name="Hiragana",
+        template_key="hiragana",
+        front_components=["image", "word"],
+        back_components=["translation"],
+    )
+    project_id = database.create_project(project)
+    project = database.get_project(project_id)
+    card_id = database.add_cards(
+        project_id,
+        [FlashcardData(word="お", translation="O", image_search_terms=[])],
+    )[0]
+    card = database.get_card(card_id)
+    assert project is not None and card is not None
+
+    wikimedia = FakeKanaWikimedia(succeed_on="O")
+    service = CardImageService(database, wikimedia, FakeImageService(tmp_path / "images"))
+    updated = service.apply_best_image(project, card)
+
+    assert Path(updated.image_path).is_file()
+    assert wikimedia.searches == ["お", "O"]
 
 
 def test_image_generation_is_rejected_when_image_not_in_structure(tmp_path: Path) -> None:
@@ -136,3 +201,85 @@ def test_svg_from_wikimedia_uses_rasterized_thumbnail(tmp_path: Path) -> None:
         ).fetchone()
     assert row is not None
     assert "SVG rasterizado pelo Wikimedia" in row["modifications"]
+
+
+def test_import_and_remove_image_for_card(tmp_path: Path) -> None:
+    from PIL import Image
+    from ankiistudio.services.image_service import ImageService
+
+    database = Database(tmp_path / "import.db")
+    project = ProjectData(
+        name="Importar imagem",
+        template_key="custom",
+        front_components=["image", "word"],
+        back_components=["translation"],
+    )
+    project_id = database.create_project(project)
+    project = database.get_project(project_id)
+    card_id = database.add_cards(project_id, [FlashcardData(word="gato")])[0]
+    card = database.get_card(card_id)
+    assert project is not None and card is not None
+
+    source = tmp_path / "gato.png"
+    Image.new("RGB", (64, 64), "white").save(source)
+    service = CardImageService(database, FakeWikimedia(), ImageService(tmp_path / "images"))
+    updated = service.import_image_file(project, card, source)
+    imported = Path(updated.image_path)
+    assert imported.is_file()
+    assert imported.suffix == ".webp"
+    with database.connection() as connection:
+        asset = connection.execute(
+            "SELECT provider FROM media_assets WHERE card_id=? AND kind='image'", (card_id,)
+        ).fetchone()
+    assert asset is not None and asset["provider"] == "user_import"
+
+    removed = service.remove_image(updated)
+    assert removed.image_path == ""
+    assert not imported.exists()
+    with database.connection() as connection:
+        total = connection.execute(
+            "SELECT COUNT(*) AS total FROM media_assets WHERE card_id=? AND kind='image'", (card_id,)
+        ).fetchone()["total"]
+    assert total == 0
+
+
+def test_non_latin_wikimedia_result_must_contain_the_searched_term() -> None:
+    irrelevant = WikimediaMediaResult(
+        title="File:HEP building.jpg",
+        file_url="https://example.invalid/building.jpg",
+        description="A building and pedestrian bridge",
+    )
+    relevant = WikimediaMediaResult(
+        title="File:怖い expression.jpg",
+        file_url="https://example.invalid/scared.jpg",
+    )
+    assert CardImageService._wikimedia_result_matches_non_latin_term(irrelevant, "怖い") is False
+    assert CardImageService._wikimedia_result_matches_non_latin_term(relevant, "怖い") is True
+
+
+def test_kana_wikimedia_result_can_match_unicode_character_name() -> None:
+    result = WikimediaMediaResult(
+        title="File:Hiragana letter O.svg",
+        file_url="https://example.invalid/o.svg",
+    )
+    assert CardImageService._wikimedia_result_matches_non_latin_term(result, "お") is True
+
+
+def test_manual_image_search_uses_original_word_and_auxiliary_fields() -> None:
+    card = FlashcardData(
+        word="猫",
+        translation="Gato",
+        romanization="neko",
+        reading="ねこ",
+        image_search_terms=["Cat", "domestic cat", "Gato"],
+    )
+    primary, auxiliary = CardImageService.manual_search_terms(card)
+    assert primary == "猫"
+    assert auxiliary == ["Gato", "neko", "ねこ", "Cat", "domestic cat"]
+
+
+def test_manual_image_search_for_kana_does_not_replace_original_with_translation() -> None:
+    card = FlashcardData(word="あ", translation="A", romanization="a")
+    primary, auxiliary = CardImageService.manual_search_terms(card)
+    assert primary == "あ"
+    assert auxiliary == ["A"]

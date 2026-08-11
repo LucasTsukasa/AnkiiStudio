@@ -20,6 +20,7 @@ from PySide6.QtWidgets import (
 
 from ankiistudio.constants import COMPONENT_LABELS
 from ankiistudio.database import Database
+from ankiistudio.i18n import tr
 from ankiistudio.models import DeckThemeSettings, FlashcardData, ProjectData
 from ankiistudio.services.project_service import ProjectService
 from ankiistudio.services.card_template_service import render_preview_document
@@ -236,7 +237,7 @@ class ModelsPage(QWidget):
             for card in self.database.list_cards(self.current_project.id):
                 counts[card.section] = counts.get(card.section, 0) + 1
         for section in sections:
-            item = QListWidgetItem(f"{section}   ·   {counts.get(section, 0)} cartões")
+            item = QListWidgetItem(tr(f"{section}   ·   {counts.get(section, 0)} cartões"))
             item.setData(Qt.ItemDataRole.UserRole, section)
             self.section_list.addItem(item)
         if self.section_list.count():
@@ -256,7 +257,7 @@ class ModelsPage(QWidget):
         if name.casefold() in {section.casefold() for section in self.sections()}:
             QMessageBox.warning(self, "Nome repetido", "Já existe um subbaralho com esse nome.")
             return
-        item = QListWidgetItem(f"{name}   ·   0 cartões")
+        item = QListWidgetItem(tr(f"{name}   ·   0 cartões"))
         item.setData(Qt.ItemDataRole.UserRole, name)
         self.section_list.addItem(item)
         self.section_list.setCurrentItem(item)
@@ -340,6 +341,11 @@ class ModelsPage(QWidget):
             return
         self.current_project.front_components = front
         self.current_project.back_components = back
+        if self.current_project.card_structures:
+            primary = self.current_project.card_structures[0]
+            self.current_project.card_structures[0] = primary.model_copy(
+                update={"front_components": front, "back_components": back}
+            )
         self.current_project.deck_sections = self.sections()
         self.current_project.card_theme = theme
         self.database.update_project(self.current_project)

@@ -55,3 +55,25 @@ def test_standard_sections_follow_defined_structure() -> None:
     assert TEMPLATE_SECTIONS["hiragana"][0] == "Silabário"
     assert TEMPLATE_SECTIONS["katakana"][0] == "Silabário"
     assert TEMPLATE_SECTIONS["basic_phrases"][0] == "Saudações"
+
+
+def test_builtin_content_can_be_localized_to_english() -> None:
+    hiragana = create_builtin_cards("hiragana", "Silabário", 46, translation_language="en")
+    assert len(hiragana) == 46
+    assert hiragana[0].word == "あ"
+    assert hiragana[0].section == "Syllabary"
+    assert hiragana[0].translation == "A"
+    assert hiragana[0].explanation == "Basic Japanese vowel."
+
+    phrases = create_builtin_cards("basic_phrases", "", 1, translation_language="en")
+    assert phrases[0].word == "おはよう。"
+    assert phrases[0].translation == "Good morning."
+    assert phrases[0].section == "Greetings"
+    assert phrases[0].explanation == "casual form."
+
+
+def test_builtin_content_rejects_unsupported_localization_language() -> None:
+    import pytest
+
+    with pytest.raises(ValueError, match="Português e Inglês"):
+        create_builtin_cards("hiragana", translation_language="es")

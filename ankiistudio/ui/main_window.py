@@ -2,14 +2,16 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import QSize, Qt
+from PySide6.QtCore import QSize, Qt, QThreadPool, QTimer
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (
+    QApplication,
     QButtonGroup,
     QFrame,
     QHBoxLayout,
     QLabel,
     QMainWindow,
+    QMessageBox,
     QPushButton,
     QStackedWidget,
     QVBoxLayout,
@@ -19,6 +21,7 @@ from PySide6.QtWidgets import (
 from ankiistudio.config import AppPaths
 from ankiistudio.constants import APP_NAME, APP_VERSION
 from ankiistudio.database import Database
+from ankiistudio.i18n import tr
 from ankiistudio.ui.pages.about_page import AboutPage
 from ankiistudio.ui.pages.audio_page import AudioPage
 from ankiistudio.ui.pages.create_page import CreatePage
@@ -26,6 +29,8 @@ from ankiistudio.ui.pages.home_page import HomePage
 from ankiistudio.ui.pages.models_page import ModelsPage
 from ankiistudio.ui.pages.projects_page import ProjectsPage
 from ankiistudio.ui.pages.settings_page import SettingsPage
+from ankiistudio.services.update_service import DownloadedUpdate, UpdateInfo, UpdateService
+from ankiistudio.ui.workers import Worker
 
 
 class MainWindow(QMainWindow):
@@ -34,6 +39,10 @@ class MainWindow(QMainWindow):
         self.database = database
         self.paths = paths
         self.resource_dir = resource_dir
+        self.thread_pool = QThreadPool.globalInstance()
+        self.update_service = UpdateService(paths)
+        self._update_worker: Worker | None = None
+        self._update_download_worker: Worker | None = None
         self.setWindowTitle(f"{APP_NAME} {APP_VERSION}")
         self.resize(1120, 720)
         self.setMinimumSize(960, 620)
@@ -130,7 +139,129 @@ class MainWindow(QMainWindow):
         self.home_page.projects_requested.connect(lambda: self.navigate(2))
         self.create_page.project_created.connect(self.open_created_project)
         self.projects_page.changed.connect(self.refresh_related_pages)
+        self.settings_page.check_updates_requested.connect(lambda: self.check_for_updates(manual=True))
+        self.settings_page.ui_language_changed.connect(self._change_ui_language)
         self.navigate(0)
+        QTimer.singleShot(1500, self._check_updates_on_startup)
+
+    def _change_ui_language(self, language: str) -> None:
+        app = QApplication.instance()
+        manager = getattr(app, "_ankiistudio_language_manager", None) if app is not None else None
+        if manager is not None:
+            manager.set_language(language)
+        retranslate_create = getattr(self.create_page, "retranslate_ui", None)
+        if callable(retranslate_create):
+            retranslate_create()
+        refresh_audio_status = getattr(self.audio_page, "_refresh_provider_statuses", None)
+        if callable(refresh_audio_status):
+            refresh_audio_status()
+        self.settings_page.status.show_message(tr("Idioma da interface atualizado."))
+
+    def _check_updates_on_startup(self) -> None:
+        if self.database.get_setting("check_updates", "1") == "1":
+            self.check_for_updates(manual=False)
+
+    def check_for_updates(self, *, manual: bool = False) -> None:
+        if self._update_worker is not None:
+            if manual:
+                self.settings_page.status.show_message("Já existe uma verificação de atualização em andamento.")
+            return
+        if manual:
+            self.settings_page.status.show_message("Procurando atualizações no GitHub...")
+        worker = Worker(self.update_service.check, APP_VERSION)
+        self._update_worker = worker
+        worker.signals.result.connect(lambda result: self._handle_update_check(result, manual))
+        worker.signals.error.connect(lambda message: self._handle_update_error(message, manual))
+
+        def finished() -> None:
+            self._update_worker = None
+
+        worker.signals.finished.connect(finished)
+        self.thread_pool.start(worker)
+
+    def _handle_update_error(self, message: str, manual: bool) -> None:
+        if manual:
+            QMessageBox.warning(self, "Não foi possível verificar atualizações", message)
+            self.settings_page.status.show_message(message, error=True)
+
+    def _handle_update_check(self, result: object, manual: bool) -> None:
+        if result is None:
+            if manual:
+                QMessageBox.information(
+                    self,
+                    "AnkiiStudio atualizado",
+                    f"Você já está usando a versão mais recente disponível para este canal: {APP_VERSION}.",
+                )
+                self.settings_page.status.show_message("Nenhuma atualização disponível.")
+            return
+        if not isinstance(result, UpdateInfo):
+            return
+        channel = "pré-lançamento" if result.prerelease else "versão estável"
+        notes = result.notes.strip()
+        if len(notes) > 900:
+            notes = notes[:900].rstrip() + "…"
+        detail = f"\n\n{notes}" if notes else ""
+        answer = QMessageBox.question(
+            self,
+            "Atualização disponível",
+            tr(f"Uma nova {channel} do AnkiiStudio está disponível.\n\nInstalada: {APP_VERSION}\nDisponível: {result.version}{detail}\n\nDeseja baixar a atualização agora?"),
+        )
+        if answer != QMessageBox.StandardButton.Yes:
+            if manual:
+                self.settings_page.status.show_message("Atualização adiada.")
+            return
+        if not self.projects_page.resolve_pending_changes("atualizar o aplicativo"):
+            return
+        self._download_update(result)
+
+    def _download_update(self, info: UpdateInfo) -> None:
+        if self._update_download_worker is not None:
+            return
+        self.settings_page.status.show_message(f"Baixando AnkiiStudio {info.version}...")
+        worker = Worker(self.update_service.download, info)
+        self._update_download_worker = worker
+        worker.signals.result.connect(self._handle_downloaded_update)
+        worker.signals.error.connect(
+            lambda message: QMessageBox.critical(self, "Falha na atualização", message)
+        )
+
+        def finished() -> None:
+            self._update_download_worker = None
+
+        worker.signals.finished.connect(finished)
+        self.thread_pool.start(worker)
+
+    def _handle_downloaded_update(self, result: object) -> None:
+        if not isinstance(result, DownloadedUpdate):
+            return
+        if not self.update_service.can_self_update():
+            QMessageBox.information(
+                self,
+                "Atualização baixada",
+                f"O pacote {result.info.version} foi baixado em:\n{result.archive_path}\n\n"
+                "A instalação automática é aplicada quando o AnkiiStudio está executando pela versão portátil do Windows.",
+            )
+            self.settings_page.status.show_message("Atualização baixada.")
+            return
+        try:
+            self.update_service.schedule_install_and_restart(result)
+        except Exception as exc:
+            QMessageBox.critical(self, "Falha na atualização", str(exc))
+            return
+        QMessageBox.information(
+            self,
+            "Atualização pronta",
+            "O AnkiiStudio será fechado, atualizado e aberto novamente automaticamente.",
+        )
+        app = QApplication.instance()
+        if app is not None:
+            app.quit()
+
+    def closeEvent(self, event) -> None:  # type: ignore[override]
+        if self.projects_page.confirm_close():
+            event.accept()
+        else:
+            event.ignore()
 
     def _state_icon(self, icon_name: str) -> QIcon:
         icons = self.resource_dir / "icons"
