@@ -46,3 +46,6 @@ desktop.ini
 *.tmp
 *.temp
 ~$*
+# Relatórios internos de desenvolvimento
+EXECUTION_REPORT.md
+VALIDATION.md
