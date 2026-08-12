@@ -64,6 +64,8 @@ Os projetos são exportados diretamente em `.apkg`, sem depender do AnkiConnect.
 - Ajustes de voz por provedor.
 - Reprodução de áudio dentro do aplicativo.
 - Tema claro e escuro.
+- Personalização avançada da aparência dos cartões, incluindo tamanhos, imagem, espaçamento e densidade de layout.
+- Roadmap integrado em linha do tempo, com planejamento carregado de arquivo separado e atualização pública pelo GitHub.
 - Armazenamento seguro de credenciais pelo sistema operacional.
 - Distribuição portátil para Windows.
 
@@ -128,6 +130,24 @@ Os cartões podem ser compostos por diferentes componentes:
 
 A estrutura disponível pode variar conforme o modelo utilizado e pode ser personalizada quando o modelo permitir.
 
+### Personalização visual
+
+Em **Modelos → Tema do baralho**, cada projeto pode ajustar a aparência dos cartões exportados. Além das cores e da fonte, é possível configurar:
+
+- tamanho do Conteúdo principal;
+- tamanho da Leitura;
+- tamanho da Romanização;
+- tamanho da Tradução;
+- tamanho do Exemplo;
+- tamanho da Explicação;
+- tamanho do Mnemônico;
+- altura máxima da imagem;
+- largura máxima do cartão;
+- espaçamento interno;
+- espaço entre componentes.
+
+Os presets **Compacto**, **Normal** e **Espaçoso** aplicam combinações prontas de dimensões. Ao modificar manualmente os controles de layout, o projeto passa para o modo **Personalizado**.
+
 ### Variações de estrutura
 
 Um mesmo projeto pode conter mais de uma variação de cartão. Cada variação possui sua própria composição de frente e verso.
@@ -141,6 +161,8 @@ O AnkiiStudio oferece diferentes formas de adicionar conteúdo aos projetos.
 ### Conteúdo com IA
 
 A integração com **Google Gemini** permite gerar conteúdo estruturado de acordo com o idioma, modelo e configuração definidos no projeto.
+
+Na página **Projetos**, os campos **Exemplo**, **Explicação** e **Mnemônico** também possuem uma ação discreta `✨` para gerar ou regenerar somente aquele componente com IA. A chamada acontece apenas quando o usuário aciona o botão, reutiliza a chave/modelo Gemini configurados e deixa o resultado como alteração pendente para revisão antes de salvar.
 
 ### Importação
 
@@ -274,7 +296,19 @@ A versão portátil não exige uma instalação local do Python.
 
 Em **Configurações**, a opção **Procurar atualizações automaticamente** controla a verificação de novas versões publicadas no GitHub. Quando habilitada, a consulta é feita na inicialização. Também existe uma ação para verificar manualmente a qualquer momento.
 
-Quando uma versão mais recente compatível com o canal atual é encontrada, o usuário escolhe se deseja baixá-la. Na distribuição portátil para Windows, o pacote é preparado para substituir os arquivos do aplicativo preservando a pasta `data/` e reiniciar o AnkiiStudio após a atualização.
+Quando uma versão mais recente compatível com o canal atual é encontrada, o usuário escolhe se deseja baixá-la. Na distribuição portátil para Windows, o pacote é preparado para substituir os arquivos do aplicativo preservando a pasta `data/` e reiniciar o AnkiiStudio após a atualização. O atualizador aceita tanto o executável na raiz do ZIP quanto dentro de uma única pasta contêiner do build portátil.
+
+## Roadmap
+
+A página **Roadmap** apresenta o planejamento do projeto como uma linha do tempo. O conteúdo distribuído com o aplicativo fica em `ankiistudio/resources/roadmap.json`, separado do código da interface. Títulos, descrições e listas definidos nesse arquivo são exibidos exatamente no idioma em que forem escritos; somente os elementos fixos da página e os status são traduzidos pela interface.
+
+Na primeira abertura da página durante a sessão, se houver conexão disponível, o AnkiiStudio tenta obter a versão pública mais recente desse arquivo no repositório GitHub. Se a consulta falhar, utiliza a última cópia em cache ou o arquivo incluído na versão instalada. Assim, alterações de planejamento podem ser publicadas por commit sem exigir uma nova versão apenas para atualizar o texto do Roadmap.
+
+Os estados públicos utilizados são:
+
+- `✓ CONCLUÍDO`;
+- `◉ EM DESENVOLVIMENTO`;
+- `◇ PLANEJADO`.
 
 ## Dados locais
 
@@ -385,7 +419,7 @@ AnkiiStudio/
 | `ankiistudio/` | Código principal da aplicação |
 | `ankiistudio/data/` | Conteúdo interno distribuído com o programa |
 | `ankiistudio/languages/` | Pacotes de tradução da interface |
-| `ankiistudio/resources/` | Ícones e recursos visuais |
+| `ankiistudio/resources/` | Ícones, Roadmap e demais recursos distribuídos |
 | `ankiistudio/services/` | Serviços, integrações e regras de negócio |
 | `ankiistudio/ui/` | Interface gráfica |
 | `tests/` | Testes automatizados |

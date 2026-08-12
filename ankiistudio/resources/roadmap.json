@@ -1,0 +1,64 @@
+{
+  "schema_version": 2,
+  "updated_at": "2026-08-11",
+  "items": [
+    {
+      "id": "0.11.0-beta.5",
+      "status": "completed",
+      "current": false,
+      "title": "AnkiiStudio 0.11.0-beta.5",
+      "description": "Último marco concluído antes desta atualização.",
+      "details": [
+        "Busca automática de imagens priorizando o conteúdo original",
+        "Melhor compatibilidade de kana com resultados do Wikimedia Commons",
+        "Validação automatizada da linha beta"
+      ]
+    },
+    {
+      "id": "0.11.0-beta.6",
+      "status": "completed",
+      "current": true,
+      "title": "AnkiiStudio 0.11.0-beta.6",
+      "description": "Refinamento visual, novas ferramentas de edição e estabilização antes da versão 0.11.0 estável.",
+      "details": [
+        "Personalização avançada e compactação dos cartões",
+        "Atualizador portátil mais robusto",
+        "Roadmap integrado e atualizável pelo GitHub",
+        "IA por campo para Exemplo, Explicação e Mnemônico"
+      ]
+    },
+    {
+      "id": "study-materials",
+      "status": "planned",
+      "current": false,
+      "title": "Materiais de estudo",
+      "description": "Criar flashcards a partir de materiais já existentes.",
+      "details": [
+        "PDF, DOCX, PPTX e TXT",
+        "Seleção de páginas, slides ou trechos quando aplicável",
+        "Gemini API ou prompt para IA externa"
+      ]
+    },
+    {
+      "id": "cloze",
+      "status": "planned",
+      "current": false,
+      "title": "Cartões Cloze",
+      "description": "Criar lacunas de estudo compatíveis com o Anki por uma interface visual.",
+      "details": [
+        "Seleção visual do trecho ocultado",
+        "Geração da sintaxe Cloze sem edição manual"
+      ]
+    },
+    {
+      "id": "dictionary",
+      "status": "planned",
+      "current": false,
+      "title": "Dicionário integrado",
+      "description": "Projeto futuro para consultar palavras e levá-las diretamente para os baralhos.",
+      "details": [
+        "Planejamento detalhado será definido futuramente"
+      ]
+    }
+  ]
+}

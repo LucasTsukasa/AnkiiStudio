@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from PySide6.QtCore import Qt, QThreadPool, Signal
+from PySide6.QtCore import Qt, QThreadPool, QTimer, Signal
 from PySide6.QtWidgets import (
     QComboBox,
     QFileDialog,
@@ -20,17 +20,20 @@ from PySide6.QtWidgets import (
     QTableWidget,
     QTableWidgetItem,
     QTextEdit,
+    QToolButton,
     QVBoxLayout,
     QWidget,
 )
 
-from ankiistudio.config import AppPaths
+from ankiistudio.config import AppPaths, SecretStore
+from ankiistudio.constants import DEFAULT_GEMINI_TEXT_MODEL
 from ankiistudio.database import Database
 from ankiistudio.i18n import tr
 from ankiistudio.models import FlashcardData, ProjectData
 from ankiistudio.services.anki_export_service import AnkiExportService
 from ankiistudio.services.audio_service import ProjectAudioService
 from ankiistudio.services.audio_import_service import AudioImportService, SUPPORTED_AUDIO_EXTENSIONS
+from ankiistudio.services.gemini_service import GeneratedCardField, GeminiContentService
 from ankiistudio.services.image_service import ImageService
 from ankiistudio.services.image_sources import ImageSearchService
 from ankiistudio.services.media_service import CardImageService, SUPPORTED_IMAGE_EXTENSIONS
@@ -59,6 +62,13 @@ class ProjectsPage(QWidget):
         self.audio_import_service = AudioImportService(self.audio_service)
         self.export_service = AnkiExportService()
         self._workers: list[Worker] = []
+        self._ai_buttons: dict[str, QToolButton] = {}
+        self._ai_busy_field: str | None = None
+        self._ai_spinner_frames = ("◐", "◓", "◑", "◒")
+        self._ai_spinner_index = 0
+        self._ai_spinner_timer = QTimer(self)
+        self._ai_spinner_timer.setInterval(120)
+        self._ai_spinner_timer.timeout.connect(self._advance_ai_spinner)
 
         outer = QVBoxLayout(self)
         outer.setContentsMargins(0, 0, 0, 0)
@@ -177,20 +187,40 @@ class ProjectsPage(QWidget):
         self.explanation.setMaximumHeight(100)
         self.mnemonic = QTextEdit()
         self.mnemonic.setMaximumHeight(84)
-        self._field_labels: dict[QWidget, QLabel] = {}
-        for label, widget in (
-            ("Subbaralho", self.section_combo),
-            ("Conteúdo principal", self.word),
-            ("Leitura", self.reading),
-            ("Romaji / Romanização", self.romanization),
-            ("Tradução", self.translation),
-            ("Exemplo", self.example),
-            ("Explicação", self.explanation),
-            ("Mnemônico", self.mnemonic),
+        self._field_labels: dict[QWidget, QWidget] = {}
+        for field_key, label, widget in (
+            ("section", "Subbaralho", self.section_combo),
+            ("word", "Conteúdo principal", self.word),
+            ("reading", "Leitura", self.reading),
+            ("romanization", "Romaji / Romanização", self.romanization),
+            ("translation", "Tradução", self.translation),
+            ("example", "Exemplo", self.example),
+            ("explanation", "Explicação", self.explanation),
+            ("mnemonic", "Mnemônico", self.mnemonic),
         ):
             label_widget = QLabel(label)
-            self._field_labels[widget] = label_widget
-            self.form.addRow(label_widget, widget)
+            if field_key in {"example", "explanation", "mnemonic"}:
+                label_container = QWidget()
+                label_layout = QHBoxLayout(label_container)
+                label_layout.setContentsMargins(0, 0, 0, 0)
+                label_layout.setSpacing(5)
+                label_layout.addWidget(label_widget)
+                ai_button = QToolButton()
+                ai_button.setObjectName("AiFieldButton")
+                ai_button.setText("✨")
+                ai_button.setFixedSize(25, 25)
+                ai_button.setToolTip("Gerar ou regenerar este campo com IA")
+                ai_button.clicked.connect(
+                    lambda _checked=False, key=field_key: self.generate_field_with_ai(key)
+                )
+                self._ai_buttons[field_key] = ai_button
+                label_layout.addWidget(ai_button)
+                label_layout.addStretch(1)
+                self._field_labels[widget] = label_container
+                self.form.addRow(label_container, widget)
+            else:
+                self._field_labels[widget] = label_widget
+                self.form.addRow(label_widget, widget)
         self.section_combo.currentIndexChanged.connect(self._editor_changed)
         for line_edit in (self.word, self.reading, self.romanization, self.translation, self.example):
             line_edit.textEdited.connect(self._editor_changed)
@@ -366,6 +396,132 @@ class ProjectsPage(QWidget):
         self.remove_audio_button.setToolTip("" if has_audio else "Este cartão não possui áudio associado.")
         self.bulk_audio_button.setToolTip("" if project_uses_audio else "Este projeto não utiliza Áudio.")
         self.batch_import_audio_button.setToolTip("" if project_uses_audio else "Este projeto não utiliza Áudio.")
+
+        for field, button in self._ai_buttons.items():
+            field_available = bool(
+                has_card
+                and self.current_project
+                and self.current_card
+                and self.current_project.card_uses_component(self.current_card, field)
+            )
+            button.setEnabled(field_available and self._ai_busy_field is None)
+            if self._ai_busy_field != field:
+                button.setText("✨")
+            current_value = str(getattr(self.current_card, field, "") or "") if has_card else ""
+            button.setToolTip(
+                tr("Gerar novamente com IA" if current_value.strip() else "Gerar com IA")
+            )
+
+    def _advance_ai_spinner(self) -> None:
+        field = self._ai_busy_field
+        if field is None:
+            return
+        button = self._ai_buttons.get(field)
+        if button is None:
+            return
+        button.setText(self._ai_spinner_frames[self._ai_spinner_index % len(self._ai_spinner_frames)])
+        self._ai_spinner_index += 1
+
+    def _set_ai_busy(self, field: str | None) -> None:
+        self._ai_busy_field = field
+        self._ai_spinner_index = 0
+        if field is None:
+            self._ai_spinner_timer.stop()
+            for button in self._ai_buttons.values():
+                button.setText("✨")
+        else:
+            button = self._ai_buttons.get(field)
+            if button is not None:
+                button.setText(self._ai_spinner_frames[0])
+            self._ai_spinner_timer.start()
+        self._update_action_states()
+
+    def generate_field_with_ai(self, field: str) -> None:
+        if field not in {"example", "explanation", "mnemonic"}:
+            return
+        project = self.current_project
+        card = self.current_card
+        if project is None or card is None or card.id is None or self._ai_busy_field is not None:
+            return
+        if not project.card_uses_component(card, field):
+            return
+
+        api_key = SecretStore.get("GEMINI_API_KEY")
+        model = self.database.get_setting("gemini_text_model", DEFAULT_GEMINI_TEXT_MODEL)
+        try:
+            service = GeminiContentService(api_key, model)
+            context_card = self.collect_card()
+        except Exception as exc:
+            QMessageBox.warning(self, "Gemini não configurada", str(exc))
+            return
+
+        card_id = int(context_card.id)
+        original_value = str(getattr(context_card, field) or "")
+        field_label = {
+            "example": "Exemplo",
+            "explanation": "Explicação",
+            "mnemonic": "Mnemônico",
+        }[field]
+        self._set_ai_busy(field)
+        self.status.show_message(tr(f"Gerando {field_label} com IA..."))
+        worker = Worker(service.generate_card_field, project, context_card, field)
+        worker.signals.result.connect(
+            lambda result, key=field, cid=card_id, previous=original_value: self._ai_field_generated(
+                key, cid, previous, result
+            )
+        )
+        worker.signals.error.connect(lambda message: self.status.show_message(message, error=True))
+        worker.signals.finished.connect(lambda: self._set_ai_busy(None))
+        self._keep_worker(worker)
+
+    def _ai_field_generated(
+        self,
+        field: str,
+        card_id: int,
+        original_value: str,
+        result: object,
+    ) -> None:
+        if not isinstance(result, GeneratedCardField):
+            self.status.show_message(tr("A Gemini retornou uma resposta inválida para o campo."), error=True)
+            return
+        latest = self._pending_cards.get(card_id) or self.database.get_card(card_id)
+        if latest is None:
+            self.status.show_message(tr("O cartão não está mais disponível."), error=True)
+            return
+        if str(getattr(latest, field) or "") != original_value:
+            self.status.show_message(
+                tr("O campo foi alterado enquanto a IA processava. A resposta foi descartada."),
+                error=True,
+            )
+            return
+
+        updates: dict[str, str] = {field: result.value}
+        if field == "example":
+            updates["example_reading"] = result.example_reading.strip()
+            updates["example_translation"] = result.example_translation.strip()
+        draft = latest.model_copy(update=updates)
+        self._pending_cards[card_id] = draft
+
+        if self.current_card is not None and self.current_card.id == card_id:
+            self.current_card = draft
+            self._loading_form = True
+            try:
+                if field == "example":
+                    self.example.setText(draft.example)
+                elif field == "explanation":
+                    self.explanation.setPlainText(draft.explanation)
+                else:
+                    self.mnemonic.setPlainText(draft.mnemonic)
+            finally:
+                self._loading_form = False
+
+        success_message = {
+            "example": "Exemplo atualizado com IA. Revise e salve as alterações.",
+            "explanation": "Explicação atualizada com IA. Revise e salve as alterações.",
+            "mnemonic": "Mnemônico atualizado com IA. Revise e salve as alterações.",
+        }[field]
+        self.status.show_message(tr(success_message))
+        self._update_action_states()
 
     def refresh(self, select_project_id: int | None = None) -> None:
         current = select_project_id

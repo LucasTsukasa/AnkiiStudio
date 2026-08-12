@@ -23,7 +23,17 @@ class DeckThemeSettings(BaseModel):
     border: str = "#26332C"
     font_family: str = '"Noto Sans JP", "Yu Gothic", "Meiryo", sans-serif'
     word_size: int = Field(default=44, ge=18, le=96)
+    reading_size: int = Field(default=24, ge=12, le=72)
+    romanization_size: int = Field(default=17, ge=10, le=48)
     translation_size: int = Field(default=30, ge=14, le=72)
+    example_size: int = Field(default=25, ge=12, le=72)
+    explanation_size: int = Field(default=20, ge=12, le=48)
+    mnemonic_size: int = Field(default=20, ge=12, le=48)
+    image_max_height: int = Field(default=320, ge=120, le=900)
+    card_max_width: int = Field(default=720, ge=360, le=1200)
+    card_padding: int = Field(default=20, ge=8, le=64)
+    component_spacing: int = Field(default=10, ge=0, le=32)
+    layout_density: Literal["compact", "normal", "spacious", "custom"] = "normal"
 
     @field_validator(
         "background", "card_background", "primary", "text", "secondary_text", "border"

@@ -149,3 +149,30 @@ def test_windows_updater_preserves_data_and_replaces_application_files(monkeypat
     assert "Get-ChildItem -LiteralPath $appDir -Force" in text
     assert "Remove-Item -LiteralPath $_.FullName -Recurse -Force" in text
     assert "Start-Process -FilePath (Join-Path $appDir 'AnkiiStudio.exe')" in text
+
+
+def test_update_payload_accepts_executable_at_zip_root(tmp_path: Path) -> None:
+    staging = tmp_path / "staging-root"
+    staging.mkdir()
+    (staging / "AnkiiStudio.exe").write_bytes(b"exe")
+    (staging / "_internal").mkdir()
+    assert UpdateService._resolve_payload_dir(staging) == staging
+
+
+def test_update_payload_accepts_single_wrapper_directory(tmp_path: Path) -> None:
+    staging = tmp_path / "staging-wrapper"
+    payload = staging / "AnkiiStudio"
+    payload.mkdir(parents=True)
+    (payload / "AnkiiStudio.exe").write_bytes(b"exe")
+    (payload / "_internal").mkdir()
+    assert UpdateService._resolve_payload_dir(staging) == payload
+
+
+def test_update_payload_rejects_ambiguous_wrapper(tmp_path: Path) -> None:
+    staging = tmp_path / "staging-ambiguous"
+    payload = staging / "AnkiiStudio"
+    payload.mkdir(parents=True)
+    (payload / "AnkiiStudio.exe").write_bytes(b"exe")
+    (staging / "extra").mkdir()
+    with pytest.raises(RuntimeError, match="build portátil válido"):
+        UpdateService._resolve_payload_dir(staging)

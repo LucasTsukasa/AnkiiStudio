@@ -10,7 +10,7 @@ from ankiistudio.models import WikimediaMediaResult
 
 
 COMMONS_API = "https://commons.wikimedia.org/w/api.php"
-USER_AGENT = "AnkiiStudio/0.11.0-beta.5 (https://github.com/LucasTsukasa)"
+USER_AGENT = "AnkiiStudio/0.11.0-beta.6 (https://github.com/LucasTsukasa)"
 
 
 def _clean_metadata(value: object) -> str:

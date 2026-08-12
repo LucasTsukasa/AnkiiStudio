@@ -4,6 +4,25 @@ Todas as alterações relevantes do AnkiiStudio são registradas neste arquivo.
 
 O formato segue os princípios de [Keep a Changelog](https://keepachangelog.com/) e o projeto utiliza versionamento semântico durante o desenvolvimento.
 
+## [0.11.0-beta.6] - 2026-08-11
+
+### Adicionado
+- Nova página **Roadmap** em formato de linha do tempo vertical, com os estados `✓ CONCLUÍDO`, `◉ EM DESENVOLVIMENTO` e `◇ PLANEJADO`.
+- Conteúdo do Roadmap separado em `ankiistudio/resources/roadmap.json`, permitindo manutenção por commits sem acoplar o planejamento ao código da interface.
+- Atualização silenciosa do Roadmap a partir do repositório público quando houver internet, mantendo cópia local/cache como fallback offline.
+- Personalização avançada do tema dos cartões: tamanhos independentes de Conteúdo principal, Leitura, Romanização, Tradução, Exemplo, Explicação e Mnemônico; altura máxima de imagem; largura máxima do cartão; espaçamento interno e espaço entre componentes.
+- Presets de densidade visual **Compacto**, **Normal**, **Espaçoso** e **Personalizado**.
+- **IA por campo** no editor de cartões para **Exemplo**, **Explicação** e **Mnemônico**, usando a chave/modelo Gemini configurados pelo próprio usuário.
+- Ações de IA representadas apenas pelo ícone `✨`, com indicador animado durante o processamento e sem salvar automaticamente o resultado.
+
+### Alterado
+- O conteúdo editável do Roadmap deixou de ser traduzido pela interface: títulos, descrições e listas agora permanecem exatamente no idioma escrito em `roadmap.json`; somente elementos fixos da página e os status usam internacionalização.
+- O estilo padrão dos cartões foi levemente compactado, reduzindo o espaço desperdiçado em telas menores do Anki sem remover conteúdo.
+- O script de build portátil valida que `AnkiiStudio.exe` esteja na raiz do ZIP, mantendo compatibilidade com atualizadores de versões antigas.
+
+### Corrigido
+- O atualizador agora aceita tanto pacotes com `AnkiiStudio.exe` diretamente na raiz quanto pacotes com uma única pasta contêiner `AnkiiStudio/`, corrigindo a falha “O pacote de atualização não contém AnkiiStudio.exe na raiz.”.
+
 ## [0.11.0-beta.5] - 2026-08-10
 
 ### Corrigido

@@ -153,9 +153,38 @@ class UpdateService:
             shutil.rmtree(staging)
         staging.mkdir(parents=True)
         self._safe_extract(archive_path, staging)
-        if not (staging / "AnkiiStudio.exe").is_file():
-            raise RuntimeError("O pacote de atualização não contém AnkiiStudio.exe na raiz.")
-        return DownloadedUpdate(info=info, archive_path=archive_path, staging_dir=staging)
+        payload_dir = self._resolve_payload_dir(staging)
+        return DownloadedUpdate(info=info, archive_path=archive_path, staging_dir=payload_dir)
+
+
+    @staticmethod
+    def _resolve_payload_dir(staging: Path) -> Path:
+        """Localiza a raiz real do build portátil após a extração.
+
+        Releases antigas esperavam ``AnkiiStudio.exe`` diretamente na raiz do ZIP.
+        Alguns pacotes foram publicados com uma única pasta ``AnkiiStudio/`` envolvendo
+        o build. Ambos os formatos são válidos; estruturas ambíguas continuam sendo
+        rejeitadas para não instalar conteúdo inesperado.
+        """
+        if (staging / "AnkiiStudio.exe").is_file():
+            return staging
+
+        ignored_names = {"__MACOSX", ".DS_Store", "Thumbs.db"}
+        visible_entries = [
+            path for path in staging.iterdir() if path.name not in ignored_names
+        ]
+        directories = [path for path in visible_entries if path.is_dir()]
+        files = [path for path in visible_entries if path.is_file()]
+        candidates = [
+            path for path in directories if (path / "AnkiiStudio.exe").is_file()
+        ]
+        if len(candidates) == 1 and len(directories) == 1 and not files:
+            return candidates[0]
+
+        raise RuntimeError(
+            "O pacote de atualização não contém um build portátil válido do AnkiiStudio "
+            "na raiz nem em uma única pasta contêiner."
+        )
 
     @staticmethod
     def _safe_extract(archive: Path, destination: Path) -> None:

@@ -52,7 +52,7 @@ class TatoebaAudioProvider(AudioProvider):
             httpx.Client(
                 timeout=self.timeout,
                 follow_redirects=True,
-                headers={"User-Agent": "AnkiiStudio/0.11.0-beta.5 (https://github.com/LucasTsukasa/AnkiiStudio)"},
+                headers={"User-Agent": "AnkiiStudio/0.11.0-beta.6 (https://github.com/LucasTsukasa/AnkiiStudio)"},
             ),
             True,
         )

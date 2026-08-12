@@ -98,6 +98,12 @@ QToolButton#ImageSourceFilterButton {{
 }}
 QToolButton#ImageSourceFilterButton:hover {{ background: {c['card']}; border-color: {c['primary']}; }}
 QToolButton#ImageSourceFilterButton::menu-indicator {{ image: none; width: 0px; }}
+QToolButton#AiFieldButton {{
+    background: transparent; border: 1px solid transparent; border-radius: 7px; padding: 1px;
+    color: {c['primary']}; font-size: 14px; font-weight: 700;
+}}
+QToolButton#AiFieldButton:hover {{ background: {c['selected']}; border-color: {c['selected_border']}; }}
+QToolButton#AiFieldButton:disabled {{ color: {c['muted']}; background: transparent; border-color: transparent; }}
 QScrollArea#ImageSuggestionScroll {{ background: transparent; border: 0; }}
 QPushButton#NavButton {{
     background: transparent; border: 0; border-radius: 9px; padding: 10px 12px;
@@ -114,6 +120,24 @@ QLabel#Badge {{
     background: {c['selected']}; color: {c['primary']}; border: 1px solid {c['selected_border']};
     border-radius: 9px; padding: 3px 8px; font-size: 11px; font-weight: 700;
 }}
+QFrame#RoadmapCard, QFrame#RoadmapCardCurrent {{
+    background: {c['card']}; border: 1px solid {c['border']}; border-radius: 14px;
+}}
+QFrame#RoadmapCardCurrent {{ border: 1px solid {c['selected_border']}; background: {c['hero']}; }}
+QFrame#RoadmapLine {{ background: {c['border_hover']}; border: 0; }}
+QLabel#RoadmapTitle {{ font-size: 16px; font-weight: 780; color: {c['text']}; background: transparent; }}
+QLabel#RoadmapDescription {{ color: {c['text_soft']}; background: transparent; }}
+QLabel#RoadmapDetails {{ color: {c['muted']}; background: transparent; }}
+QLabel#RoadmapStatusCompleted, QLabel#RoadmapStatusInProgress, QLabel#RoadmapStatusPlanned, QLabel#RoadmapCurrentBadge {{
+    border-radius: 8px; padding: 3px 7px; font-size: 10px; font-weight: 750; background: transparent;
+}}
+QLabel#RoadmapStatusCompleted {{ color: {c['primary']}; border: 1px solid {c['selected_border']}; background: {c['selected']}; }}
+QLabel#RoadmapStatusInProgress {{ color: {c['primary_text']}; border: 1px solid {c['primary']}; background: {c['primary']}; }}
+QLabel#RoadmapStatusPlanned {{ color: {c['muted']}; border: 1px solid {c['border_hover']}; background: {c['input']}; }}
+QLabel#RoadmapCurrentBadge {{ color: {c['primary']}; border: 0; padding-left: 0; }}
+QLabel#RoadmapNodeCompleted {{ color: {c['primary']}; font-size: 20px; background: transparent; }}
+QLabel#RoadmapNodeInProgress {{ color: {c['primary']}; font-size: 26px; font-weight: 900; background: transparent; }}
+QLabel#RoadmapNodePlanned {{ color: {c['muted']}; font-size: 20px; background: transparent; }}
 QFrame#Card, QFrame#SectionCard, QFrame#HeroCard, QFrame#ProviderCard {{
     background: {c['card']}; border: 1px solid {c['border']}; border-radius: 14px;
 }}

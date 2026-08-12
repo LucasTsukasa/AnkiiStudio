@@ -165,6 +165,8 @@ class UiLanguageManager(QObject):
         return tr(str(source), self.language)
 
     def _translate_widget(self, widget: QWidget, source_language: str) -> None:
+        if bool(getattr(widget, "_i18n_skip", False)):
+            return
         if widget.windowTitle():
             widget.setWindowTitle(self._translated_value(widget, "_i18n_source_window_title", widget.windowTitle(), source_language))
         if widget.toolTip():

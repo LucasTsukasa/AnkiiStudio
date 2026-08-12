@@ -6,6 +6,7 @@ from pathlib import Path
 
 from ankiistudio.constants import TEMPLATE_SECTIONS
 from ankiistudio.models import FlashcardData
+from ankiistudio.data.japanese_localization_en import localize_card_fields
 
 _DATA_FILE = Path(__file__).with_name("japanese_standard_content.json")
 
@@ -32,7 +33,12 @@ def builtin_sections(template_key: str) -> list[str]:
     return list(TEMPLATE_SECTIONS[template_key])
 
 
-def create_builtin_cards(template_key: str, topic: str = "", quantity: int | None = None) -> list[FlashcardData]:
+def create_builtin_cards(
+    template_key: str,
+    topic: str = "",
+    quantity: int | None = None,
+    translation_language: str = "pt",
+) -> list[FlashcardData]:
     models = _load()["models"]
     if template_key not in models:
         return []
@@ -57,4 +63,12 @@ def create_builtin_cards(template_key: str, topic: str = "", quantity: int | Non
     # Chamadas sem quantity representam o fluxo do modelo padrão e usam toda a base.
     if quantity is not None:
         raw_cards = raw_cards[: max(0, quantity)]
+
+    if translation_language == "en":
+        raw_cards = [localize_card_fields(template_key, card) for card in raw_cards]
+    elif translation_language != "pt":
+        raise ValueError(
+            "O conteúdo interno dos modelos padrão possui tradução localizada em Português e Inglês nesta versão beta."
+        )
+
     return [FlashcardData.model_validate(card) for card in raw_cards]

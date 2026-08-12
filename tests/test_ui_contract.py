@@ -217,10 +217,10 @@ def test_voice_profiles_are_managed_in_audio_page_and_keys_remain_in_settings() 
 
 
 def test_application_version_is_beta_everywhere() -> None:
-    assert 'APP_VERSION = "0.11.0-beta.5"' in read("ankiistudio/constants.py")
-    assert '__version__ = "0.11.0-beta.5"' in read("ankiistudio/__init__.py")
-    assert 'version = "0.11.0b5"' in read("pyproject.toml")
-    assert "AnkiiStudio/0.11.0-beta.5" in read("ankiistudio/services/wikimedia_service.py")
+    assert 'APP_VERSION = "0.11.0-beta.6"' in read("ankiistudio/constants.py")
+    assert '__version__ = "0.11.0-beta.6"' in read("ankiistudio/__init__.py")
+    assert 'version = "0.11.0b6"' in read("pyproject.toml")
+    assert "AnkiiStudio/0.11.0-beta.6" in read("ankiistudio/services/wikimedia_service.py")
     assert not (ROOT / "scripts" / "AnkiiStudio.iss").exists()
 
 
@@ -390,7 +390,7 @@ def test_portable_only_storage_and_build_are_configured() -> None:
     assert 'self.base_dir = self.app_dir / "data"' in config
     assert "platformdirs" not in config
     assert "user_data_dir" not in config
-    assert "AnkiiStudio-Portable-0.11.0-beta.5.zip" in build
+    assert "AnkiiStudio-Portable-0.11.0-beta.6.zip" in build
     assert "AnkiiStudio.iss" not in build
     assert not (ROOT / "scripts" / "AnkiiStudio.iss").exists()
 
@@ -540,3 +540,74 @@ def test_beta4_removes_openverse_from_active_application_code() -> None:
     assert '"pixabay": "Pixabay"' in sources
     assert '"pexels": "Pexels"' in sources
 
+
+
+def test_beta6_adds_modern_roadmap_page_and_external_data_file() -> None:
+    main = read("ankiistudio/ui/main_window.py")
+    page = read("ankiistudio/ui/pages/roadmap_page.py")
+    service = read("ankiistudio/services/roadmap_service.py")
+    spec = read("AnkiiStudio.spec")
+    roadmap = ROOT / "ankiistudio/resources/roadmap.json"
+    assert roadmap.is_file()
+    assert 'RoadmapPage(paths, resource_dir)' in main
+    assert '("Roadmap", "roadmap", 6)' in main
+    assert "class RoadmapTimeline" in page
+    assert '"✓ CONCLUÍDO"' in page
+    assert '"◉ EM DESENVOLVIMENTO"' in page
+    assert '"◇ PLANEJADO"' in page
+    assert "ROADMAP_REMOTE_URL" in service
+    assert "roadmap_files" in spec
+
+
+def test_beta6_exposes_advanced_card_theme_controls() -> None:
+    models = read("ankiistudio/models.py")
+    page = read("ankiistudio/ui/pages/models_page.py")
+    template = read("ankiistudio/services/card_template_service.py")
+    assert "reading_size" in models
+    assert "romanization_size" in models
+    assert "example_size" in models
+    assert "explanation_size" in models
+    assert "mnemonic_size" in models
+    assert "image_max_height" in models
+    assert "card_max_width" in models
+    assert "card_padding" in models
+    assert "component_spacing" in models
+    assert 'self.theme_density.addItem("Compacto", "compact")' in page
+    assert 'self.theme_density.addItem("Normal", "normal")' in page
+    assert 'self.theme_density.addItem("Espaçoso", "spacious")' in page
+    assert 'self.theme_density.addItem("Personalizado", "custom")' in page
+    assert "theme.image_max_height" in template
+    assert "theme.card_max_width" in template
+
+
+def test_beta6_updater_accepts_wrapped_portable_build_and_build_keeps_root_exe() -> None:
+    updater = read("ankiistudio/services/update_service.py")
+    build = read("scripts/build_windows.ps1")
+    assert "_resolve_payload_dir" in updater
+    assert '(path / "AnkiiStudio.exe").is_file()' in updater
+    assert 'AnkiiStudio.exe não está na raiz do ZIP' in build
+
+
+def test_beta6_projects_has_field_ai_only_for_example_explanation_and_mnemonic() -> None:
+    projects = read("ankiistudio/ui/pages/projects_page.py")
+    assert 'field_key in {"example", "explanation", "mnemonic"}' in projects
+    assert 'ai_button.setText("✨")' in projects
+    assert 'self._ai_spinner_frames = ("◐", "◓", "◑", "◒")' in projects
+    assert 'service.generate_card_field' in projects
+    assert 'SecretStore.get("GEMINI_API_KEY")' in projects
+    assert 'self._pending_cards[card_id] = draft' in projects
+
+
+def test_beta6_roadmap_content_is_not_localized_by_ui_language() -> None:
+    page = read("ankiistudio/ui/pages/roadmap_page.py")
+    roadmap = read("ankiistudio/resources/roadmap.json")
+    assert "current_language" not in page
+    assert "_localized(" not in page
+    assert '"schema_version": 2' in roadmap
+    assert '"title": "Materiais de estudo"' in roadmap
+    assert '"pt_BR"' not in roadmap
+    assert '"en_US"' not in roadmap
+    assert 'title._i18n_skip = True' in page
+    assert 'description._i18n_skip = True' in page
+    assert 'details_label._i18n_skip = True' in page
+    assert 'getattr(widget, "_i18n_skip", False)' in read("ankiistudio/i18n.py")

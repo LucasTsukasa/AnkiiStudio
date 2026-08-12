@@ -60,6 +60,9 @@ def render_components_template(components: list[str]) -> str:
 
 
 def build_card_css(theme: DeckThemeSettings) -> str:
+    example_aux_size = max(12, min(28, theme.example_size - 7))
+    outer_padding = max(10, min(20, theme.card_padding - 4))
+    answer_margin = max(14, theme.component_spacing * 2)
     return f"""
 .card {{
   font-family: {theme.font_family};
@@ -67,28 +70,30 @@ def build_card_css(theme: DeckThemeSettings) -> str:
   text-align: center;
   color: {theme.text};
   background: {theme.background};
-  padding: 28px;
+  padding: {outer_padding}px;
 }}
 .ankiistudio-card {{
-  max-width: 760px;
+  max-width: {theme.card_max_width}px;
   margin: 0 auto;
-  padding: 28px;
+  padding: {theme.card_padding}px;
   border: 1px solid {theme.border};
   border-radius: 20px;
   background: {theme.card_background};
 }}
-.component {{ margin: 12px 0; }}
+.component {{ margin: {theme.component_spacing}px 0; }}
 .word {{ font-size: {theme.word_size}px; font-weight: 750; color: {theme.primary}; }}
-.reading {{ font-size: 24px; color: {theme.secondary_text}; }}
-.romanization {{ font-size: 17px; color: {theme.secondary_text}; }}
+.reading {{ font-size: {theme.reading_size}px; color: {theme.secondary_text}; }}
+.romanization {{ font-size: {theme.romanization_size}px; color: {theme.secondary_text}; }}
 .translation {{ font-size: {theme.translation_size}px; font-weight: 650; color: {theme.text}; }}
-.example {{ font-size: 25px; margin-top: 24px; }}
-.example-reading, .example-translation {{ font-size: 18px; color: {theme.secondary_text}; }}
-.explanation, .mnemonic {{ text-align: left; line-height: 1.55; background: {theme.background}; padding: 16px; border-radius: 12px; }}
+.example {{ font-size: {theme.example_size}px; margin-top: {max(theme.component_spacing, 4)}px; }}
+.example-reading, .example-translation {{ font-size: {example_aux_size}px; color: {theme.secondary_text}; }}
+.explanation {{ font-size: {theme.explanation_size}px; }}
+.mnemonic {{ font-size: {theme.mnemonic_size}px; }}
+.explanation, .mnemonic {{ text-align: left; line-height: 1.55; background: {theme.background}; padding: {max(10, theme.card_padding - 4)}px; border-radius: 12px; }}
 .meta, .tags {{ font-size: 14px; color: {theme.secondary_text}; }}
-.image img {{ max-width: 100%; max-height: 420px; border-radius: 16px; }}
-.audio {{ margin: 16px 0; }}
-hr#answer {{ border: 0; border-top: 1px solid {theme.border}; margin: 24px 0; }}
+.image img {{ max-width: 100%; max-height: {theme.image_max_height}px; width: auto; height: auto; border-radius: 16px; }}
+.audio {{ margin: {max(10, theme.component_spacing)}px 0; }}
+hr#answer {{ border: 0; border-top: 1px solid {theme.border}; margin: {answer_margin}px 0; }}
 """
 
 

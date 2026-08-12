@@ -75,7 +75,7 @@ class SettingsPage(QWidget):
 
         self.gemini_card = SectionCard(
             "Gemini",
-            "A chave é usada para geração de conteúdo e pelos perfis Gemini TTS configurados na aba Áudios.",
+            "A chave é usada para geração de conteúdo, IA por campo e pelos perfis Gemini TTS configurados na aba Áudios.",
         )
         self.gemini_key = QLineEdit()
         self.gemini_key.setEchoMode(QLineEdit.EchoMode.Password)

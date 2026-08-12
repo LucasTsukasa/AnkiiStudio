@@ -27,6 +27,13 @@ from ankiistudio.services.card_template_service import render_preview_document
 from ankiistudio.ui.widgets import AdaptiveSplitter, ComponentOrderEditor, PageHeader, PageScrollArea, SectionCard
 
 
+DENSITY_PRESETS = {
+    "compact": {"image_max_height": 240, "card_max_width": 640, "card_padding": 14, "component_spacing": 6},
+    "normal": {"image_max_height": 320, "card_max_width": 720, "card_padding": 20, "component_spacing": 10},
+    "spacious": {"image_max_height": 420, "card_max_width": 760, "card_padding": 28, "component_spacing": 14},
+}
+
+
 class ModelsPage(QWidget):
     def __init__(self, database: Database) -> None:
         super().__init__()
@@ -102,10 +109,21 @@ class ModelsPage(QWidget):
         structure_card.root.addLayout(section_actions)
         layout.addWidget(structure_card)
 
-        theme_card = SectionCard("Tema do baralho", "A aparência é salva por projeto e aplicada ao arquivo .apkg.")
+        theme_card = SectionCard(
+            "Tema do baralho",
+            "A aparência é salva por projeto e aplicada ao arquivo .apkg.",
+        )
         theme_grid = QGridLayout()
         theme_grid.setHorizontalSpacing(12)
-        theme_grid.setVerticalSpacing(8)
+        theme_grid.setVerticalSpacing(9)
+        theme_grid.setColumnStretch(0, 1)
+        theme_grid.setColumnStretch(1, 1)
+
+        self.theme_density = QComboBox()
+        self.theme_density.addItem("Compacto", "compact")
+        self.theme_density.addItem("Normal", "normal")
+        self.theme_density.addItem("Espaçoso", "spacious")
+        self.theme_density.addItem("Personalizado", "custom")
         self.theme_background = QLineEdit()
         self.theme_card_background = QLineEdit()
         self.theme_primary = QLineEdit()
@@ -113,20 +131,39 @@ class ModelsPage(QWidget):
         self.theme_secondary = QLineEdit()
         self.theme_border = QLineEdit()
         self.theme_font = QLineEdit()
-        self.theme_word_size = QSpinBox()
-        self.theme_word_size.setRange(18, 96)
-        self.theme_translation_size = QSpinBox()
-        self.theme_translation_size.setRange(14, 72)
+
+        self.theme_word_size = self._pixel_spin(18, 96)
+        self.theme_reading_size = self._pixel_spin(12, 72)
+        self.theme_romanization_size = self._pixel_spin(10, 48)
+        self.theme_translation_size = self._pixel_spin(14, 72)
+        self.theme_example_size = self._pixel_spin(12, 72)
+        self.theme_explanation_size = self._pixel_spin(12, 48)
+        self.theme_mnemonic_size = self._pixel_spin(12, 48)
+        self.theme_image_max_height = self._pixel_spin(120, 900)
+        self.theme_card_max_width = self._pixel_spin(360, 1200)
+        self.theme_card_padding = self._pixel_spin(8, 64)
+        self.theme_component_spacing = self._pixel_spin(0, 32)
+
         fields = [
+            ("Densidade do layout", self.theme_density),
+            ("Fonte", self.theme_font),
             ("Fundo", self.theme_background),
             ("Fundo do cartão", self.theme_card_background),
             ("Cor principal", self.theme_primary),
             ("Texto", self.theme_text),
             ("Texto secundário", self.theme_secondary),
             ("Borda", self.theme_border),
-            ("Fonte", self.theme_font),
-            ("Tamanho da palavra", self.theme_word_size),
+            ("Tamanho do conteúdo principal", self.theme_word_size),
+            ("Tamanho da leitura", self.theme_reading_size),
+            ("Tamanho da romanização", self.theme_romanization_size),
             ("Tamanho da tradução", self.theme_translation_size),
+            ("Tamanho do exemplo", self.theme_example_size),
+            ("Tamanho da explicação", self.theme_explanation_size),
+            ("Tamanho do mnemônico", self.theme_mnemonic_size),
+            ("Altura máxima da imagem", self.theme_image_max_height),
+            ("Largura máxima do cartão", self.theme_card_max_width),
+            ("Espaçamento interno", self.theme_card_padding),
+            ("Espaço entre componentes", self.theme_component_spacing),
         ]
         for index, (field_label, widget) in enumerate(fields):
             cell = QWidget()
@@ -137,7 +174,7 @@ class ModelsPage(QWidget):
             title.setObjectName("FieldLabel")
             cell_layout.addWidget(title)
             cell_layout.addWidget(widget)
-            theme_grid.addWidget(cell, index, 0)
+            theme_grid.addWidget(cell, index // 2, index % 2)
         theme_card.root.addLayout(theme_grid)
         layout.addWidget(theme_card)
 
@@ -178,8 +215,10 @@ class ModelsPage(QWidget):
             self.theme_font,
         ):
             widget.textChanged.connect(self.update_preview)
-        self.theme_word_size.valueChanged.connect(self.update_preview)
-        self.theme_translation_size.valueChanged.connect(self.update_preview)
+        self.theme_density.currentIndexChanged.connect(self._apply_density_preset)
+        for widget in self._theme_numeric_widgets():
+            widget.valueChanged.connect(self._theme_numeric_changed)
+            widget.valueChanged.connect(self.update_preview)
 
         layout.addStretch(1)
         root.addWidget(PageScrollArea(content))
@@ -301,6 +340,36 @@ class ModelsPage(QWidget):
         self.section_list.insertItem(target, item)
         self.section_list.setCurrentRow(target)
 
+    @staticmethod
+    def _pixel_spin(minimum: int, maximum: int) -> QSpinBox:
+        widget = QSpinBox()
+        widget.setRange(minimum, maximum)
+        widget.setSuffix(" px")
+        return widget
+
+    def _theme_numeric_widgets(self) -> tuple[QSpinBox, ...]:
+        return (
+            self.theme_word_size,
+            self.theme_reading_size,
+            self.theme_romanization_size,
+            self.theme_translation_size,
+            self.theme_example_size,
+            self.theme_explanation_size,
+            self.theme_mnemonic_size,
+            self.theme_image_max_height,
+            self.theme_card_max_width,
+            self.theme_card_padding,
+            self.theme_component_spacing,
+        )
+
+    def _layout_numeric_widgets(self) -> tuple[QSpinBox, ...]:
+        return (
+            self.theme_image_max_height,
+            self.theme_card_max_width,
+            self.theme_card_padding,
+            self.theme_component_spacing,
+        )
+
     def _load_theme(self, theme: DeckThemeSettings) -> None:
         self.theme_background.setText(theme.background)
         self.theme_card_background.setText(theme.card_background)
@@ -310,7 +379,55 @@ class ModelsPage(QWidget):
         self.theme_border.setText(theme.border)
         self.theme_font.setText(theme.font_family)
         self.theme_word_size.setValue(theme.word_size)
+        self.theme_reading_size.setValue(theme.reading_size)
+        self.theme_romanization_size.setValue(theme.romanization_size)
         self.theme_translation_size.setValue(theme.translation_size)
+        self.theme_example_size.setValue(theme.example_size)
+        self.theme_explanation_size.setValue(theme.explanation_size)
+        self.theme_mnemonic_size.setValue(theme.mnemonic_size)
+        self.theme_image_max_height.setValue(theme.image_max_height)
+        self.theme_card_max_width.setValue(theme.card_max_width)
+        self.theme_card_padding.setValue(theme.card_padding)
+        self.theme_component_spacing.setValue(theme.component_spacing)
+        previous = self.theme_density.blockSignals(True)
+        index = self.theme_density.findData(theme.layout_density)
+        self.theme_density.setCurrentIndex(index if index >= 0 else self.theme_density.findData("custom"))
+        self.theme_density.blockSignals(previous)
+
+    def _apply_density_preset(self, *_args) -> None:
+        key = str(self.theme_density.currentData() or "custom")
+        preset = DENSITY_PRESETS.get(key)
+        if preset is None:
+            self.update_preview()
+            return
+        mapping = {
+            "image_max_height": self.theme_image_max_height,
+            "card_max_width": self.theme_card_max_width,
+            "card_padding": self.theme_card_padding,
+            "component_spacing": self.theme_component_spacing,
+        }
+        for name, widget in mapping.items():
+            previous = widget.blockSignals(True)
+            widget.setValue(int(preset[name]))
+            widget.blockSignals(previous)
+        self.update_preview()
+
+    def _theme_numeric_changed(self, *_args) -> None:
+        key = str(self.theme_density.currentData() or "custom")
+        preset = DENSITY_PRESETS.get(key)
+        if preset is None:
+            return
+        current = {
+            "image_max_height": self.theme_image_max_height.value(),
+            "card_max_width": self.theme_card_max_width.value(),
+            "card_padding": self.theme_card_padding.value(),
+            "component_spacing": self.theme_component_spacing.value(),
+        }
+        if current != preset:
+            previous = self.theme_density.blockSignals(True)
+            custom_index = self.theme_density.findData("custom")
+            self.theme_density.setCurrentIndex(custom_index)
+            self.theme_density.blockSignals(previous)
 
     def _collect_theme(self) -> DeckThemeSettings:
         return DeckThemeSettings(
@@ -322,7 +439,17 @@ class ModelsPage(QWidget):
             border=self.theme_border.text().strip(),
             font_family=self.theme_font.text().strip(),
             word_size=self.theme_word_size.value(),
+            reading_size=self.theme_reading_size.value(),
+            romanization_size=self.theme_romanization_size.value(),
             translation_size=self.theme_translation_size.value(),
+            example_size=self.theme_example_size.value(),
+            explanation_size=self.theme_explanation_size.value(),
+            mnemonic_size=self.theme_mnemonic_size.value(),
+            image_max_height=self.theme_image_max_height.value(),
+            card_max_width=self.theme_card_max_width.value(),
+            card_padding=self.theme_card_padding.value(),
+            component_spacing=self.theme_component_spacing.value(),
+            layout_density=str(self.theme_density.currentData() or "custom"),
         )
 
     def save_model(self) -> None:

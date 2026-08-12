@@ -88,7 +88,17 @@ def test_sections_and_deck_theme_roundtrip(tmp_path: Path) -> None:
             secondary_text="#526057",
             border="#D5DDD8",
             word_size=50,
+            reading_size=23,
+            romanization_size=16,
             translation_size=32,
+            example_size=24,
+            explanation_size=18,
+            mnemonic_size=19,
+            image_max_height=260,
+            card_max_width=650,
+            card_padding=15,
+            component_spacing=7,
+            layout_density="custom",
         ),
     )
     project_id = db.create_project(project)
@@ -102,6 +112,10 @@ def test_sections_and_deck_theme_roundtrip(tmp_path: Path) -> None:
     assert loaded.deck_sections == ["Palavras", "Frases", "Alfabeto"]
     assert loaded.card_theme.background == "#FFFFFF"
     assert loaded.card_theme.word_size == 50
+    assert loaded.card_theme.reading_size == 23
+    assert loaded.card_theme.image_max_height == 260
+    assert loaded.card_theme.card_max_width == 650
+    assert loaded.card_theme.layout_density == "custom"
     assert card.section == "Palavras"
 
 

@@ -28,6 +28,7 @@ from ankiistudio.ui.pages.create_page import CreatePage
 from ankiistudio.ui.pages.home_page import HomePage
 from ankiistudio.ui.pages.models_page import ModelsPage
 from ankiistudio.ui.pages.projects_page import ProjectsPage
+from ankiistudio.ui.pages.roadmap_page import RoadmapPage
 from ankiistudio.ui.pages.settings_page import SettingsPage
 from ankiistudio.services.update_service import DownloadedUpdate, UpdateInfo, UpdateService
 from ankiistudio.ui.workers import Worker
@@ -88,6 +89,7 @@ class MainWindow(QMainWindow):
         self.models_page = ModelsPage(database)
         self.audio_page = AudioPage(database, paths)
         self.settings_page = SettingsPage(database, resource_dir)
+        self.roadmap_page = RoadmapPage(paths, resource_dir)
         self.about_page = AboutPage(database, resource_dir)
 
         self.pages = [
@@ -97,6 +99,7 @@ class MainWindow(QMainWindow):
             self.models_page,
             self.audio_page,
             self.settings_page,
+            self.roadmap_page,
             self.about_page,
         ]
         for page in self.pages:
@@ -109,7 +112,8 @@ class MainWindow(QMainWindow):
             ("Modelos", "models", 3),
             ("Áudios", "audio", 4),
             ("Configurações", "settings", 5),
-            ("Sobre", "about", 6),
+            ("Roadmap", "roadmap", 6),
+            ("Sobre", "about", 7),
         ]
         self.nav_group = QButtonGroup(self)
         self.nav_group.setExclusive(True)
@@ -155,6 +159,7 @@ class MainWindow(QMainWindow):
         refresh_audio_status = getattr(self.audio_page, "_refresh_provider_statuses", None)
         if callable(refresh_audio_status):
             refresh_audio_status()
+        self.roadmap_page.refresh()
         self.settings_page.status.show_message(tr("Idioma da interface atualizado."))
 
     def _check_updates_on_startup(self) -> None:
