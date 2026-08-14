@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
     QLabel,
     QListWidget,
     QPushButton,
+    QProgressBar,
     QScrollArea,
     QSplitter,
     QVBoxLayout,
@@ -21,6 +22,9 @@ from PySide6.QtWidgets import (
 from ankiistudio.constants import COMPONENT_LABELS
 from ankiistudio.i18n import tr
 from ankiistudio.services.search_rank import normalize_search_text, search_score
+from ankiistudio.ui.design_system.components import (
+    ASButton, ASCard, ASComboBox, ASPageHeader, ASProgressBar,
+)
 
 
 class _SearchRankingProxy(QSortFilterProxyModel):
@@ -59,6 +63,7 @@ class SearchableComboBox(QComboBox):
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
+        self.setObjectName("ASComboBox")
         self.setEditable(True)
         self.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
         self.setMaxVisibleItems(18)
@@ -231,23 +236,17 @@ class SearchableComboBox(QComboBox):
         self.blockSignals(previous)
 
 
-class PageHeader(QWidget):
+class PageHeader(ASPageHeader):
+    """Ponte de compatibilidade para o cabeçalho oficial do design system."""
+
     def __init__(self, title: str, subtitle: str = "") -> None:
-        super().__init__()
-        layout = QVBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 10)
-        layout.setSpacing(4)
-        title_label = QLabel(title)
-        title_label.setObjectName("PageTitle")
-        layout.addWidget(title_label)
-        if subtitle:
-            subtitle_label = QLabel(subtitle)
-            subtitle_label.setObjectName("PageSubtitle")
-            subtitle_label.setWordWrap(True)
-            layout.addWidget(subtitle_label)
+        super().__init__(title, subtitle)
+        self.setProperty("asComponent", "page-header")
 
 
 class PageScrollArea(QScrollArea):
+    viewport_resized = Signal(int)
+
     def __init__(self, content: QWidget) -> None:
         super().__init__()
         self.setObjectName("PageScroll")
@@ -255,12 +254,19 @@ class PageScrollArea(QScrollArea):
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         content.setObjectName("PageSurface")
         self.setWidget(content)
+        self.viewport().installEventFilter(self)
+
+    def eventFilter(self, watched, event) -> bool:  # type: ignore[override]
+        if watched is self.viewport() and event.type() == QEvent.Type.Resize:
+            self.viewport_resized.emit(self.viewport().width())
+        return super().eventFilter(watched, event)
 
 
-class SectionCard(QFrame):
+class SectionCard(ASCard):
     def __init__(self, title: str = "", subtitle: str = "") -> None:
         super().__init__()
         self.setObjectName("SectionCard")
+        self.setProperty("asComponent", "section-card")
         self.root = QVBoxLayout(self)
         self.root.setContentsMargins(18, 16, 18, 16)
         self.root.setSpacing(12)
@@ -275,7 +281,7 @@ class SectionCard(QFrame):
             self.root.addWidget(subtitle_label)
 
 
-class ActionCard(QFrame):
+class ActionCard(ASCard):
     clicked = Signal()
 
     def __init__(
@@ -285,8 +291,9 @@ class ActionCard(QFrame):
         button_text: str,
         icon_path: Path | None = None,
     ) -> None:
-        super().__init__()
+        super().__init__(variant="interactive")
         self.setObjectName("Card")
+        self.setProperty("asComponent", "action-card")
         self.setMinimumHeight(148)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(18, 18, 18, 18)
@@ -309,16 +316,17 @@ class ActionCard(QFrame):
         description_label.setObjectName("SectionSubtitle")
         layout.addWidget(description_label, 1)
 
-        button = QPushButton(button_text)
+        button = ASButton(button_text, variant="primary")
         button.setObjectName("PrimaryButton")
         button.clicked.connect(self.clicked.emit)
         layout.addWidget(button, alignment=Qt.AlignmentFlag.AlignLeft)
 
 
-class StatusBanner(QFrame):
+class StatusBanner(ASCard):
     def __init__(self) -> None:
-        super().__init__()
+        super().__init__(variant="success")
         self.setObjectName("Card")
+        self.setProperty("asComponent", "status-banner")
         layout = QHBoxLayout(self)
         layout.setContentsMargins(14, 10, 14, 10)
         self.label = QLabel()
@@ -328,13 +336,119 @@ class StatusBanner(QFrame):
 
     def show_message(self, text: str, error: bool = False) -> None:
         self.label.setText(tr(text))
-        border = "#B84A55" if error else "#19D978"
-        self.setStyleSheet(f"QFrame#Card {{ border:1px solid {border}; border-radius:10px; }}")
+        self.set_variant("danger" if error else "success")
+        self.setProperty("statusError", bool(error))
         self.show()
+
+
+class CollapsibleSection(ASCard):
+    """Seção recolhível reutilizável para formulários densos."""
+
+    def __init__(self, title: str, subtitle: str = "", *, expanded: bool = True) -> None:
+        super().__init__()
+        self.setObjectName("SectionCard")
+        self.setProperty("asComponent", "collapsible-section")
+        outer = QVBoxLayout(self)
+        outer.setContentsMargins(0, 0, 0, 0)
+        outer.setSpacing(0)
+        self.toggle_button = ASButton(variant="ghost")
+        self.toggle_button.setObjectName("CollapsibleHeader")
+        self.toggle_button.setCheckable(True)
+        self.toggle_button.setChecked(expanded)
+        self.toggle_button.clicked.connect(self._sync_state)
+        outer.addWidget(self.toggle_button)
+        self.body = QWidget()
+        self.body.setObjectName("CollapsibleBody")
+        self.root = QVBoxLayout(self.body)
+        self.root.setContentsMargins(18, 8, 18, 16)
+        self.root.setSpacing(12)
+        if subtitle:
+            label = QLabel(subtitle)
+            label.setObjectName("SectionSubtitle")
+            label.setWordWrap(True)
+            self.root.addWidget(label)
+        outer.addWidget(self.body)
+        self._title = title
+        self._sync_state()
+
+    def _sync_state(self, *_args) -> None:
+        expanded = self.toggle_button.isChecked()
+        self.toggle_button.setText(("▾ " if expanded else "▸ ") + tr(self._title))
+        self.body.setVisible(expanded)
+
+
+class TaskCenter(ASCard):
+    """Exibe várias tarefas independentes sem sobrescrever progresso/status."""
+
+    def __init__(self) -> None:
+        super().__init__(variant="raised")
+        self.setObjectName("TaskCenter")
+        self.setProperty("asComponent", "task-center")
+        self.root = QVBoxLayout(self)
+        self.root.setContentsMargins(14, 12, 14, 12)
+        self.root.setSpacing(8)
+        title = QLabel("Atividades")
+        title.setObjectName("SectionTitle")
+        self.root.addWidget(title)
+        self._rows: dict[str, tuple[QLabel, QProgressBar, QLabel]] = {}
+        self.hide()
+
+    def begin(self, key: str, title: str, detail: str = "") -> None:
+        if key in self._rows:
+            label, progress, status = self._rows[key]
+            label.setText(tr(title))
+            progress.setValue(0)
+            status.setText(tr(detail or "Preparando..."))
+            self.show()
+            return
+        row = QFrame()
+        row.setObjectName("TaskRow")
+        layout = QVBoxLayout(row)
+        layout.setContentsMargins(10, 8, 10, 8)
+        layout.setSpacing(5)
+        heading = QLabel(tr(title))
+        heading.setObjectName("FieldLabel")
+        progress = ASProgressBar()
+        progress.setRange(0, 100)
+        progress.setValue(0)
+        status = QLabel(tr(detail or "Preparando..."))
+        status.setObjectName("MutedLabel")
+        status.setWordWrap(True)
+        layout.addWidget(heading)
+        layout.addWidget(progress)
+        layout.addWidget(status)
+        self.root.addWidget(row)
+        self._rows[key] = (heading, progress, status)
+        self.show()
+
+    def update_task(self, key: str, percent: int, detail: str) -> None:
+        row = self._rows.get(key)
+        if row is None:
+            self.begin(key, key, detail)
+            row = self._rows[key]
+        row[1].setValue(max(0, min(100, int(percent))))
+        row[2].setText(tr(detail))
+
+    def finish(self, key: str, detail: str, *, error: bool = False) -> None:
+        row = self._rows.get(key)
+        if row is None:
+            self.begin(key, key)
+            row = self._rows[key]
+        row[1].setValue(100)
+        row[2].setText(tr(detail))
+        row[2].setProperty("taskError", error)
+        row[2].style().unpolish(row[2])
+        row[2].style().polish(row[2])
+
+    def is_active(self, key: str) -> bool:
+        row = self._rows.get(key)
+        return bool(row and row[1].value() < 100)
 
 
 class AdaptiveSplitter(QSplitter):
     """Alterna entre painéis lado a lado e empilhados conforme a largura disponível."""
+
+    orientation_changed = Signal(object)
 
     def __init__(self, breakpoint: int = 900, parent: QWidget | None = None) -> None:
         super().__init__(Qt.Orientation.Horizontal, parent)
@@ -342,26 +456,35 @@ class AdaptiveSplitter(QSplitter):
         self.setChildrenCollapsible(False)
         self.setHandleWidth(8)
 
-    def resizeEvent(self, event) -> None:  # type: ignore[override]
+    def _apply_orientation_for_width(self, width: int) -> None:
         orientation = (
             Qt.Orientation.Vertical
-            if self.width() < self.breakpoint
+            if width < self.breakpoint
             else Qt.Orientation.Horizontal
         )
-        if orientation != self.orientation():
-            self.setOrientation(orientation)
-            if self.count() >= 2:
-                self.setStretchFactor(0, 3 if orientation == Qt.Orientation.Horizontal else 0)
-                self.setStretchFactor(1, 2 if orientation == Qt.Orientation.Horizontal else 0)
+        if orientation == self.orientation():
+            return
+        self.setOrientation(orientation)
+        if self.count() >= 2:
+            self.setStretchFactor(0, 3 if orientation == Qt.Orientation.Horizontal else 0)
+            self.setStretchFactor(1, 2 if orientation == Qt.Orientation.Horizontal else 0)
+        self.orientation_changed.emit(orientation)
+
+    def refresh_orientation(self) -> None:
+        self._apply_orientation_for_width(self.width())
+
+    def resizeEvent(self, event) -> None:  # type: ignore[override]
+        self._apply_orientation_for_width(self.width())
         super().resizeEvent(event)
 
 
-class ComponentOrderEditor(QFrame):
+class ComponentOrderEditor(ASCard):
     changed = Signal()
 
     def __init__(self, title: str, components: list[str]) -> None:
         super().__init__()
         self.setObjectName("SectionCard")
+        self.setProperty("asComponent", "component-order-editor")
         layout = QVBoxLayout(self)
         layout.setContentsMargins(14, 14, 14, 14)
         layout.setSpacing(10)
@@ -382,10 +505,10 @@ class ComponentOrderEditor(QFrame):
         layout.addWidget(self.list_widget, 1)
 
         add_row = QHBoxLayout()
-        self.component_combo = QComboBox()
+        self.component_combo = ASComboBox()
         for key, label in COMPONENT_LABELS.items():
             self.component_combo.addItem(tr(label), key)
-        add_button = QPushButton("Adicionar")
+        add_button = ASButton("Adicionar", variant="secondary")
         add_button.setObjectName("SubtleButton")
         add_button.clicked.connect(self.add_component)
         add_row.addWidget(self.component_combo, 1)
@@ -393,9 +516,9 @@ class ComponentOrderEditor(QFrame):
         layout.addLayout(add_row)
 
         controls = QHBoxLayout()
-        self.up_button = QPushButton("↑")
-        self.down_button = QPushButton("↓")
-        self.remove_button = QPushButton("Remover")
+        self.up_button = ASButton("↑", variant="secondary")
+        self.down_button = ASButton("↓", variant="secondary")
+        self.remove_button = ASButton("Remover", variant="danger")
         for button in (self.up_button, self.down_button, self.remove_button):
             button.setObjectName("SubtleButton")
         self.up_button.setFixedWidth(42)

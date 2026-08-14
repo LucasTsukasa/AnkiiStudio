@@ -180,3 +180,43 @@ def test_legacy_sentence_audio_path_is_migrated_to_single_audio_component() -> N
     sanitized = ProjectService.sanitize_cards_for_structure(project, [card])[0]
     assert sanitized.word_audio_path == "legacy.wav"
     assert sanitized.sentence_audio_path == ""
+
+
+def test_duplicate_project_copies_cards_and_media_metadata(tmp_path: Path) -> None:
+    from ankiistudio.models import MediaAsset
+
+    database = Database(tmp_path / "duplicate.db")
+    service = ProjectService(database)
+    source_id = database.create_project(
+        _project(name="Original", front_components=["image", "word"], back_components=["translation", "audio"])
+    )
+    card_id = database.add_cards(
+        source_id,
+        [FlashcardData(word="猫", translation="gato", image_path="images/cat.webp", word_audio_path="audio/cat.wav")],
+    )[0]
+    database.add_media_asset(
+        MediaAsset(
+            project_id=source_id,
+            card_id=card_id,
+            kind="image",
+            provider="wikimedia",
+            local_path="images/cat.webp",
+            source_title="Cat",
+        )
+    )
+
+    copy_id = service.duplicate_project(source_id)
+    copied_project = database.get_project(copy_id)
+    copied_cards = database.list_cards(copy_id)
+    copied_assets = database.list_media_assets_for_project(copy_id)
+
+    assert copied_project is not None
+    assert copied_project.name == "Original — Cópia"
+    assert len(copied_cards) == 1
+    assert copied_cards[0].id != card_id
+    assert copied_cards[0].word == "猫"
+    assert copied_cards[0].image_path == "images/cat.webp"
+    assert copied_cards[0].word_audio_path == "audio/cat.wav"
+    assert len(copied_assets) == 1
+    assert copied_assets[0].card_id == copied_cards[0].id
+    assert copied_assets[0].provider == "wikimedia"

@@ -2,10 +2,11 @@ from __future__ import annotations
 
 from PySide6.QtWidgets import QDialog, QDialogButtonBox, QDoubleSpinBox, QFormLayout, QVBoxLayout
 
+from ankiistudio.ui.design_system.components import ASDialog
 from ankiistudio.models import ProjectData
 
 
-class VoicevoxSettingsDialog(QDialog):
+class VoicevoxSettingsDialog(ASDialog):
     def __init__(self, project: ProjectData, parent=None) -> None:
         super().__init__(parent)
         self.project = project

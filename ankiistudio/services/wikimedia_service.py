@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import html
 import re
+from contextlib import contextmanager
+from collections.abc import Iterator
 from typing import Any, Literal
 
 import httpx
@@ -10,7 +12,7 @@ from ankiistudio.models import WikimediaMediaResult
 
 
 COMMONS_API = "https://commons.wikimedia.org/w/api.php"
-USER_AGENT = "AnkiiStudio/0.11.0-beta.6 (https://github.com/LucasTsukasa)"
+USER_AGENT = "AnkiiStudio/0.11.0-beta.8 (https://github.com/LucasTsukasa)"
 
 
 def _clean_metadata(value: object) -> str:
@@ -25,8 +27,21 @@ class WikimediaService:
     key = "wikimedia"
     label = "Wikimedia Commons"
 
-    def __init__(self, timeout: float = 30.0) -> None:
+    def __init__(self, timeout: float = 30.0, client: httpx.Client | None = None) -> None:
         self.timeout = timeout
+        self._external_client = client
+
+    @contextmanager
+    def _client(self, *, timeout: float | None = None) -> Iterator[httpx.Client]:
+        if self._external_client is not None:
+            yield self._external_client
+            return
+        with httpx.Client(
+            timeout=self.timeout if timeout is None else timeout,
+            headers={"User-Agent": USER_AGENT},
+            follow_redirects=True,
+        ) as client:
+            yield client
 
     def search(
         self,
@@ -50,11 +65,7 @@ class WikimediaService:
             "iiprop": "url|mime|size|extmetadata",
             "iiurlwidth": 900,
         }
-        with httpx.Client(
-            timeout=self.timeout,
-            headers={"User-Agent": USER_AGENT},
-            follow_redirects=True,
-        ) as client:
+        with self._client() as client:
             response = client.get(COMMONS_API, params=params)
             response.raise_for_status()
             data: dict[str, Any] = response.json()
@@ -106,11 +117,7 @@ class WikimediaService:
     def download(self, url: str) -> tuple[bytes, str]:
         if not url.startswith("https://"):
             raise ValueError("A mídia do Wikimedia deve usar HTTPS.")
-        with httpx.Client(
-            timeout=60,
-            headers={"User-Agent": USER_AGENT},
-            follow_redirects=True,
-        ) as client:
+        with self._client(timeout=60) as client:
             response = client.get(url)
             response.raise_for_status()
         content_type = response.headers.get("content-type", "application/octet-stream")

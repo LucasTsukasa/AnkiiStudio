@@ -12,8 +12,9 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
+from ankiistudio.ui.design_system.components import ASButton, ASDialog
 
-class PromptDialog(QDialog):
+class PromptDialog(ASDialog):
     def __init__(self, prompt: str, parent=None) -> None:
         super().__init__(parent)
         self.setWindowTitle("Prompt para usar em uma IA")
@@ -24,9 +25,9 @@ class PromptDialog(QDialog):
         layout.addWidget(self.editor)
 
         actions = QHBoxLayout()
-        copy_button = QPushButton("Copiar prompt")
+        copy_button = ASButton("Copiar prompt")
         copy_button.setObjectName("PrimaryButton")
-        save_button = QPushButton("Salvar como TXT")
+        save_button = ASButton("Salvar como TXT")
         copy_button.clicked.connect(self.copy_prompt)
         save_button.clicked.connect(self.save_prompt)
         actions.addWidget(copy_button)

@@ -46,6 +46,12 @@ desktop.ini
 *.tmp
 *.temp
 ~$*
+
 # Relatórios internos de desenvolvimento
-EXECUTION_REPORT.md
 VALIDATION.md
+EXECUTION_REPORT.md
+
+# Certificados de assinatura (nunca versionar)
+*.pfx
+*.p12
+*.p7b

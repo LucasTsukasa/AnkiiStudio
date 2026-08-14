@@ -3,13 +3,37 @@ from __future__ import annotations
 from typing import Literal
 
 from google import genai
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError, field_validator
 
-from ankiistudio.constants import language_label
+from ankiistudio.constants import language_label, normalize_language_code
 from ankiistudio.models import FlashcardData, ImportedDeck, ProjectData
 
 
 FieldAiTarget = Literal["example", "explanation", "mnemonic"]
+
+
+class GeminiGeneratedDeck(BaseModel):
+    """Resposta da geração de baralho pela Gemini.
+
+    Diferente de ``ImportedDeck``, os idiomas são obrigatórios aqui. Isso evita
+    que respostas incompletas assumam silenciosamente o legado ``ja``/``pt``.
+    O modelo de importação externo permanece inalterado.
+    """
+
+    format_version: str
+    language: str
+    translation_language: str
+    category: str
+    deck_name: str
+    cards: list[FlashcardData]
+
+    @field_validator("language", "translation_language", mode="before")
+    @classmethod
+    def normalize_languages(cls, value: object) -> str:
+        if value is None or not str(value).strip():
+            raise ValueError("O idioma deve ser informado explicitamente pela Gemini.")
+        return normalize_language_code(str(value))
+
 
 
 class GeneratedCardField(BaseModel):
@@ -31,19 +55,131 @@ class GeminiContentService:
         self.client = genai.Client(api_key=api_key.strip())
         self.model = model.strip()
 
-    def generate_deck(self, prompt: str) -> ImportedDeck:
-        interaction = self.client.interactions.create(
-            model=self.model,
-            input=prompt,
-            response_format={
-                "type": "text",
-                "mime_type": "application/json",
-                "schema": ImportedDeck.model_json_schema(),
-            },
+    def generate_deck(
+        self,
+        prompt: str,
+        maximum_cards: int | None = None,
+        *,
+        expected_cards: int | None = None,
+        expected_language: str | None = None,
+        expected_translation_language: str | None = None,
+    ) -> ImportedDeck:
+        expected_language = (
+            normalize_language_code(expected_language) if expected_language else None
         )
-        if not interaction.output_text:
-            raise RuntimeError("A Gemini API não retornou conteúdo textual.")
-        return ImportedDeck.model_validate_json(interaction.output_text)
+        expected_translation_language = (
+            normalize_language_code(expected_translation_language)
+            if expected_translation_language
+            else None
+        )
+        if expected_cards is not None and expected_cards < 1:
+            raise ValueError("A quantidade esperada de cartões precisa ser maior que zero.")
+
+        last_error: Exception | None = None
+        input_prompt = prompt
+        for attempt in range(2):
+            interaction = self.client.interactions.create(
+                model=self.model,
+                input=input_prompt,
+                response_format={
+                    "type": "text",
+                    "mime_type": "application/json",
+                    "schema": GeminiGeneratedDeck.model_json_schema(),
+                },
+            )
+            if not interaction.output_text:
+                raise RuntimeError("A Gemini API não retornou conteúdo textual.")
+
+            try:
+                generated = GeminiGeneratedDeck.model_validate_json(interaction.output_text)
+                self._validate_generated_deck(
+                    generated,
+                    maximum_cards=maximum_cards,
+                    expected_cards=expected_cards,
+                    expected_language=expected_language,
+                    expected_translation_language=expected_translation_language,
+                )
+            except (ValidationError, ValueError, RuntimeError) as exc:
+                last_error = exc
+                if attempt == 0:
+                    input_prompt = self._retry_prompt(
+                        prompt,
+                        exc,
+                        expected_cards=expected_cards,
+                        expected_language=expected_language,
+                        expected_translation_language=expected_translation_language,
+                    )
+                    continue
+                raise RuntimeError(str(exc)) from exc
+
+            return ImportedDeck.model_validate(generated.model_dump())
+
+        raise RuntimeError(str(last_error or "A Gemini retornou uma resposta inválida."))
+
+    @staticmethod
+    def _validate_generated_deck(
+        deck: GeminiGeneratedDeck,
+        *,
+        maximum_cards: int | None,
+        expected_cards: int | None,
+        expected_language: str | None,
+        expected_translation_language: str | None,
+    ) -> None:
+        if deck.format_version != "1.0":
+            raise RuntimeError(
+                f"A Gemini retornou format_version={deck.format_version!r}; esperado: '1.0'."
+            )
+        if not deck.cards:
+            raise RuntimeError("A Gemini não retornou nenhum cartão.")
+        if expected_cards is not None and len(deck.cards) != expected_cards:
+            raise RuntimeError(
+                f"A Gemini retornou {len(deck.cards)} de {expected_cards} cartões solicitados."
+            )
+        if maximum_cards is not None and len(deck.cards) > maximum_cards:
+            raise RuntimeError(
+                f"A Gemini retornou {len(deck.cards)} cartões, acima do limite seguro de {maximum_cards}."
+            )
+        if expected_language is not None and deck.language != expected_language:
+            raise RuntimeError(
+                "A Gemini retornou o idioma-alvo incorreto "
+                f"({deck.language}); esperado: {expected_language}."
+            )
+        if (
+            expected_translation_language is not None
+            and deck.translation_language != expected_translation_language
+        ):
+            raise RuntimeError(
+                "A Gemini retornou o idioma de tradução incorreto "
+                f"({deck.translation_language}); esperado: {expected_translation_language}."
+            )
+
+    @staticmethod
+    def _retry_prompt(
+        original_prompt: str,
+        error: Exception,
+        *,
+        expected_cards: int | None,
+        expected_language: str | None,
+        expected_translation_language: str | None,
+    ) -> str:
+        requirements: list[str] = []
+        if expected_cards is not None:
+            requirements.append(f"retorne exatamente {expected_cards} cartões")
+        if expected_language is not None:
+            requirements.append(f"use `language` exatamente como `{expected_language}`")
+        if expected_translation_language is not None:
+            requirements.append(
+                "use `translation_language` exatamente como "
+                f"`{expected_translation_language}`"
+            )
+        requirements.append("inclua explicitamente `language` e `translation_language`")
+        detail = "; ".join(requirements)
+        return (
+            original_prompt
+            + "\n\nCORREÇÃO DA RESPOSTA ANTERIOR\n"
+            + f"A resposta anterior foi rejeitada: {error}. "
+            + f"Na nova resposta, {detail}."
+        )
 
     def generate_card_field(
         self,

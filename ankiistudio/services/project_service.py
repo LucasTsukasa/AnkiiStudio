@@ -6,7 +6,7 @@ from ankiistudio.constants import DEFAULT_AUDIO_PROVIDERS, TEMPLATE_SECTIONS
 from ankiistudio.data.japanese_seed import create_builtin_cards
 from ankiistudio.data.japanese_localization_en import localize_section
 from ankiistudio.database import Database
-from ankiistudio.models import FlashcardData, ImportedDeck, ProjectData
+from ankiistudio.models import FlashcardData, ImportedDeck, MediaAsset, ProjectData, utc_now_iso
 
 
 class ProjectService:
@@ -216,6 +216,47 @@ class ProjectService:
         project_id = self.database.create_project(project)
         self.database.add_cards(project_id, cards)
         return project_id
+
+
+    def duplicate_project(self, project_id: int, *, name: str | None = None) -> int:
+        source = self.database.get_project(project_id)
+        if source is None or source.id is None:
+            raise ValueError("Projeto não encontrado.")
+        new_project = source.model_copy(
+            deep=True,
+            update={
+                "id": None,
+                "name": (name or f"{source.name} — Cópia").strip(),
+                "created_at": utc_now_iso(),
+                "updated_at": utc_now_iso(),
+            },
+        )
+        new_project_id = self.database.create_project(new_project)
+        source_cards = self.database.list_cards(project_id)
+        copied_cards = [
+            card.model_copy(
+                deep=True,
+                update={"id": None, "project_id": new_project_id, "created_at": utc_now_iso(), "updated_at": utc_now_iso()},
+            )
+            for card in source_cards
+        ]
+        new_card_ids = self.database.add_cards(new_project_id, copied_cards)
+        card_map = {
+            int(old.id): new_id for old, new_id in zip(source_cards, new_card_ids, strict=True) if old.id is not None
+        }
+        for asset in self.database.list_media_assets_for_project(project_id):
+            self.database.add_media_asset(
+                asset.model_copy(
+                    deep=True,
+                    update={
+                        "id": None,
+                        "project_id": new_project_id,
+                        "card_id": card_map.get(int(asset.card_id)) if asset.card_id is not None else None,
+                        "created_at": utc_now_iso(),
+                    },
+                )
+            )
+        return new_project_id
 
     @staticmethod
     def defaults(project: ProjectData) -> ProjectData:

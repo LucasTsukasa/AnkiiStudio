@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from PySide6.QtCore import QThreadPool
 from PySide6.QtWidgets import (
     QComboBox,
     QDialog,
@@ -19,6 +20,7 @@ from PySide6.QtWidgets import (
 
 from ankiistudio.i18n import tr
 from ankiistudio.models import FlashcardData, ProjectData
+from ankiistudio.ui.design_system.components import ASButton, ASComboBox, ASDialog, ASTableWidget
 from ankiistudio.services.audio_import_service import (
     MATCH_FIELDS,
     SUPPORTED_AUDIO_EXTENSIONS,
@@ -26,9 +28,10 @@ from ankiistudio.services.audio_import_service import (
     AudioImportService,
     AudioImportSummary,
 )
+from ankiistudio.ui.workers import Worker
 
 
-class AudioBatchImportDialog(QDialog):
+class AudioBatchImportDialog(ASDialog):
     def __init__(
         self,
         project: ProjectData,
@@ -43,6 +46,8 @@ class AudioBatchImportDialog(QDialog):
         self.files: list[Path] = []
         self.matches: list[AudioImportMatch] = []
         self.summary: AudioImportSummary | None = None
+        self.thread_pool = QThreadPool.globalInstance()
+        self._import_worker: Worker | None = None
 
         self.setWindowTitle("Importar áudios em lote")
         self.resize(880, 620)
@@ -60,14 +65,14 @@ class AudioBatchImportDialog(QDialog):
         settings.setVerticalSpacing(8)
 
         settings.addWidget(QLabel("Correspondência"), 0, 0)
-        self.field_combo = QComboBox()
+        self.field_combo = ASComboBox()
         for key, label in MATCH_FIELDS.items():
             self.field_combo.addItem(label, key)
         self.field_combo.currentIndexChanged.connect(self.refresh_preview)
         settings.addWidget(self.field_combo, 0, 1)
 
         settings.addWidget(QLabel("Se já existir áudio"), 1, 0)
-        self.conflict_combo = QComboBox()
+        self.conflict_combo = ASComboBox()
         self.conflict_combo.addItem("Ignorar", "skip")
         self.conflict_combo.addItem("Substituir", "replace")
         settings.addWidget(self.conflict_combo, 1, 1)
@@ -75,18 +80,18 @@ class AudioBatchImportDialog(QDialog):
         root.addLayout(settings)
 
         file_actions = QHBoxLayout()
-        select_files = QPushButton("Selecionar arquivos")
-        select_folder = QPushButton("Selecionar pasta")
-        select_files.setObjectName("SubtleButton")
-        select_folder.setObjectName("SubtleButton")
-        select_files.clicked.connect(self.select_files)
-        select_folder.clicked.connect(self.select_folder)
-        file_actions.addWidget(select_files)
-        file_actions.addWidget(select_folder)
+        self.select_files_button = ASButton("Selecionar arquivos")
+        self.select_folder_button = ASButton("Selecionar pasta")
+        self.select_files_button.setObjectName("SubtleButton")
+        self.select_folder_button.setObjectName("SubtleButton")
+        self.select_files_button.clicked.connect(self.select_files)
+        self.select_folder_button.clicked.connect(self.select_folder)
+        file_actions.addWidget(self.select_files_button)
+        file_actions.addWidget(self.select_folder_button)
         file_actions.addStretch(1)
         root.addLayout(file_actions)
 
-        self.table = QTableWidget(0, 3)
+        self.table = ASTableWidget(0, 3)
         self.table.setHorizontalHeaderLabels(["Arquivo", "Cartão", "Status"])
         self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
@@ -102,13 +107,13 @@ class AudioBatchImportDialog(QDialog):
 
         actions = QHBoxLayout()
         actions.addStretch(1)
-        cancel_button = QPushButton("Cancelar")
-        self.import_button = QPushButton("Importar correspondências")
+        self.cancel_button = ASButton("Cancelar")
+        self.import_button = ASButton("Importar correspondências")
         self.import_button.setObjectName("PrimaryButton")
         self.import_button.setEnabled(False)
-        cancel_button.clicked.connect(self.reject)
+        self.cancel_button.clicked.connect(self.reject)
         self.import_button.clicked.connect(self.apply_import)
-        actions.addWidget(cancel_button)
+        actions.addWidget(self.cancel_button)
         actions.addWidget(self.import_button)
         root.addLayout(actions)
 
@@ -173,8 +178,39 @@ class AudioBatchImportDialog(QDialog):
         self.import_button.setEnabled(any(match.matched for match in self.matches))
 
     def apply_import(self) -> None:
+        if self._import_worker is not None:
+            return
         policy = str(self.conflict_combo.currentData() or "skip")
-        self.summary = self.service.apply(self.project, self.matches, conflict_policy=policy)
+        self._set_import_busy(True)
+        self.summary_label.setText(tr("Importando correspondências..."))
+        worker = Worker(
+            self.service.apply,
+            self.project,
+            list(self.matches),
+            conflict_policy=policy,
+        )
+        self._import_worker = worker
+        worker.signals.result.connect(self._import_finished)
+        worker.signals.error.connect(self._import_failed)
+        worker.signals.finished.connect(self._import_worker_finished)
+        self.thread_pool.start(worker)
+
+    def _set_import_busy(self, busy: bool) -> None:
+        for widget in (
+            self.field_combo,
+            self.conflict_combo,
+            self.select_files_button,
+            self.select_folder_button,
+            self.cancel_button,
+        ):
+            widget.setEnabled(not busy)
+        self.import_button.setEnabled(not busy and any(match.matched for match in self.matches))
+
+    def _import_finished(self, result: object) -> None:
+        if not isinstance(result, AudioImportSummary):
+            self._import_failed("A importação retornou um resultado inválido.")
+            return
+        self.summary = result
         message = (
             f"Importados: {self.summary.imported}\n"
             f"Ignorados por já possuir áudio: {self.summary.skipped_existing}\n"
@@ -185,3 +221,12 @@ class AudioBatchImportDialog(QDialog):
         )
         QMessageBox.information(self, tr("Importação concluída"), tr(message))
         self.accept()
+
+    def _import_failed(self, message: str) -> None:
+        QMessageBox.critical(self, tr("Falha na importação"), tr(message))
+        self._set_import_busy(False)
+
+    def _import_worker_finished(self) -> None:
+        self._import_worker = None
+        if self.isVisible() and self.summary is None:
+            self._set_import_busy(False)

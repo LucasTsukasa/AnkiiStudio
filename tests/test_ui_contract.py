@@ -12,11 +12,46 @@ def read(relative: str) -> str:
 
 def test_main_window_is_compact_and_images_tab_is_removed() -> None:
     source = read("ankiistudio/ui/main_window.py")
-    assert "self.resize(1120, 720)" in source
-    assert "self.setMinimumSize(960, 620)" in source
-    assert 'sidebar.setFixedWidth(196)' in source
+    assert "DEFAULT_WIDTH = 1120" in source
+    assert "DEFAULT_HEIGHT = 720" in source
+    assert "self.resize(self.DEFAULT_WIDTH, self.DEFAULT_HEIGHT)" in source
+    assert "self.setMinimumSize(840, 560)" in source
+    assert "availableGeometry()" in source
+    assert "saveGeometry()" in source
+    assert "restoreGeometry" in source
+    assert 'SIDEBAR_EXPANDED_WIDTH = 196' in source
+    assert 'SIDEBAR_COLLAPSED_WIDTH = 66' in source
+    assert 'self.sidebar.setFixedWidth(self.SIDEBAR_COLLAPSED_WIDTH if collapsed else self.SIDEBAR_EXPANDED_WIDTH)' in source
     assert '("Imagens"' not in source
     assert "ImagesPage" not in source
+
+
+def test_main_window_restores_safe_geometry_and_sidebar_toggle_is_accessible() -> None:
+    source = read("ankiistudio/ui/main_window.py")
+    startup = read("ankiistudio/main.py")
+    assert 'WINDOW_GEOMETRY_SETTING = "main_window_geometry"' in source
+    assert "QApplication.screenAt(frame.center())" in source
+    assert "screen.availableGeometry().adjusted(" in source
+    assert 'self.sidebar_toggle = ASButton("‹", variant="icon")' in source
+    assert "self.sidebar_toggle.setFixedSize(32, 32)" in source
+    assert 'self.sidebar_toggle.setText("›" if collapsed else "‹")' in source
+    assert "self.sidebar_toggle.setAccessibleName(toggle_label)" in source
+    assert "window.ensure_visible_on_screen(center=not window.geometry_restored)" in startup
+
+
+def test_home_empty_state_is_compact_and_informative() -> None:
+    home = read("ankiistudio/ui/pages/home_page.py")
+    assert "self.recent_list.setMinimumHeight(124)" in home
+    assert "self.recent_list.setMaximumHeight(124)" in home
+    assert "Seus projetos recentes aparecerão aqui." in home
+    assert "Qt.AlignmentFlag.AlignCenter" in home
+
+
+def test_page_scroll_reports_real_viewport_resizes() -> None:
+    widgets = read("ankiistudio/ui/widgets.py")
+    assert "viewport_resized = Signal(int)" in widgets
+    assert "self.viewport().installEventFilter(self)" in widgets
+    assert "self.viewport_resized.emit(self.viewport().width())" in widgets
 
 
 def test_new_logo_is_used_and_packaged() -> None:
@@ -71,8 +106,8 @@ def test_adaptive_splitters_are_used_for_dense_pages() -> None:
 
 def test_projects_card_table_has_priority_in_compact_ui() -> None:
     projects = read("ankiistudio/ui/pages/projects_page.py")
-    assert "left_card.setMinimumHeight(430)" in projects
-    assert "self.table.setMinimumHeight(330)" in projects
+    assert "left_card.setMinimumHeight(360)" in projects
+    assert "self.table.setMinimumHeight(250)" in projects
     assert "splitter.setStretchFactor(0, 3)" in projects
     assert "splitter.setStretchFactor(1, 2)" in projects
 
@@ -87,6 +122,9 @@ def test_create_page_is_searchable_responsive_and_default_template_is_custom() -
     assert "self.custom_content_cell.setVisible(is_custom)" in source
     assert "SearchableComboBox" in source
     assert "RESPONSIVE_BREAKPOINT = 820" in source
+    assert "self.page_scroll.viewport().width()" in source
+    assert "self.preset_card.root.contentsMargins()" in source
+    assert "viewport_resized.connect" in source
     assert "self.structure_grid.addWidget(self.front_editor" in source
     assert "self.structure_grid.addWidget(self.back_editor" in source
 
@@ -105,7 +143,8 @@ def test_standard_templates_autoload_their_default_structure() -> None:
 def test_standard_templates_lock_generation_inputs_and_use_builtin_mode() -> None:
     create = read("ankiistudio/ui/pages/create_page.py")
     assert "self.topic_input.setEnabled(is_custom)" in create
-    assert "self.quantity_spin.setEnabled(is_custom)" in create
+    assert "self.quantity_mode_combo.setEnabled(is_custom)" in create
+    assert 'self.quantity_spin.setEnabled(is_custom and str(self.quantity_mode_combo.currentData() or "fixed") == "fixed")' in create
     assert 'self.set_creation_mode("builtin")' in create
     assert 'button.setEnabled(key == "builtin")' in create
     assert 'creation_mode="builtin" if is_standard else self.creation_mode' in create
@@ -148,6 +187,21 @@ def test_standard_content_json_is_packaged() -> None:
     assert '"data/*.json"' in pyproject
     assert 'data_files' in spec
     assert (ROOT / "ankiistudio" / "data" / "japanese_standard_content.json").is_file()
+
+
+def test_home_and_project_library_reflow_in_narrow_windows() -> None:
+    home = read("ankiistudio/ui/pages/home_page.py")
+    hub = read("ankiistudio/ui/pages/projects_hub_page.py")
+    create = read("ankiistudio/ui/pages/create_page.py")
+    assert "responsive_columns" in home
+    assert "self._available_content_width()" in home
+    assert "spacing=self.action_grid.horizontalSpacing()" in home
+    assert "self._apply_responsive_layout" in home
+    assert "self.filters_layout = QGridLayout()" in hub
+    assert "filter_width = self.library_scroll.viewport().width()" in hub
+    assert "spacing=self.cards_grid.horizontalSpacing()" in hub
+    assert "self.preset_grid = QGridLayout()" in create
+    assert "self.structure_controls = QGridLayout()" in create
 
 
 def test_checkbox_and_radio_states_are_fully_styled() -> None:
@@ -197,30 +251,31 @@ def test_windows_build_uses_installed_python_launcher_version() -> None:
 
 def test_api_keys_remain_editable_inside_settings() -> None:
     settings = read("ankiistudio/ui/pages/settings_page.py")
-    assert "self.gemini_key = QLineEdit()" in settings
-    assert "self.eleven_key = QLineEdit()" in settings
+    assert "self.gemini_key = ASLineEdit()" in settings
+    assert "self.eleven_key = ASLineEdit()" in settings
     assert 'SecretStore.set("GEMINI_API_KEY"' in settings
     assert 'SecretStore.set("ELEVENLABS_API_KEY"' in settings
 
 
-def test_voice_profiles_are_managed_in_audio_page_and_keys_remain_in_settings() -> None:
-    audio = read("ankiistudio/ui/pages/audio_page.py")
+def test_voice_profiles_are_managed_in_settings_and_keys_remain_there() -> None:
     settings = read("ankiistudio/ui/pages/settings_page.py")
+    panel = read("ankiistudio/ui/panels.py")
     profile_service = read("ankiistudio/services/audio_profile_service.py")
     assert "AudioVoiceProfile" in profile_service
     assert 'provider: Literal["gemini", "elevenlabs"]' in profile_service
     assert "language:" in profile_service
-    assert "self.profile_service.upsert" in audio
+    assert "self.profile_service.upsert" in settings
+    assert "self.profile_service.list_for" in panel
     assert "Voice ID" in read("ankiistudio/ui/dialogs/audio_profile_dialog.py")
     assert "Voz Natural A" not in settings
     assert "Speaker ID Natural A" not in settings
 
 
 def test_application_version_is_beta_everywhere() -> None:
-    assert 'APP_VERSION = "0.11.0-beta.6"' in read("ankiistudio/constants.py")
-    assert '__version__ = "0.11.0-beta.6"' in read("ankiistudio/__init__.py")
-    assert 'version = "0.11.0b6"' in read("pyproject.toml")
-    assert "AnkiiStudio/0.11.0-beta.6" in read("ankiistudio/services/wikimedia_service.py")
+    assert 'APP_VERSION = "0.11.0-beta.8"' in read("ankiistudio/constants.py")
+    assert '__version__ = "0.11.0-beta.8"' in read("ankiistudio/__init__.py")
+    assert 'version = "0.11.0b8"' in read("pyproject.toml")
+    assert "AnkiiStudio/0.11.0-beta.8" in read("ankiistudio/services/wikimedia_service.py")
     assert not (ROOT / "scripts" / "AnkiiStudio.iss").exists()
 
 
@@ -231,19 +286,22 @@ def test_light_theme_copy_is_professional_and_deck_theme_editor_remains() -> Non
     assert 'self.appearance_combo.addItem("Escuro", "dark")' in settings
     assert 'self.appearance_combo.addItem("Claro", "light")' in settings
     assert "O tema escuro é o padrão do AnkiiStudio" not in settings
-    assert 'if theme == "light":' in theme
+    assert 'get_theme_tokens(theme)' in theme
+    tokens = read("ankiistudio/ui/design_system/tokens.py")
+    assert '"light": ThemeTokens(' in tokens
     assert "Tema do baralho" in models
     assert "Estrutura do baralho" in models
 
 
 def test_bulk_media_and_export_selection_are_preserved() -> None:
     projects = read("ankiistudio/ui/pages/projects_page.py")
-    assert 'self.bulk_image_button = QPushButton("Imagens para todos")' in projects
-    assert 'self.bulk_audio_button = QPushButton("Áudios para todos")' in projects
-    assert 'self.export_selected_button = QPushButton("Exportar selecionados")' in projects
-    assert 'self.export_all_button = QPushButton("Exportar todos")' in projects
-    assert "self.bulk_image_button.setEnabled(has_project and project_uses_images)" in projects
-    assert "self.bulk_audio_button.setEnabled(has_project and project_uses_audio)" in projects
+    assert 'self.bulk_image_button = ASButton("Imagens para todos")' in projects
+    assert 'self.bulk_audio_button = ASButton("Áudios para todos")' in projects
+    assert 'self.export_selected_button = ASButton("Exportar selecionados")' in projects
+    assert 'self.export_all_button = ASButton("Exportar todos")' in projects
+    assert '"image" not in self._active_bulk_tasks' in projects
+    assert '"audio" not in self._active_bulk_tasks' in projects
+    assert "TaskCenter" in projects
 
 
 def test_projects_editor_hides_fields_outside_selected_structure() -> None:
@@ -264,9 +322,9 @@ def test_voicevox_worker_is_retained_during_connection_test() -> None:
 
 
 def test_voicevox_is_restricted_to_japanese_audio_projects() -> None:
-    audio = read("ankiistudio/ui/pages/audio_page.py")
+    panel = read("ankiistudio/ui/panels.py")
     router = read("ankiistudio/services/audio/router.py")
-    assert 'self.current_project.language != "ja"' in audio
+    assert 'project.language != "ja"' in panel
     assert 'if project.language != "ja"' in router
 
 
@@ -276,32 +334,38 @@ def test_create_page_retains_gemini_worker() -> None:
     assert "self._keep_worker(worker)" in create
 
 
-def test_projects_page_has_live_media_progress_and_download_exports() -> None:
+def test_projects_page_has_independent_live_media_tasks_and_download_exports() -> None:
     source = read("ankiistudio/ui/pages/projects_page.py")
-    assert "self.progress = QProgressBar()" in source
+    widgets = read("ankiistudio/ui/widgets.py")
+    assert "self.task_center = TaskCenter()" in source
+    assert 'image_task_key = f"images:{project.id}"' in source
+    assert 'audio_task_key = f"audio:{project.id}"' in source
+    assert '"project_id": project.id' in source
     assert "worker.signals.progress.connect(self._bulk_media_progress)" in source
-    assert '"Buscando…"' in source
-    assert '"Gerando…"' in source
+    assert "class TaskCenter(ASCard)" in widgets
     assert "last_export_dir" in source
     assert "self.paths.downloads_dir" in source
 
 
-def test_audio_page_has_responsive_provider_grid_and_unlimited_voice_profiles() -> None:
-    source = read("ankiistudio/ui/pages/audio_page.py")
-    assert "AudioProfileService" in source
-    assert "AudioProfileDialog" in source
-    assert 'QPushButton("Adicionar voz")' in source
-    assert "RESPONSIVE_BREAKPOINT = 1180" in source
-    assert "self.provider_grid.addWidget" in source
-    assert "GeminiTTSUsageTracker" in source
-    assert "refresh_gemini_usage" in source
-    assert "load_voicevox_styles" in source
-    assert "Personagem / estilo" in source
+def test_audio_configuration_is_split_between_settings_and_project_panel() -> None:
+    settings = read("ankiistudio/ui/pages/settings_page.py")
+    panel = read("ankiistudio/ui/panels.py")
+    main = read("ankiistudio/ui/main_window.py")
+    assert "AudioProfileService" in settings
+    assert "AudioProfileDialog" in settings
+    assert 'ASButton("Adicionar")' in settings
+    assert "GeminiTTSUsageTracker" in settings
+    assert "ProjectAudioSettingsPanel" in panel
+    assert "load_voicevox_styles" in panel
+    assert "Personagem / estilo" in panel
+    assert 'from ankiistudio.ui.pages.audio_page import AudioPage' not in main
 
 
 def test_models_preview_uses_export_style_renderer() -> None:
     source = read("ankiistudio/ui/pages/models_page.py")
-    assert "Pré-visualização real" in source
+    assert "Pré-visualização no Anki" in source
+    assert "Mostrar resposta" in source
+    assert "Celular" in source
     assert "render_preview_document" in source
     assert "self.front_preview" in source
     assert "self.back_preview" in source
@@ -342,15 +406,15 @@ def test_simplified_structure_has_one_audio_component() -> None:
     assert '"example": "Exemplo"' in labels_block
 
 
-def test_audio_page_plays_voicevox_preview_internally_and_searches_styles() -> None:
-    audio = read("ankiistudio/ui/pages/audio_page.py")
-    assert "QMediaPlayer" in audio
-    assert "QAudioOutput" in audio
-    assert "self.preview_player.play()" in audio
-    assert "QDesktopServices" not in audio
-    assert "self.voicevox_combo = SearchableComboBox()" in audio
-    assert "self.voicevox_combo.set_items(items, selected)" in audio
-    assert "VoicevoxSettingsDialog" in audio
+def test_project_audio_panel_plays_voicevox_preview_internally_and_searches_styles() -> None:
+    panel = read("ankiistudio/ui/panels.py")
+    assert "QMediaPlayer" in panel
+    assert "QAudioOutput" in panel
+    assert "self.preview_player.play()" in panel
+    assert "QDesktopServices" not in panel
+    assert "self.voicevox_combo = SearchableComboBox()" in panel
+    assert "self.voicevox_combo.set_items(items, project.voicevox_style_id)" in panel
+    assert "VoicevoxSettingsDialog" in panel
 
 
 def test_elevenlabs_profiles_expose_voice_controls() -> None:
@@ -378,10 +442,10 @@ def test_wikimedia_svg_uses_commons_raster_thumbnail() -> None:
 def test_voicevox_selection_label_is_persisted() -> None:
     models = read("ankiistudio/models.py")
     database = read("ankiistudio/database.py")
-    audio = read("ankiistudio/ui/pages/audio_page.py")
+    panel = read("ankiistudio/ui/panels.py")
     assert "voicevox_style_label" in models
     assert "voicevox_style_label" in database
-    assert "self._voicevox_selected" in audio
+    assert "project.voicevox_style_label" in panel
 
 
 def test_portable_only_storage_and_build_are_configured() -> None:
@@ -390,7 +454,7 @@ def test_portable_only_storage_and_build_are_configured() -> None:
     assert 'self.base_dir = self.app_dir / "data"' in config
     assert "platformdirs" not in config
     assert "user_data_dir" not in config
-    assert "AnkiiStudio-Portable-0.11.0-beta.6.zip" in build
+    assert "AnkiiStudio-Portable-0.11.0-beta.8.zip" in build
     assert "AnkiiStudio.iss" not in build
     assert not (ROOT / "scripts" / "AnkiiStudio.iss").exists()
 
@@ -407,8 +471,8 @@ def test_beta_adds_tatoeba_and_local_audio_import_without_new_tts_providers() ->
     assert '"tatoeba": "Tatoeba' in constants
     assert 'DEFAULT_AUDIO_PROVIDERS = ["tatoeba", "wikimedia", "voicevox", "gemini", "elevenlabs"]' in constants
     assert 'for key in ("tatoeba", "gemini", "voicevox", "wikimedia", "elevenlabs")' in audio_page
-    assert 'self.import_audio_button = QPushButton("Importar áudio")' in projects
-    assert 'self.batch_import_audio_button = QPushButton("Importar áudios em lote")' in projects
+    assert 'self.import_audio_button = ASButton("Importar áudio")' in projects
+    assert 'self.batch_import_audio_button = ASButton("Importar áudios em lote")' in projects
     assert "AudioBatchImportDialog" in projects
     for provider in ("azure", "polly", "openai", "google_cloud"):
         assert f'"{provider}"' not in constants
@@ -418,7 +482,7 @@ def test_create_page_supports_multiple_balanced_structure_variations() -> None:
     create = read("ankiistudio/ui/pages/create_page.py")
     models = read("ankiistudio/models.py")
     project_service = read("ankiistudio/services/project_service.py")
-    assert 'QPushButton("+ Adicionar variação")' in create
+    assert 'ASButton("+ Adicionar variação")' in create
     assert "self._structure_variations" in create
     assert 'structure_distribution="balanced_random"' in create
     assert "class CardStructureVariation" in models
@@ -441,7 +505,7 @@ def test_beta4_keeps_update_checker_and_current_optional_image_sources() -> None
     sources = read("ankiistudio/services/image_sources.py")
     updater = read("ankiistudio/services/update_service.py")
     assert 'QCheckBox("Procurar atualizações automaticamente")' in settings
-    assert 'QPushButton("Procurar atualizações agora")' in settings
+    assert 'ASButton("Procurar atualizações agora")' in settings
     assert 'QCheckBox("Wikimedia Commons")' in settings
     assert 'QCheckBox("Pixabay")' in settings
     assert 'QCheckBox("Pexels")' in settings
@@ -459,9 +523,9 @@ def test_beta4_keeps_update_checker_and_current_optional_image_sources() -> None
 def test_beta2_projects_support_media_removal_import_and_batch_card_edits() -> None:
     projects = read("ankiistudio/ui/pages/projects_page.py")
     database = read("ankiistudio/database.py")
-    assert 'self.import_image_button = QPushButton("Importar imagem")' in projects
-    assert 'self.remove_image_button = QPushButton("Remover imagem")' in projects
-    assert 'self.remove_audio_button = QPushButton("Remover áudio")' in projects
+    assert 'self.import_image_button = ASButton("Importar imagem")' in projects
+    assert 'self.remove_image_button = ASButton("Remover imagem")' in projects
+    assert 'self.remove_audio_button = ASButton("Remover áudio")' in projects
     assert "self._pending_cards" in projects
     assert "resolve_pending_changes" in projects
     assert 'QTableWidget.SelectionMode.ExtendedSelection' in projects
@@ -496,7 +560,9 @@ def test_beta4_uses_external_language_packs_and_live_ui_switching() -> None:
     assert 'UiLanguageManager' in main
     assert 'ui_language_changed = Signal(str)' in settings
     assert 'self.ui_language_changed.emit(language)' in settings
-    assert 'self.settings_page.ui_language_changed.connect(self._change_ui_language)' in main_window
+    assert 'dialog.ui_language_changed.connect(self._change_ui_language)' in main_window
+    assert '_apply_qt_translation' in i18n
+    assert 'QLibraryInfo.LibraryPath.TranslationsPath' in i18n
     assert 'manager.set_language(language)' in main_window
     assert 'language_files' in spec
     assert 'self.translation_language_combo = SearchableComboBox()' in create
@@ -550,7 +616,7 @@ def test_beta6_adds_modern_roadmap_page_and_external_data_file() -> None:
     roadmap = ROOT / "ankiistudio/resources/roadmap.json"
     assert roadmap.is_file()
     assert 'RoadmapPage(paths, resource_dir)' in main
-    assert '("Roadmap", "roadmap", 6)' in main
+    assert '("Roadmap", "roadmap", 3)' in main
     assert "class RoadmapTimeline" in page
     assert '"✓ CONCLUÍDO"' in page
     assert '"◉ EM DESENVOLVIMENTO"' in page
@@ -611,3 +677,161 @@ def test_beta6_roadmap_content_is_not_localized_by_ui_language() -> None:
     assert 'description._i18n_skip = True' in page
     assert 'details_label._i18n_skip = True' in page
     assert 'getattr(widget, "_i18n_skip", False)' in read("ankiistudio/i18n.py")
+
+
+def test_beta7_reorganizes_navigation_projects_and_settings() -> None:
+    main = read("ankiistudio/ui/main_window.py")
+    hub = read("ankiistudio/ui/pages/projects_hub_page.py")
+    settings_dialog = read("ankiistudio/ui/dialogs/settings_dialog.py")
+    settings = read("ankiistudio/ui/pages/settings_page.py")
+    assert "ProjectsHubPage" in main
+    assert "SettingsDialog" in main
+    assert '("Modelos",' not in main
+    assert '("Áudios",' not in main
+    assert "SIDEBAR_COLLAPSED_WIDTH = 66" in main
+    assert 'database.get_setting("sidebar_collapsed", "0")' in main
+    assert "class ProjectCard(ASCard)" in hub
+    assert "Pesquisar projetos..." in hub
+    assert "duplicate_project" in hub
+    assert "Estrutura e aparência" in hub
+    assert "Áudio do projeto" in hub
+    assert "class SettingsDialog(ASDialog)" in settings_dialog
+    assert 'navigation.setFixedWidth(190)' in settings
+    for category in ("Geral", "Aparência", "IA e APIs", "Imagens", "Áudio", "Atualizações"):
+        assert category in settings
+
+
+def test_beta7_adds_creation_presets_and_automatic_ai_quantity() -> None:
+    create = read("ankiistudio/ui/pages/create_page.py")
+    prompt = read("ankiistudio/services/prompt_service.py")
+    database = read("ankiistudio/database.py")
+    assert "CreationPreset" in create
+    assert "Salvar como preset" in create
+    assert 'self.quantity_mode_combo.addItem("Automática — a IA decide", "automatic")' in create
+    assert "AUTO_CARD_LIMIT = 200" in create
+    assert "Determine uma quantidade adequada" in prompt
+    assert "creation_presets" in database
+
+
+def test_beta7_media_services_use_partial_updates_for_parallel_tasks() -> None:
+    database = read("ankiistudio/database.py")
+    media = read("ankiistudio/services/media_service.py")
+    audio = read("ankiistudio/services/audio_service.py")
+    assert "def update_card_media" in database
+    assert "update_image=True" in media
+    assert "update_audio=True" in audio
+
+
+def test_beta7_polish_includes_custom_update_dialog_and_label_artifact_fix() -> None:
+    main = read("ankiistudio/ui/main_window.py")
+    dialog = read("ankiistudio/ui/dialogs/update_dialog.py")
+    theme = read("ankiistudio/ui/theme.py")
+    home = read("ankiistudio/ui/pages/home_page.py")
+    assert "UpdateDialog" in main
+    assert "✨ Nova versão disponível" in dialog
+    assert "QLabel {{ background: transparent; }}" in theme
+    assert "materiais de estudo" in home
+
+
+def test_beta7_build_has_optional_signing_hook_without_repository_secret() -> None:
+    build = read("scripts/build_windows.ps1")
+    signing = read("scripts/sign_windows.ps1")
+    docs = read("docs/WINDOWS_SIGNING.md")
+    gitignore = read(".gitignore")
+    assert "sign_windows.ps1" in build
+    assert "ANKIISTUDIO_SIGN_PFX" in signing
+    assert "signtool" in signing.casefold()
+    assert "SignPath Foundation" in docs
+    assert "*.pfx" in gitignore
+    assert "*.p12" in gitignore
+
+
+def test_beta7_correction_round_adds_voice_defaults_global_card_theme_and_crimson_theme() -> None:
+    create = read("ankiistudio/ui/pages/create_page.py")
+    settings = read("ankiistudio/ui/pages/settings_page.py")
+    models_page = read("ankiistudio/ui/pages/models_page.py")
+    panels = read("ankiistudio/ui/panels.py")
+    theme = read("ankiistudio/ui/theme.py")
+    database = read("ankiistudio/database.py")
+    assert 'self.appearance_combo.addItem("Carmesim", "crimson")' in settings
+    tokens = read("ankiistudio/ui/design_system/tokens.py")
+    assert 'name="crimson", background="#1A1A1A"' in tokens
+    assert 'primary="#A4133C"' in tokens
+    assert "DeckThemeEditor(with_preview=True)" in settings
+    assert "load_default_card_theme(self.database)" in create
+    assert "Aplicar tema padrão global" in models_page
+    assert '"Avançado"' in create
+    assert "create_voicevox_combo" in create
+    assert "preferred_profile_combos" in create
+    assert "voicevox_default_combo" in settings
+    assert "preview_selected_profile" in settings
+    assert "Vozes preferidas" in panels
+    assert "audio_profile_preferences" in database
+
+
+def test_beta7_correction_round_fixes_gemini_count_language_and_narrow_project_layout() -> None:
+    gemini = read("ankiistudio/services/gemini_service.py")
+    create = read("ankiistudio/ui/pages/create_page.py")
+    projects = read("ankiistudio/ui/pages/projects_page.py")
+    widgets = read("ankiistudio/ui/widgets.py")
+    assert "class GeminiGeneratedDeck" in gemini
+    assert "language: str" in gemini
+    assert "translation_language: str" in gemini
+    assert "expected_cards" in gemini
+    assert "len(deck.cards) != expected_cards" in gemini
+    assert "for attempt in range(2)" in gemini
+    assert "expected_language=project.language" in create
+    assert "expected_translation_language=project.translation_language" in create
+    assert "orientation_changed" in widgets
+    assert "self.content_splitter.setMinimumHeight(760)" in projects
+
+
+def test_beta7_correction_round_does_not_change_external_json_import_policy() -> None:
+    importer = read("ankiistudio/services/import_service.py")
+    prompt = read("ankiistudio/services/prompt_service.py")
+    # A rodada atual não introduz tolerância nova para fences/texto externo/BOM etc.
+    assert "BOM" not in importer
+    assert "trailing comma" not in importer
+    assert "texto antes/depois" not in importer
+    assert "CORREÇÃO DA RESPOSTA ANTERIOR" not in prompt
+
+
+def test_beta8_refined_preview_uses_a_responsive_stage_without_horizontal_scroll() -> None:
+    models = read("ankiistudio/ui/pages/models_page.py")
+    theme = read("ankiistudio/ui/theme.py")
+    assert "class CardPreviewStage(QFrame)" in models
+    assert "DESKTOP_MAX_WIDTH = 760" in models
+    assert "MOBILE_MAX_WIDTH = 390" in models
+    assert "ScrollBarAlwaysOff" in models
+    assert 'self.front_preview.setObjectName("CardPreviewBrowser")' in models
+    assert 'self.preview_stage = CardPreviewStage(self.front_preview)' in models
+    assert "QFrame#CardPreviewStage" in theme
+    assert "QTextBrowser#CardPreviewBrowser" in theme
+
+
+def test_beta8_refined_project_library_uses_stable_poster_tiles() -> None:
+    hub = read("ankiistudio/ui/pages/projects_hub_page.py")
+    theme = read("ankiistudio/ui/theme.py")
+    assert "CARD_WIDTH = 238" in hub
+    assert "CARD_HEIGHT = 292" in hub
+    assert "self.setFixedSize(self.CARD_WIDTH, self.CARD_HEIGHT)" in hub
+    assert "item_min_width=ProjectCard.CARD_WIDTH" in hub
+    assert "maximum=5" in hub
+    assert 'menu_button.setObjectName("ProjectCardMenuButton")' in hub
+    assert 'tr("cartão" if card_count == 1 else "cartões")' in hub
+    assert "self._formatted_date(project.updated_at)" in hub
+    assert "QToolButton#ProjectCardMenuButton" in theme
+
+
+def test_beta8_refined_create_page_has_clear_numbered_sections_and_persistent_actions() -> None:
+    create = read("ankiistudio/ui/pages/create_page.py")
+    theme = read("ankiistudio/ui/theme.py")
+    assert 'SectionCard("Preset de criação")' in create
+    assert '"1. Conteúdo"' in create
+    assert '"2. Como criar"' in create
+    assert '"3. Mídias e áudio"' in create
+    assert '"4. Estrutura do cartão"' in create
+    assert 'self.action_bar.setObjectName("CreateActionBar")' in create
+    assert "root.addWidget(self.page_scroll, 1)" in create
+    assert "root.addWidget(self.action_bar)" in create
+    assert "QFrame#CreateActionBar" in theme

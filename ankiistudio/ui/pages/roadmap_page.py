@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
 from ankiistudio.config import AppPaths
 from ankiistudio.i18n import tr
 from ankiistudio.services.roadmap_service import RoadmapService
+from ankiistudio.ui.design_system.components import ASCard
 from ankiistudio.ui.widgets import PageHeader, PageScrollArea, SectionCard
 from ankiistudio.ui.workers import Worker
 
@@ -134,7 +135,7 @@ class RoadmapTimeline(QWidget):
 
     def _card(self, item: dict[str, Any]) -> QFrame:
         status = str(item.get("status") or "planned")
-        card = QFrame()
+        card = ASCard()
         card.setObjectName("RoadmapCardCurrent" if item.get("current") else "RoadmapCard")
         card.setMinimumWidth(260)
         card.setMaximumWidth(520)

@@ -11,12 +11,14 @@ if (-not (Test-Path ".venv")) {
 & .\.venv\Scripts\python.exe -m PyInstaller --clean --noconfirm AnkiiStudio.spec
 
 $portableDir = Join-Path (Get-Location) "dist\AnkiiStudio"
+$executablePath = Join-Path $portableDir "AnkiiStudio.exe"
+& powershell -ExecutionPolicy Bypass -File .\scripts\sign_windows.ps1 -FilePath $executablePath
 $dataDir = Join-Path $portableDir "data"
 New-Item -ItemType Directory -Force -Path $dataDir | Out-Null
 
 $releaseDir = Join-Path (Get-Location) "release"
 New-Item -ItemType Directory -Force -Path $releaseDir | Out-Null
-$zipPath = Join-Path $releaseDir "AnkiiStudio-Portable-0.11.0-beta.6.zip"
+$zipPath = Join-Path $releaseDir "AnkiiStudio-Portable-0.11.0-beta.8.zip"
 if (Test-Path $zipPath) { Remove-Item $zipPath -Force }
 Compress-Archive -Path "$portableDir\*" -DestinationPath $zipPath -CompressionLevel Optimal
 
@@ -35,5 +37,5 @@ finally {
 
 Write-Host "Build portátil concluído:" -ForegroundColor Green
 Write-Host "  Executável: dist\AnkiiStudio\AnkiiStudio.exe"
-Write-Host "  Pacote: release\AnkiiStudio-Portable-0.11.0-beta.6.zip"
+Write-Host "  Pacote: release\AnkiiStudio-Portable-0.11.0-beta.8.zip"
 Write-Host "  Dados locais: dist\AnkiiStudio\data\"

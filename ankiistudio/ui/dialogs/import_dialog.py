@@ -13,10 +13,11 @@ from PySide6.QtWidgets import (
 )
 
 from ankiistudio.models import ImportedDeck
+from ankiistudio.ui.design_system.components import ASButton, ASDialog
 from ankiistudio.services.import_service import DeckImportService
 
 
-class ImportDeckDialog(QDialog):
+class ImportDeckDialog(ASDialog):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
         self.setWindowTitle("Importar conteúdo da IA")
@@ -28,10 +29,10 @@ class ImportDeckDialog(QDialog):
         layout.addWidget(self.editor)
 
         actions = QHBoxLayout()
-        load_button = QPushButton("Selecionar JSON ou TXT")
-        validate_button = QPushButton("Validar e importar")
+        load_button = ASButton("Selecionar JSON ou TXT")
+        validate_button = ASButton("Validar e importar")
         validate_button.setObjectName("PrimaryButton")
-        cancel_button = QPushButton("Cancelar")
+        cancel_button = ASButton("Cancelar")
         load_button.clicked.connect(self.load_file)
         validate_button.clicked.connect(self.validate_and_accept)
         cancel_button.clicked.connect(self.reject)

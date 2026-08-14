@@ -5,7 +5,7 @@
 <h1 align="center">AnkiiStudio</h1>
 
 <p align="center">
-  Crie, organize e exporte flashcards para o Anki com conteúdo estruturado, imagens e áudio.
+  Transforme conteúdos em materiais de estudo, organize seus flashcards e prepare baralhos para o Anki.
 </p>
 
 <p align="center">
@@ -41,7 +41,8 @@ Os projetos são exportados diretamente em `.apkg`, sem depender do AnkiConnect.
 
 ## Principais recursos
 
-- Criação e gerenciamento de projetos de flashcards.
+- Criação e gerenciamento de projetos de flashcards em uma biblioteca visual com pesquisa, filtros e ordenação.
+- Duplicação de projetos preservando configurações, cartões e referências de mídia.
 - Estrutura configurável de frente e verso.
 - Múltiplas variações de estrutura no mesmo projeto, distribuídas de forma aleatória e equilibrada.
 - Exportação direta para `.apkg`.
@@ -51,7 +52,8 @@ Os projetos são exportados diretamente em `.apkg`, sem depender do AnkiConnect.
 - Idioma de tradução configurável de forma independente por projeto.
 - Modelos de flashcards prontos para idiomas compatíveis.
 - Modelo personalizado para criação de estruturas próprias.
-- Geração de conteúdo com Google Gemini.
+- Geração de conteúdo com Google Gemini, com quantidade fixa ou automática decidida pela IA dentro de um limite seguro.
+- Presets reutilizáveis de criação para reaplicar idioma, estrutura, mídia, áudio e outras preferências sem armazenar API keys.
 - Importação de conteúdo estruturado por JSON/TXT.
 - Busca e processamento de imagens com Wikimedia Commons por padrão e fontes adicionais opcionais.
 - Áudio por Tatoeba, Wikimedia Commons, VOICEVOX, Gemini TTS e ElevenLabs.
@@ -59,15 +61,34 @@ Os projetos são exportados diretamente em `.apkg`, sem depender do AnkiConnect.
 - Importação e remoção manual de imagens e áudios por cartão.
 - Edição de vários cartões com salvamento conjunto de alterações pendentes.
 - Exclusão simultânea de múltiplos cartões selecionados.
-- Verificação opcional de novas versões publicadas no GitHub.
+- Verificação opcional de novas versões publicadas no GitHub, com diálogo de atualização integrado ao visual do aplicativo.
 - Perfis de voz configuráveis por idioma.
 - Ajustes de voz por provedor.
 - Reprodução de áudio dentro do aplicativo.
-- Tema claro e escuro.
+- Execução independente de tarefas de imagem e áudio, com progresso simultâneo sem uma tarefa sobrescrever o estado da outra.
+- Temas do aplicativo **Claro**, **Escuro** e **Carmesim** (`#1A1A1A` + `#A4133C`).
+- Barra lateral recolhível para liberar mais espaço para o conteúdo, com estado persistente.
+- Configurações organizadas em uma janela própria com categorias.
 - Personalização avançada da aparência dos cartões, incluindo tamanhos, imagem, espaçamento e densidade de layout.
 - Roadmap integrado em linha do tempo, com planejamento carregado de arquivo separado e atualização pública pelo GitHub.
 - Armazenamento seguro de credenciais pelo sistema operacional.
 - Distribuição portátil para Windows.
+- **AnkiiStudio Design System v1** sobre Qt/PySide6, com tokens, temas, componentes próprios e regras responsivas compartilhadas para manter a interface consistente conforme o aplicativo cresce.
+- Arquitetura otimizada para projetos maiores, com carregamento sob demanda, consultas SQLite específicas, processamento em segundo plano e reutilização de conexões durante operações em lote.
+
+## Design system da interface
+
+A interface utiliza Qt/PySide6 como motor de janela e integração com o sistema operacional, mas a identidade visual é organizada pelo **AnkiiStudio Design System**. A camada própria centraliza tokens de cor/tipografia/espaçamento, temas, ícones, componentes reutilizáveis e breakpoints responsivos. Isso permite evoluir telas como Criar, Projetos, Configurações e futuros módulos de estudo sem depender da aparência padrão do Qt nem reimplementar recursos fundamentais de acessibilidade, foco, teclado e eventos.
+
+A documentação técnica está em `docs/DESIGN_SYSTEM.md`.
+
+## Desempenho
+
+O AnkiiStudio utiliza carregamento sob demanda para reduzir o trabalho realizado durante a inicialização e evita carregar dados desnecessários de projetos grandes. Consultas de contagem, seções e amostras para pré-visualização são realizadas diretamente pelo SQLite sempre que possível, reduzindo a criação desnecessária de objetos em memória.
+
+Operações em lote de imagem e áudio reutilizam conexões HTTP e recursos compartilhados durante o processamento. Atualizações de mídia relacionadas ao mesmo cartão são agrupadas em transações SQLite, e o cálculo de hashes de arquivos utiliza leitura em streaming para manter o consumo de memória previsível.
+
+A interface também aplica debounce em operações que podem ser disparadas rapidamente, como pesquisa de projetos e atualização de pré-visualização. Etapas mais pesadas de importação e exportação são executadas fora da thread principal da interface quando aplicável, preservando a responsividade da janela durante operações demoradas.
 
 ## Fluxo de criação
 
@@ -132,7 +153,7 @@ A estrutura disponível pode variar conforme o modelo utilizado e pode ser perso
 
 ### Personalização visual
 
-Em **Modelos → Tema do baralho**, cada projeto pode ajustar a aparência dos cartões exportados. Além das cores e da fonte, é possível configurar:
+Em **Configurações → Aparência**, é possível definir o **tema padrão global dos flashcards**. Novos projetos recebem uma cópia desse tema como ponto de partida, sem alterar projetos já existentes. Em **Projetos → Estrutura e aparência**, cada projeto continua podendo aplicar o padrão global ou ajustar sua própria estrutura, tema e aparência. Além das cores e da fonte, é possível configurar:
 
 - tamanho do Conteúdo principal;
 - tamanho da Leitura;
@@ -160,7 +181,11 @@ O AnkiiStudio oferece diferentes formas de adicionar conteúdo aos projetos.
 
 ### Conteúdo com IA
 
-A integração com **Google Gemini** permite gerar conteúdo estruturado de acordo com o idioma, modelo e configuração definidos no projeto.
+A integração com **Google Gemini** permite gerar conteúdo estruturado de acordo com o idioma, modelo e configuração definidos no projeto. Na geração interna, o AnkiiStudio valida explicitamente o idioma-alvo/idioma de tradução retornados e, quando a quantidade é fixa, exige exatamente o número solicitado antes de criar o projeto.
+
+Na criação personalizada, a quantidade pode ser definida manualmente ou deixada em **Automática**. Nesse modo, a IA escolhe uma quantidade adequada para cobrir o conteúdo solicitado, respeitando um limite máximo de segurança e evitando completar artificialmente a saída apenas para atingir um número fixo. Modelos internos com quantidade própria continuam utilizando a contagem determinada pelo conteúdo do modelo.
+
+As configurações mais usadas também podem ser salvas como **presets de criação**. Um preset pode reaplicar idioma, idioma da tradução, modelo, estrutura, tema do cartão, opções de áudio, preferências de voz por provedor e ajustes do VOICEVOX. Credenciais e API keys não são copiadas para o preset.
 
 Na página **Projetos**, os campos **Exemplo**, **Explicação** e **Mnemônico** também possuem uma ação discreta `✨` para gerar ou regenerar somente aquele componente com IA. A chamada acontece apenas quando o usuário aciona o botão, reutiliza a chave/modelo Gemini configurados e deixa o resultado como alteração pendente para revisão antes de salvar.
 
@@ -192,6 +217,8 @@ Também é possível **importar uma imagem local** diretamente para um cartão o
 ## Áudio
 
 O AnkiiStudio pode utilizar gravações humanas, síntese de voz e arquivos fornecidos pelo próprio usuário.
+
+As configurações **globais** de provedores e perfis de voz ficam na janela **Configurações → Áudio**. Nela também é possível carregar, escolher, ajustar e ouvir a voz padrão do VOICEVOX, além de ouvir perfis Gemini TTS e ElevenLabs. As decisões específicas de cada projeto — modo de seleção, provedores permitidos, voz fixa/preferida e ajustes do VOICEVOX — ficam dentro do próprio projeto, em **Projetos → Áudio do projeto**, e também podem participar dos presets de criação. Na tela **Criar → Mídias e áudio → Avançado**, essas vozes podem ser escolhidas/testadas antes da criação e salvas no preset.
 
 ### Tatoeba
 
@@ -241,6 +268,12 @@ Exemplo:
 
 Antes da aplicação, o AnkiiStudio apresenta as correspondências encontradas e identifica arquivos sem cartão correspondente, casos ambíguos e cartões que já possuem áudio.
 
+## Projetos e edição
+
+A página **Projetos** funciona como uma biblioteca visual. É possível pesquisar por nome ou tema, filtrar por idioma e ordenar por atividade recente, nome ou quantidade de cartões. Cada projeto possui um menu visível `⋯` e um menu de contexto com ações como abrir, duplicar e excluir.
+
+Ao abrir um projeto, as ferramentas ficam reunidas em abas de **Cartões**, **Estrutura e aparência** e **Áudio do projeto**. Assim, a antiga separação de Modelos e Áudios na navegação principal deixa de exigir que o usuário escolha o mesmo projeto novamente em telas diferentes.
+
 ## Edição de cartões
 
 Alterações feitas em cartões podem permanecer pendentes enquanto o usuário navega entre diferentes itens do mesmo projeto. O botão **Salvar alterações** grava todas as modificações pendentes em conjunto.
@@ -248,6 +281,10 @@ Alterações feitas em cartões podem permanecer pendentes enquanto o usuário n
 Ao tentar fechar o aplicativo, trocar de projeto, exportar ou executar uma operação que dependa dos dados persistidos, o AnkiiStudio avisa quando existem alterações não salvas e permite salvar, continuar sem salvar ou cancelar a ação.
 
 A tabela de cartões também suporta seleção múltipla para exclusão de vários cartões em uma única confirmação.
+
+Campos de texto participam do fluxo padrão de **Desfazer/Refazer** (`Ctrl+Z`, `Ctrl+Y`/`Ctrl+Shift+Z`). Os menus de contexto nativos do Qt acompanham o idioma da interface quando o pacote de tradução correspondente está disponível no runtime Qt.
+
+Operações em lote de **imagem** e **áudio** mantêm tarefas independentes na interface. Elas podem progredir simultaneamente sem compartilhar a mesma linha de progresso, e as atualizações de mídia no SQLite alteram somente os campos de mídia correspondentes para evitar que um worker sobrescreva o resultado do outro.
 
 ## Exportação para o Anki
 
@@ -296,7 +333,15 @@ A versão portátil não exige uma instalação local do Python.
 
 Em **Configurações**, a opção **Procurar atualizações automaticamente** controla a verificação de novas versões publicadas no GitHub. Quando habilitada, a consulta é feita na inicialização. Também existe uma ação para verificar manualmente a qualquer momento.
 
-Quando uma versão mais recente compatível com o canal atual é encontrada, o usuário escolhe se deseja baixá-la. Na distribuição portátil para Windows, o pacote é preparado para substituir os arquivos do aplicativo preservando a pasta `data/` e reiniciar o AnkiiStudio após a atualização. O atualizador aceita tanto o executável na raiz do ZIP quanto dentro de uma única pasta contêiner do build portátil.
+Quando uma versão mais recente compatível com o canal atual é encontrada, o AnkiiStudio apresenta uma janela própria com versão instalada, versão disponível, canal e notas da atualização antes do download. Na distribuição portátil para Windows, o pacote é preparado para substituir os arquivos do aplicativo preservando a pasta `data/` e reiniciar o AnkiiStudio após a atualização. O atualizador aceita tanto o executável na raiz do ZIP quanto dentro de uma única pasta contêiner do build portátil.
+
+## Interface e configurações
+
+A barra lateral pode ser **recolhida para o modo somente ícones**, ampliando a área útil das páginas. O estado é salvo e reaplicado na próxima execução.
+
+As **Configurações** são abertas em uma janela própria, com navegação por categorias para Geral, Aparência, IA e APIs, Imagens, Áudio e Atualizações. Isso mantém credenciais e opções globais fora das páginas específicas dos projetos.
+
+A pré-visualização de cartões dentro de **Estrutura e aparência** utiliza o mesmo renderer/CSS empregado na exportação e segue um fluxo mais próximo da revisão no Anki: primeiro mostra a frente e permite revelar a resposta. Também é possível alternar entre uma largura de desktop e uma visualização mais estreita de celular.
 
 ## Roadmap
 
@@ -309,6 +354,12 @@ Os estados públicos utilizados são:
 - `✓ CONCLUÍDO`;
 - `◉ EM DESENVOLVIMENTO`;
 - `◇ PLANEJADO`.
+
+## Assinatura do executável no Windows
+
+O build possui um gancho opcional de assinatura Authenticode em `scripts/sign_windows.ps1`. Quando um certificado de assinatura estiver configurado no ambiente de build, o executável é assinado e verificado antes da criação do ZIP portátil. Sem certificado, o build continua e informa explicitamente que o artefato permanece sem assinatura.
+
+O procedimento e a preparação para uma futura integração com assinatura de projeto open source estão documentados em [`docs/WINDOWS_SIGNING.md`](docs/WINDOWS_SIGNING.md). Certificados e senhas nunca devem ser adicionados ao repositório.
 
 ## Dados locais
 
@@ -349,13 +400,13 @@ Para executar o projeto a partir do código-fonte, utilize Python **3.11 ou supe
 ### Criar o ambiente virtual
 
 ```bat
-py -3.14 -m venv .venv
+python -m venv .venv
 .venv\Scripts\activate.bat
 python -m pip install --upgrade pip
-pip install -r requirements.txt
+python -m pip install -r requirements.txt
 ```
 
-Caso utilize outra versão compatível do Python, ajuste o comando conforme sua instalação.
+No Windows, `python` também pode ser substituído pelo Python Launcher apontando para uma versão compatível instalada, por exemplo `py -3.11`, `py -3.12`, `py -3.13` ou superior.
 
 ### Executar
 
@@ -403,6 +454,8 @@ AnkiiStudio/
 │   ├── resources/
 │   ├── services/
 │   └── ui/
+│       └── design_system/
+├── docs/
 ├── scripts/
 ├── tests/
 ├── AnkiiStudio.spec
@@ -422,6 +475,8 @@ AnkiiStudio/
 | `ankiistudio/resources/` | Ícones, Roadmap e demais recursos distribuídos |
 | `ankiistudio/services/` | Serviços, integrações e regras de negócio |
 | `ankiistudio/ui/` | Interface gráfica |
+| `ankiistudio/ui/design_system/` | Design tokens, temas e componentes reutilizáveis da interface |
+| `docs/` | Documentação técnica do projeto, incluindo Design System e assinatura do Windows |
 | `tests/` | Testes automatizados |
 | `scripts/` | Scripts auxiliares e de build |
 

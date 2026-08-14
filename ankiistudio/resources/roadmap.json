@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "updated_at": "2026-08-11",
+  "updated_at": "2026-08-13",
   "items": [
     {
       "id": "0.11.0-beta.5",
@@ -17,7 +17,7 @@
     {
       "id": "0.11.0-beta.6",
       "status": "completed",
-      "current": true,
+      "current": false,
       "title": "AnkiiStudio 0.11.0-beta.6",
       "description": "Refinamento visual, novas ferramentas de edição e estabilização antes da versão 0.11.0 estável.",
       "details": [
@@ -25,6 +25,34 @@
         "Atualizador portátil mais robusto",
         "Roadmap integrado e atualizável pelo GitHub",
         "IA por campo para Exemplo, Explicação e Mnemônico"
+      ]
+    },
+    {
+      "id": "0.11.0-beta.7",
+      "status": "completed",
+      "current": false,
+      "title": "AnkiiStudio 0.11.0-beta.7",
+      "description": "Reorganização de interface, produtividade e confiabilidade do fluxo atual de criação de flashcards.",
+      "details": [
+        "Biblioteca visual de projetos e sidebar recolhível",
+        "Configurações categorizadas e áudio reorganizado por responsabilidade",
+        "Presets de criação e quantidade automática por IA",
+        "Tarefas simultâneas de imagem e áudio com progresso independente",
+        "Novo preview de cartões e diálogo de atualização"
+      ]
+    },
+    {
+      "id": "0.11.0-beta.8",
+      "status": "completed",
+      "current": true,
+      "title": "AnkiiStudio 0.11.0-beta.8",
+      "description": "Fundação visual própria do AnkiiStudio sobre Qt/PySide6, com design system reutilizável e migração gradual da interface atual.",
+      "details": [
+        "Design tokens centralizados para cores, tipografia, espaçamento, raios, tamanhos e breakpoints",
+        "Theme Manager e paleta central para Claro, Escuro e Carmesim",
+        "Componentes próprios para botões, campos, cards, diálogos, abas, menus, progresso, tabelas, sidebar, toasts e switches",
+        "Icon Registry e regras responsivas compartilhadas",
+        "Migração das telas atuais para a nova camada visual sem abandonar Qt/PySide6"
       ]
     },
     {

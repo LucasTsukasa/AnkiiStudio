@@ -28,6 +28,7 @@ from PySide6.QtWidgets import (
 from ankiistudio.i18n import tr
 from ankiistudio.models import ImageSearchResult
 from ankiistudio.services.image_sources import ImageSearchOutcome, ImageSearchService
+from ankiistudio.ui.design_system.components import ASButton, ASDialog, ASLineEdit, ASCard
 from ankiistudio.ui.workers import Worker
 
 
@@ -68,7 +69,7 @@ class _SourceFilterMenu(QMenu):
         super().mouseReleaseEvent(event)
 
 
-class ImageSearchDialog(QDialog):
+class ImageSearchDialog(ASDialog):
     """Pesquisa manual de imagens para um único cartão.
 
     O termo original continua sendo a busca principal. Tradução, leitura,
@@ -109,7 +110,7 @@ class ImageSearchDialog(QDialog):
 
         self.setWindowTitle("Pesquisar imagem")
         self.resize(1060, 760)
-        self.setMinimumSize(900, 640)
+        self.setMinimumSize(820, 600)
 
         root = QVBoxLayout(self)
         root.setContentsMargins(18, 16, 18, 16)
@@ -121,7 +122,7 @@ class ImageSearchDialog(QDialog):
 
         search_row = QHBoxLayout()
         search_row.setSpacing(8)
-        self.search_input = QLineEdit(initial_term)
+        self.search_input = ASLineEdit(initial_term)
         self.search_input.setObjectName("ImageSearchInput")
         self.search_input.returnPressed.connect(self.search)
 
@@ -137,7 +138,7 @@ class ImageSearchDialog(QDialog):
             self.filter_button.setText("⌄")
         self._build_provider_filter_menu()
 
-        self.search_button = QPushButton("Pesquisar")
+        self.search_button = ASButton("Pesquisar")
         self.search_button.setObjectName("PrimaryButton")
         self.search_button.clicked.connect(self.search)
         search_row.addWidget(self.search_input, 1)
@@ -154,7 +155,7 @@ class ImageSearchDialog(QDialog):
         splitter = QSplitter(Qt.Orientation.Horizontal)
         splitter.setChildrenCollapsible(False)
 
-        results_panel = QFrame()
+        results_panel = ASCard()
         results_panel.setObjectName("ImageSearchPanel")
         results_layout = QVBoxLayout(results_panel)
         results_layout.setContentsMargins(12, 12, 12, 12)
@@ -177,7 +178,7 @@ class ImageSearchDialog(QDialog):
         results_layout.addWidget(self.list_widget, 1)
         splitter.addWidget(results_panel)
 
-        details_panel = QFrame()
+        details_panel = ASCard()
         details_panel.setObjectName("ImageSearchPanel")
         details_layout = QVBoxLayout(details_panel)
         details_layout.setContentsMargins(12, 12, 12, 12)
@@ -194,7 +195,7 @@ class ImageSearchDialog(QDialog):
         self.metadata.setWordWrap(True)
         self.metadata.setOpenExternalLinks(True)
         self.metadata.setTextInteractionFlags(Qt.TextInteractionFlag.TextBrowserInteraction)
-        self.use_button = QPushButton("Usar imagem selecionada")
+        self.use_button = ASButton("Usar imagem selecionada")
         self.use_button.setObjectName("PrimaryButton")
         self.use_button.setEnabled(False)
         self.use_button.clicked.connect(self.accept_selected)
@@ -243,7 +244,7 @@ class ImageSearchDialog(QDialog):
 
         buttons = QHBoxLayout()
         buttons.addStretch(1)
-        cancel_button = QPushButton("Cancelar")
+        cancel_button = ASButton("Cancelar")
         cancel_button.clicked.connect(self.reject)
         buttons.addWidget(cancel_button)
         root.addLayout(buttons)
@@ -544,7 +545,7 @@ class ImageSearchDialog(QDialog):
         )
 
     def _create_auxiliary_row(self, term: str) -> None:
-        container = QFrame()
+        container = ASCard(variant="interactive")
         container.setObjectName("ImageSuggestionRow")
         layout = QVBoxLayout(container)
         layout.setContentsMargins(10, 8, 10, 8)

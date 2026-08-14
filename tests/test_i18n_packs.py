@@ -35,3 +35,12 @@ def test_english_pack_contains_core_navigation_and_new_search_labels() -> None:
 def test_obsolete_restart_requirement_is_not_present_in_active_translation_pack() -> None:
     translations = load("en_US.json")["translations"]
     assert "A alteração do idioma da interface será aplicada após reiniciar o AnkiiStudio." not in translations
+
+
+def test_english_pack_contains_beta7_correction_ui_labels() -> None:
+    translations = load("en_US.json")["translations"]
+    assert translations["Carmesim"] == "Crimson"
+    assert translations["Tema padrão dos flashcards"] == "Default flashcard theme"
+    assert translations["Avançado"] == "Advanced"
+    assert translations["Voz padrão"] == "Default voice"
+    assert translations["Aplicar tema padrão global"] == "Apply global default theme"

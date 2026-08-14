@@ -9,6 +9,7 @@ from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QPushButton, QVBoxLay
 from ankiistudio.constants import APP_NAME, APP_VERSION, GITHUB_URL
 from ankiistudio.database import Database
 from ankiistudio.i18n import tr
+from ankiistudio.ui.design_system.components import ASButton, ASCard
 from ankiistudio.ui.widgets import PageHeader, PageScrollArea, SectionCard
 
 
@@ -31,7 +32,7 @@ class AboutPage(QWidget):
             )
         )
 
-        hero = QFrame()
+        hero = ASCard(variant="raised")
         hero.setObjectName("HeroCard")
         hero_layout = QHBoxLayout(hero)
         hero_layout.setContentsMargins(22, 20, 22, 20)
@@ -76,7 +77,7 @@ class AboutPage(QWidget):
         handle.setObjectName("MutedLabel")
         dev_text.addWidget(author)
         dev_text.addWidget(handle)
-        github_button = QPushButton("Abrir GitHub")
+        github_button = ASButton("Abrir GitHub")
         github_button.setObjectName("PrimaryButton")
         if github_path.is_file():
             github_button.setIcon(QIcon(str(github_path)))

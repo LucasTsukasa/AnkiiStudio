@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import hashlib
 import json
+from contextlib import contextmanager
+from collections.abc import Iterator
 from pathlib import Path
 
 import httpx
@@ -29,6 +31,7 @@ class ElevenLabsProvider(AudioProvider):
         style: float = 0.0,
         speed: float = 1.0,
         speaker_boost: bool = True,
+        client: httpx.Client | None = None,
     ) -> None:
         self.api_key = api_key.strip()
         self.voice_id = voice_id.strip()
@@ -39,9 +42,18 @@ class ElevenLabsProvider(AudioProvider):
         self.style = float(style)
         self.speed = float(speed)
         self.speaker_boost = bool(speaker_boost)
+        self._external_client = client
 
     def is_available(self) -> bool:
         return bool(self.api_key and self.voice_id and self.model_id)
+
+    @contextmanager
+    def _client(self, timeout: float) -> Iterator[httpx.Client]:
+        if self._external_client is not None:
+            yield self._external_client
+            return
+        with httpx.Client(timeout=timeout) as client:
+            yield client
 
     @staticmethod
     def _error_detail(response: httpx.Response) -> tuple[str, str]:
@@ -103,7 +115,7 @@ class ElevenLabsProvider(AudioProvider):
                 "Configure a API key, o modelo e o Voice ID da ElevenLabs."
             )
         try:
-            with httpx.Client(timeout=timeout) as client:
+            with self._client(timeout) as client:
                 response = client.get(
                     f"https://api.elevenlabs.io/v1/voices/{self.voice_id}",
                     headers={"xi-api-key": self.api_key},
@@ -173,8 +185,13 @@ class ElevenLabsProvider(AudioProvider):
                 payload["apply_language_text_normalization"] = True
         headers = {"xi-api-key": self.api_key, "Content-Type": "application/json"}
         try:
-            with httpx.Client(timeout=120) as client:
-                response = client.post(url, params=params, json=payload, headers=headers)
+            with self._client(120) as client:
+                response = client.post(
+                    url,
+                    params=params,
+                    json=payload,
+                    headers=headers,
+                )
         except httpx.ConnectError as exc:
             raise TemporaryAudioProviderError("Não foi possível conectar à ElevenLabs.") from exc
         except httpx.TimeoutException as exc:

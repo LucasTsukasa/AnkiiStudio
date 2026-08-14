@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import (
+    QFrame,
     QGridLayout,
     QHBoxLayout,
     QInputDialog,
@@ -12,6 +13,7 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QPushButton,
     QSpinBox,
+    QSizePolicy,
     QTextBrowser,
     QVBoxLayout,
     QWidget,
@@ -22,8 +24,9 @@ from ankiistudio.constants import COMPONENT_LABELS
 from ankiistudio.database import Database
 from ankiistudio.i18n import tr
 from ankiistudio.models import DeckThemeSettings, FlashcardData, ProjectData
-from ankiistudio.services.project_service import ProjectService
+from ankiistudio.services.theme_settings import load_default_card_theme
 from ankiistudio.services.card_template_service import render_preview_document
+from ankiistudio.ui.design_system.components import ASButton, ASComboBox, ASLineEdit
 from ankiistudio.ui.widgets import AdaptiveSplitter, ComponentOrderEditor, PageHeader, PageScrollArea, SectionCard
 
 
@@ -34,11 +37,68 @@ DENSITY_PRESETS = {
 }
 
 
+class CardPreviewStage(QFrame):
+    """Área de apresentação do cartão, sem alterar o HTML/CSS exportado.
+
+    O QTextBrowser possui um sizeHint relativamente estreito. Quando ele era
+    centralizado diretamente no SectionCard, o preview desktop acabava parecendo
+    uma tela de celular e podia exibir uma barra horizontal. Este container dá ao
+    renderer uma viewport previsível e responsiva, preservando o documento usado
+    pela exportação.
+    """
+
+    DESKTOP_MAX_WIDTH = 760
+    DESKTOP_HEIGHT = 400
+    MOBILE_MAX_WIDTH = 390
+    MOBILE_HEIGHT = 520
+
+    def __init__(self, browser: QTextBrowser, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.browser = browser
+        self._device = "desktop"
+        self.setObjectName("CardPreviewStage")
+        self.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+
+        self._layout = QVBoxLayout(self)
+        self._layout.setContentsMargins(22, 22, 22, 22)
+        self._layout.setSpacing(0)
+        self._layout.addWidget(self.browser, alignment=Qt.AlignmentFlag.AlignCenter)
+        self.set_device("desktop")
+
+    def set_device(self, device: str) -> None:
+        self._device = "mobile" if device == "mobile" else "desktop"
+        self.setMinimumHeight(564 if self._device == "mobile" else 444)
+        self._sync_browser_size()
+
+    def resizeEvent(self, event) -> None:  # type: ignore[override]
+        super().resizeEvent(event)
+        self._sync_browser_size()
+
+    def _sync_browser_size(self) -> None:
+        margins = self._layout.contentsMargins()
+        available_width = max(260, self.width() - margins.left() - margins.right())
+        if self._device == "mobile":
+            target_width = min(self.MOBILE_MAX_WIDTH, available_width)
+            target_height = self.MOBILE_HEIGHT
+        else:
+            target_width = min(self.DESKTOP_MAX_WIDTH, available_width)
+            target_height = self.DESKTOP_HEIGHT
+        self.browser.setFixedSize(target_width, target_height)
+
+
 class ModelsPage(QWidget):
-    def __init__(self, database: Database) -> None:
+    def __init__(self, database: Database, *, embedded: bool = False) -> None:
         super().__init__()
         self.database = database
+        self.embedded = embedded
         self.current_project: ProjectData | None = None
+        self._preview_showing_answer = False
+        self._preview_sample_project_id: int | None = None
+        self._preview_sample: FlashcardData | None = None
+        self._preview_timer = QTimer(self)
+        self._preview_timer.setSingleShot(True)
+        self._preview_timer.setInterval(90)
+        self._preview_timer.timeout.connect(self.update_preview)
 
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
@@ -46,15 +106,16 @@ class ModelsPage(QWidget):
         layout = QVBoxLayout(content)
         layout.setContentsMargins(24, 22, 24, 22)
         layout.setSpacing(12)
-        layout.addWidget(PageHeader("Modelos de cartão", "Edite a estrutura, os subbaralhos e o tema visual de cada projeto."))
+        if not embedded:
+            layout.addWidget(PageHeader("Modelos de cartão", "Edite a estrutura, os subbaralhos e o tema visual de cada projeto."))
 
         selector_card = SectionCard()
         selector = QHBoxLayout()
         label = QLabel("Projeto")
         label.setObjectName("FieldLabel")
-        self.project_combo = QComboBox()
+        self.project_combo = ASComboBox()
         self.project_combo.currentIndexChanged.connect(self.load_project)
-        self.save_button = QPushButton("Salvar modelo")
+        self.save_button = ASButton("Salvar modelo")
         self.save_button.setObjectName("PrimaryButton")
         self.save_button.clicked.connect(self.save_model)
         selector.addWidget(label)
@@ -62,6 +123,7 @@ class ModelsPage(QWidget):
         selector.addWidget(self.save_button)
         selector_card.root.addLayout(selector)
         layout.addWidget(selector_card)
+        selector_card.setVisible(not embedded)
 
         editors_card = SectionCard("Frente e verso", "Somente os componentes escolhidos serão exibidos nos cartões exportados.")
         editors = AdaptiveSplitter(breakpoint=800)
@@ -82,11 +144,11 @@ class ModelsPage(QWidget):
         self.section_list.setMinimumHeight(150)
         structure_card.root.addWidget(self.section_list)
         section_actions = QHBoxLayout()
-        self.add_section_button = QPushButton("Adicionar")
-        self.rename_section_button = QPushButton("Renomear")
-        self.delete_section_button = QPushButton("Excluir")
-        self.section_up_button = QPushButton("↑")
-        self.section_down_button = QPushButton("↓")
+        self.add_section_button = ASButton("Adicionar")
+        self.rename_section_button = ASButton("Renomear")
+        self.delete_section_button = ASButton("Excluir")
+        self.section_up_button = ASButton("↑")
+        self.section_down_button = ASButton("↓")
         for button in (
             self.add_section_button,
             self.rename_section_button,
@@ -119,18 +181,18 @@ class ModelsPage(QWidget):
         theme_grid.setColumnStretch(0, 1)
         theme_grid.setColumnStretch(1, 1)
 
-        self.theme_density = QComboBox()
+        self.theme_density = ASComboBox()
         self.theme_density.addItem("Compacto", "compact")
         self.theme_density.addItem("Normal", "normal")
         self.theme_density.addItem("Espaçoso", "spacious")
         self.theme_density.addItem("Personalizado", "custom")
-        self.theme_background = QLineEdit()
-        self.theme_card_background = QLineEdit()
-        self.theme_primary = QLineEdit()
-        self.theme_text = QLineEdit()
-        self.theme_secondary = QLineEdit()
-        self.theme_border = QLineEdit()
-        self.theme_font = QLineEdit()
+        self.theme_background = ASLineEdit()
+        self.theme_card_background = ASLineEdit()
+        self.theme_primary = ASLineEdit()
+        self.theme_text = ASLineEdit()
+        self.theme_secondary = ASLineEdit()
+        self.theme_border = ASLineEdit()
+        self.theme_font = ASLineEdit()
 
         self.theme_word_size = self._pixel_spin(18, 96)
         self.theme_reading_size = self._pixel_spin(12, 72)
@@ -176,35 +238,54 @@ class ModelsPage(QWidget):
             cell_layout.addWidget(widget)
             theme_grid.addWidget(cell, index // 2, index % 2)
         theme_card.root.addLayout(theme_grid)
+        theme_actions = QHBoxLayout()
+        self.apply_global_theme_button = ASButton("Aplicar tema padrão global")
+        self.apply_global_theme_button.setObjectName("SubtleButton")
+        self.apply_global_theme_button.setToolTip(
+            "Carrega o tema padrão definido em Configurações. A alteração só é gravada neste projeto ao clicar em Salvar modelo."
+        )
+        self.apply_global_theme_button.clicked.connect(self.apply_global_theme)
+        theme_actions.addWidget(self.apply_global_theme_button)
+        theme_actions.addStretch(1)
+        theme_card.root.addLayout(theme_actions)
         layout.addWidget(theme_card)
 
         preview_card = SectionCard(
-            "Pré-visualização real",
-            "Usa o mesmo estilo dos cartões exportados para o Anki. Quando possível, exibe dados reais do primeiro cartão do projeto.",
+            "Pré-visualização no Anki",
+            "Visualize frente e resposta com o mesmo HTML/CSS usado na exportação.",
         )
-        preview_splitter = AdaptiveSplitter(breakpoint=800)
+        preview_controls = QHBoxLayout()
+        preview_controls.setSpacing(8)
+        preview_label = QLabel("Visualização")
+        preview_label.setObjectName("FieldLabel")
+        self.preview_device = ASComboBox()
+        self.preview_device.addItem("Desktop", "desktop")
+        self.preview_device.addItem("Celular", "mobile")
+        self.preview_device.setMinimumWidth(130)
+        self.preview_device.currentIndexChanged.connect(self._apply_preview_device)
+        self.preview_toggle = ASButton("Mostrar resposta")
+        self.preview_toggle.setObjectName("PrimaryButton")
+        self.preview_toggle.clicked.connect(self._toggle_preview_side)
+        preview_controls.addWidget(preview_label)
+        preview_controls.addWidget(self.preview_device)
+        preview_controls.addStretch(1)
+        preview_controls.addWidget(self.preview_toggle)
+        preview_card.root.addLayout(preview_controls)
         self.front_preview = QTextBrowser()
-        self.back_preview = QTextBrowser()
-        self.preview = self.front_preview  # compatibilidade com integrações anteriores
-        for title_text, browser in (("Frente", self.front_preview), ("Verso", self.back_preview)):
-            pane = QWidget()
-            pane_layout = QVBoxLayout(pane)
-            pane_layout.setContentsMargins(0, 0, 0, 0)
-            pane_layout.setSpacing(5)
-            pane_label = QLabel(title_text)
-            pane_label.setObjectName("FieldLabel")
-            browser.setMinimumHeight(320)
-            browser.setOpenExternalLinks(False)
-            pane_layout.addWidget(pane_label)
-            pane_layout.addWidget(browser)
-            preview_splitter.addWidget(pane)
-        preview_splitter.setStretchFactor(0, 1)
-        preview_splitter.setStretchFactor(1, 1)
-        preview_card.root.addWidget(preview_splitter)
+        self.front_preview.setObjectName("CardPreviewBrowser")
+        self.back_preview = QTextBrowser()  # buffer compatível com integrações antigas
+        self.back_preview.hide()
+        self.preview = self.front_preview
+        self.front_preview.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.front_preview.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        self.front_preview.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        self.front_preview.setOpenExternalLinks(False)
+        self.preview_stage = CardPreviewStage(self.front_preview)
+        preview_card.root.addWidget(self.preview_stage)
         layout.addWidget(preview_card)
 
-        self.front_editor.changed.connect(self.update_preview)
-        self.back_editor.changed.connect(self.update_preview)
+        self.front_editor.changed.connect(self._schedule_preview_update)
+        self.back_editor.changed.connect(self._schedule_preview_update)
         for widget in (
             self.theme_background,
             self.theme_card_background,
@@ -214,15 +295,18 @@ class ModelsPage(QWidget):
             self.theme_border,
             self.theme_font,
         ):
-            widget.textChanged.connect(self.update_preview)
+            widget.textChanged.connect(self._schedule_preview_update)
         self.theme_density.currentIndexChanged.connect(self._apply_density_preset)
         for widget in self._theme_numeric_widgets():
             widget.valueChanged.connect(self._theme_numeric_changed)
-            widget.valueChanged.connect(self.update_preview)
+            widget.valueChanged.connect(self._schedule_preview_update)
 
         layout.addStretch(1)
         root.addWidget(PageScrollArea(content))
         self.refresh()
+
+    def _schedule_preview_update(self, *_args) -> None:
+        self._preview_timer.start()
 
     def refresh(self) -> None:
         current_id = self.current_project.id if self.current_project else None
@@ -254,9 +338,13 @@ class ModelsPage(QWidget):
         project_id = self.project_combo.currentData()
         if project_id is None:
             self.current_project = None
+            self._preview_sample_project_id = None
+            self._preview_sample = None
             self.save_button.setEnabled(False)
             return
         self.current_project = self.database.get_project(int(project_id))
+        self._preview_sample_project_id = None
+        self._preview_sample = None
         self.save_button.setEnabled(self.current_project is not None)
         if not self.current_project:
             return
@@ -264,7 +352,7 @@ class ModelsPage(QWidget):
         self.back_editor.set_components(self.current_project.back_components)
         sections = list(self.current_project.deck_sections)
         if not sections and self.current_project.id is not None:
-            sections = ProjectService.derive_sections(self.database.list_cards(self.current_project.id))
+            sections = self.database.list_card_sections(self.current_project.id)
         self._set_sections(sections)
         self._load_theme(self.current_project.card_theme)
         self.update_preview()
@@ -273,8 +361,7 @@ class ModelsPage(QWidget):
         self.section_list.clear()
         counts: dict[str, int] = {}
         if self.current_project and self.current_project.id is not None:
-            for card in self.database.list_cards(self.current_project.id):
-                counts[card.section] = counts.get(card.section, 0) + 1
+            counts = self.database.project_section_counts(self.current_project.id)
         for section in sections:
             item = QListWidgetItem(tr(f"{section}   ·   {counts.get(section, 0)} cartões"))
             item.setData(Qt.ItemDataRole.UserRole, section)
@@ -394,6 +481,10 @@ class ModelsPage(QWidget):
         self.theme_density.setCurrentIndex(index if index >= 0 else self.theme_density.findData("custom"))
         self.theme_density.blockSignals(previous)
 
+    def apply_global_theme(self) -> None:
+        self._load_theme(load_default_card_theme(self.database))
+        self.update_preview()
+
     def _apply_density_preset(self, *_args) -> None:
         key = str(self.theme_density.currentData() or "custom")
         preset = DENSITY_PRESETS.get(key)
@@ -479,7 +570,27 @@ class ModelsPage(QWidget):
         QMessageBox.information(self, "Modelo salvo", "Estrutura, ordem dos subbaralhos e tema foram atualizados.")
         self.update_preview()
 
+    def set_project(self, project_id: int) -> None:
+        index = self.project_combo.findData(project_id)
+        if index < 0:
+            self.refresh()
+            index = self.project_combo.findData(project_id)
+        if index >= 0:
+            self.project_combo.setCurrentIndex(index)
+            self.load_project()
+
+    def _toggle_preview_side(self) -> None:
+        self._preview_showing_answer = not self._preview_showing_answer
+        self.preview_toggle.setText("Mostrar frente" if self._preview_showing_answer else "Mostrar resposta")
+        self.update_preview()
+
+    def _apply_preview_device(self, *_args) -> None:
+        device = str(self.preview_device.currentData() or "desktop")
+        self.preview_stage.set_device(device)
+        self.update_preview()
+
     def update_preview(self, *_args) -> None:
+        self._preview_timer.stop()
         try:
             theme = self._collect_theme()
         except Exception:
@@ -487,13 +598,14 @@ class ModelsPage(QWidget):
 
         sample: FlashcardData | None = None
         if self.current_project is not None and self.current_project.id is not None:
-            cards = self.database.list_cards(self.current_project.id)
-            if cards:
-                sample = cards[0]
+            project_id = int(self.current_project.id)
+            if self._preview_sample_project_id != project_id:
+                self._preview_sample = self.database.get_first_card(project_id)
+                self._preview_sample_project_id = project_id
+            sample = self._preview_sample
 
-        self.front_preview.setHtml(
-            render_preview_document(self.front_editor.components(), theme, sample)
-        )
-        self.back_preview.setHtml(
-            render_preview_document(self.back_editor.components(), theme, sample)
-        )
+        front_html = render_preview_document(self.front_editor.components(), theme, sample)
+        back_html = render_preview_document(self.back_editor.components(), theme, sample)
+        self.back_preview.setHtml(back_html)
+        self.front_preview.setHtml(back_html if self._preview_showing_answer else front_html)
+        self.front_preview.horizontalScrollBar().setValue(0)

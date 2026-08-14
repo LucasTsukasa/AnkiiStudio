@@ -5,7 +5,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Iterable
 
-from PySide6.QtCore import QEvent, QObject, Signal
+from PySide6.QtCore import QEvent, QObject, Signal, QLibraryInfo, QTranslator
 from PySide6.QtWidgets import (
     QAbstractButton,
     QApplication,
@@ -126,7 +126,9 @@ class UiLanguageManager(QObject):
         super().__init__()
         valid = {code for _, code in UI_LANGUAGES}
         self.language = language if language in valid else DEFAULT_UI_LANGUAGE
+        self._qt_translator = QTranslator(self)
         set_current_language(self.language)
+        self._apply_qt_translation(self.language)
 
     def set_language(self, language: str) -> None:
         valid = {code for _, code in UI_LANGUAGES}
@@ -136,11 +138,27 @@ class UiLanguageManager(QObject):
             return
         self.language = target
         set_current_language(target)
+        self._apply_qt_translation(target)
         app = QApplication.instance()
         if app is not None:
             for root in app.topLevelWidgets():
                 self.translate_widget_tree(root, source_language=previous)
         self.languageChanged.emit(target)
+
+    def _apply_qt_translation(self, language: str) -> None:
+        app = QApplication.instance()
+        if app is None:
+            return
+        app.removeTranslator(self._qt_translator)
+        if language == "en_US":
+            return
+        translations_path = QLibraryInfo.path(QLibraryInfo.LibraryPath.TranslationsPath)
+        locale_candidates = [language, language.replace("_", "-")]
+        for locale in locale_candidates:
+            for prefix in ("qtbase_", "qt_"):
+                if self._qt_translator.load(f"{prefix}{locale}", translations_path):
+                    app.installTranslator(self._qt_translator)
+                    return
 
     def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # type: ignore[override]
         if event.type() == QEvent.Type.Show and isinstance(watched, QWidget):

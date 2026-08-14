@@ -178,6 +178,23 @@ class AudioImportService:
             raise ValueError("Política de conflito inválida.")
 
         summary = AudioImportSummary()
+        matched_ids = sorted(
+            {
+                int(match.card_id)
+                for match in matches
+                if match.matched and match.card_id is not None
+            }
+        )
+        cards_by_id: dict[int, FlashcardData] = {}
+        if project.id is not None and matched_ids:
+            cards_by_id = {
+                int(card.id): card
+                for card in self.project_audio_service.database.list_cards_by_ids(
+                    project.id,
+                    matched_ids,
+                )
+                if card.id is not None
+            }
         for match in matches:
             if match.status == "unmatched":
                 summary.unmatched += 1
@@ -194,7 +211,7 @@ class AudioImportService:
                 summary.skipped_existing += 1
                 continue
 
-            card = self.project_audio_service.database.get_card(int(match.card_id))
+            card = cards_by_id.get(int(match.card_id))
             if card is None:
                 summary.errors += 1
                 continue

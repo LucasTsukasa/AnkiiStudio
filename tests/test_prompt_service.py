@@ -168,3 +168,23 @@ def test_prompt_supports_chinese_as_translation_language() -> None:
     assert 'translation_language` deve ser exatamente "zh"' in prompt
     assert "Escreva `translation` em Chinês (zh)" in prompt
     assert "Escreva `explanation` em Chinês (zh)" in prompt
+
+
+def test_prompt_supports_automatic_ai_quantity_with_safe_limit() -> None:
+    prompt = PromptService.build(
+        language="ja",
+        translation_language="pt",
+        template_key="custom",
+        topic="animais",
+        quantity=None,
+        max_auto_quantity=200,
+        deck_name="Vocabulário",
+        front_components=["word"],
+        back_components=["translation"],
+        custom_content=["Animais"],
+    )
+    assert "Quantidade: Automática (máximo 200)" in prompt
+    assert "Determine uma quantidade adequada" in prompt
+    assert "Gere no máximo 200 cartões" in prompt
+    assert "Crie exatamente None" not in prompt
+    assert "não excede 200" in prompt

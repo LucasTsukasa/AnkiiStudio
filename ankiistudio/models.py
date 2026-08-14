@@ -137,6 +137,7 @@ class ProjectData(BaseModel):
     audio_providers: list[str] = Field(default_factory=list)
     fixed_audio_provider: str = "voicevox"
     fixed_audio_profile_id: str = ""
+    audio_profile_preferences: dict[str, str] = Field(default_factory=dict)
     voicevox_style_id: int = 0
     voicevox_style_label: str = ""
     voicevox_speed_scale: float = Field(default=1.0, ge=0.5, le=2.0)
@@ -250,6 +251,14 @@ class ProjectData(BaseModel):
     @property
     def uses_sentence_audio(self) -> bool:
         return False
+
+
+class CreationPreset(BaseModel):
+    id: int | None = None
+    name: str = Field(min_length=1, max_length=120)
+    payload: dict[str, object] = Field(default_factory=dict)
+    created_at: str = Field(default_factory=utc_now_iso)
+    updated_at: str = Field(default_factory=utc_now_iso)
 
 
 class ImportedDeck(BaseModel):

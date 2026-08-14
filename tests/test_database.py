@@ -371,3 +371,123 @@ def test_existing_database_is_migrated_with_translation_language(tmp_path: Path)
     columns = {row[1] for row in connection.execute("PRAGMA table_info(projects)")}
     connection.close()
     assert "translation_language" in columns
+    assert "audio_profile_preferences" in columns
+
+
+def test_partial_media_updates_preserve_concurrent_image_and_audio(tmp_path: Path) -> None:
+    db = Database(tmp_path / "media-concurrency.db")
+    project_id = db.create_project(
+        ProjectData(
+            name="Concorrência",
+            template_key="custom",
+            front_components=["word", "image"],
+            back_components=["translation", "audio"],
+            audio_providers=["voicevox"],
+        )
+    )
+    card_id = db.add_cards(project_id, [FlashcardData(word="猫", translation="gato")])[0]
+
+    # Simula dois workers que partiram do mesmo snapshot antigo do cartão.
+    image_snapshot = db.get_card(card_id)
+    audio_snapshot = db.get_card(card_id)
+    assert image_snapshot is not None and audio_snapshot is not None
+
+    db.update_card_media(
+        card_id,
+        project_id=project_id,
+        image_path="images/cat.webp",
+        update_image=True,
+    )
+    db.update_card_media(
+        card_id,
+        project_id=project_id,
+        word_audio_path="audio/cat.wav",
+        sentence_audio_path="",
+        update_audio=True,
+    )
+
+    loaded = db.get_card(card_id)
+    assert loaded is not None
+    assert loaded.image_path == "images/cat.webp"
+    assert loaded.word_audio_path == "audio/cat.wav"
+
+
+def test_partial_media_updates_are_safe_from_two_threads(tmp_path: Path) -> None:
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Barrier
+
+    db = Database(tmp_path / "media-real-concurrency.db")
+    project_id = db.create_project(
+        ProjectData(
+            name="Concorrência real",
+            template_key="custom",
+            front_components=["word", "image"],
+            back_components=["translation", "audio"],
+            audio_providers=["voicevox"],
+        )
+    )
+    card_id = db.add_cards(project_id, [FlashcardData(word="猫", translation="gato")])[0]
+    barrier = Barrier(2)
+
+    def write_image() -> None:
+        barrier.wait()
+        db.update_card_media(
+            card_id, project_id=project_id, image_path="images/thread-cat.webp", update_image=True
+        )
+
+    def write_audio() -> None:
+        barrier.wait()
+        db.update_card_media(
+            card_id, project_id=project_id, word_audio_path="audio/thread-cat.wav", update_audio=True
+        )
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        list(pool.map(lambda fn: fn(), [write_image, write_audio]))
+
+    loaded = db.get_card(card_id)
+    assert loaded is not None
+    assert loaded.image_path == "images/thread-cat.webp"
+    assert loaded.word_audio_path == "audio/thread-cat.wav"
+
+
+def test_creation_presets_roundtrip(tmp_path: Path) -> None:
+    from ankiistudio.models import CreationPreset
+
+    db = Database(tmp_path / "presets.db")
+    preset = CreationPreset(
+        name="Japonês — Vocabulário",
+        payload={"language": "ja", "quantity_mode": "automatic", "audio_mode": "intelligent"},
+    )
+    preset_id = db.save_creation_preset(preset)
+    loaded = db.list_creation_presets()
+    assert len(loaded) == 1
+    assert loaded[0].id == preset_id
+    assert loaded[0].payload["quantity_mode"] == "automatic"
+
+    loaded[0].payload["language"] = "en"
+    db.save_creation_preset(loaded[0])
+    assert db.list_creation_presets()[0].payload["language"] == "en"
+
+    db.delete_creation_preset(preset_id)
+    assert db.list_creation_presets() == []
+
+
+def test_audio_profile_preferences_roundtrip(tmp_path: Path) -> None:
+    db = Database(tmp_path / "audio-preferences.db")
+    project = ProjectData(
+        name="Preferências de áudio",
+        language="en",
+        template_key="custom",
+        creation_mode="manual",
+        front_components=["word"],
+        back_components=["audio"],
+        audio_providers=["gemini", "elevenlabs"],
+        audio_profile_preferences={"gemini": "gemini-profile", "elevenlabs": "eleven-profile"},
+    )
+    project_id = db.create_project(project)
+    loaded = db.get_project(project_id)
+    assert loaded is not None
+    assert loaded.audio_profile_preferences == {
+        "gemini": "gemini-profile",
+        "elevenlabs": "eleven-profile",
+    }

@@ -11,6 +11,7 @@ from ankiistudio.models import (
     FlashcardData,
     MediaAsset,
     ProjectData,
+    CreationPreset,
     utc_now_iso,
 )
 
@@ -60,6 +61,7 @@ class Database:
                     audio_providers TEXT NOT NULL,
                     fixed_audio_provider TEXT NOT NULL,
                     fixed_audio_profile_id TEXT NOT NULL DEFAULT '',
+                    audio_profile_preferences TEXT NOT NULL DEFAULT '{}',
                     voicevox_style_id INTEGER NOT NULL DEFAULT 0,
                     voicevox_style_label TEXT NOT NULL DEFAULT '',
                     voicevox_speed_scale REAL NOT NULL DEFAULT 1.0,
@@ -122,6 +124,14 @@ class Database:
                     value TEXT NOT NULL
                 );
 
+                CREATE TABLE IF NOT EXISTS creation_presets (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL UNIQUE COLLATE NOCASE,
+                    payload TEXT NOT NULL DEFAULT '{}',
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                );
+
                 CREATE INDEX IF NOT EXISTS idx_cards_project_id ON cards(project_id);
                 CREATE INDEX IF NOT EXISTS idx_media_project_id ON media_assets(project_id);
                 """
@@ -142,6 +152,7 @@ class Database:
             "deck_sections": "ALTER TABLE projects ADD COLUMN deck_sections TEXT NOT NULL DEFAULT '[]'",
             "card_theme": "ALTER TABLE projects ADD COLUMN card_theme TEXT NOT NULL DEFAULT '{}'",
             "fixed_audio_profile_id": "ALTER TABLE projects ADD COLUMN fixed_audio_profile_id TEXT NOT NULL DEFAULT ''",
+            "audio_profile_preferences": "ALTER TABLE projects ADD COLUMN audio_profile_preferences TEXT NOT NULL DEFAULT '{}'",
             "voicevox_style_id": "ALTER TABLE projects ADD COLUMN voicevox_style_id INTEGER NOT NULL DEFAULT 0",
             "voicevox_style_label": "ALTER TABLE projects ADD COLUMN voicevox_style_label TEXT NOT NULL DEFAULT ''",
             "voicevox_speed_scale": "ALTER TABLE projects ADD COLUMN voicevox_speed_scale REAL NOT NULL DEFAULT 1.0",
@@ -172,10 +183,11 @@ class Database:
                 INSERT INTO projects (
                     name, language, translation_language, template_key, topic, custom_content, creation_mode,
                     front_components, back_components, card_structures, structure_distribution, deck_sections, card_theme,
-                    audio_mode, audio_providers, fixed_audio_provider, fixed_audio_profile_id, voicevox_style_id, voicevox_style_label,
-                    voicevox_speed_scale, voicevox_pitch_scale, voicevox_intonation_scale, voicevox_volume_scale, voicevox_pause_length_scale,
+                    audio_mode, audio_providers, fixed_audio_provider, fixed_audio_profile_id, audio_profile_preferences,
+                    voicevox_style_id, voicevox_style_label, voicevox_speed_scale, voicevox_pitch_scale,
+                    voicevox_intonation_scale, voicevox_volume_scale, voicevox_pause_length_scale,
                     voice_variant, created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     project.name,
@@ -195,6 +207,7 @@ class Database:
                     json.dumps(project.audio_providers, ensure_ascii=False),
                     project.fixed_audio_provider,
                     project.fixed_audio_profile_id,
+                    json.dumps(project.audio_profile_preferences, ensure_ascii=False),
                     project.voicevox_style_id,
                     project.voicevox_style_label,
                     project.voicevox_speed_scale,
@@ -219,7 +232,7 @@ class Database:
                 UPDATE projects SET
                     name=?, language=?, translation_language=?, template_key=?, topic=?, custom_content=?, creation_mode=?,
                     front_components=?, back_components=?, card_structures=?, structure_distribution=?, deck_sections=?, card_theme=?,
-                    audio_mode=?, audio_providers=?, fixed_audio_provider=?, fixed_audio_profile_id=?, voicevox_style_id=?, voicevox_style_label=?,
+                    audio_mode=?, audio_providers=?, fixed_audio_provider=?, fixed_audio_profile_id=?, audio_profile_preferences=?, voicevox_style_id=?, voicevox_style_label=?,
                     voicevox_speed_scale=?, voicevox_pitch_scale=?, voicevox_intonation_scale=?, voicevox_volume_scale=?, voicevox_pause_length_scale=?,
                     voice_variant=?, updated_at=?
                 WHERE id=?
@@ -242,6 +255,7 @@ class Database:
                     json.dumps(project.audio_providers, ensure_ascii=False),
                     project.fixed_audio_provider,
                     project.fixed_audio_profile_id,
+                    json.dumps(project.audio_profile_preferences, ensure_ascii=False),
                     project.voicevox_style_id,
                     project.voicevox_style_label,
                     project.voicevox_speed_scale,
@@ -324,6 +338,19 @@ class Database:
             ).fetchall()
         return [self._row_to_card(row) for row in rows]
 
+    def get_first_card(self, project_id: int) -> FlashcardData | None:
+        """Retorna somente o primeiro cartão do projeto.
+
+        É usado por previews que precisam de uma única amostra e evita carregar e
+        desserializar todos os cartões apenas para acessar ``cards[0]``.
+        """
+        with self.connection() as connection:
+            row = connection.execute(
+                "SELECT * FROM cards WHERE project_id=? ORDER BY id LIMIT 1",
+                (project_id,),
+            ).fetchone()
+        return self._row_to_card(row) if row else None
+
     def list_cards_by_ids(self, project_id: int, card_ids: list[int]) -> list[FlashcardData]:
         if not card_ids:
             return []
@@ -382,6 +409,228 @@ class Database:
                 "UPDATE projects SET updated_at=? WHERE id=?",
                 (card.updated_at, card.project_id),
             )
+
+    def update_card_media(
+        self,
+        card_id: int,
+        *,
+        project_id: int | None = None,
+        image_path: str | None = None,
+        word_audio_path: str | None = None,
+        sentence_audio_path: str | None = None,
+        update_image: bool = False,
+        update_audio: bool = False,
+    ) -> None:
+        """Atualiza somente mídia, evitando lost updates entre workers concorrentes."""
+        assignments: list[str] = []
+        values: list[object] = []
+        if update_image:
+            assignments.append("image_path=?")
+            values.append(image_path or "")
+        if update_audio:
+            assignments.extend(["word_audio_path=?", "sentence_audio_path=?"])
+            values.extend([word_audio_path or "", sentence_audio_path or ""])
+        if not assignments:
+            return
+        now = utc_now_iso()
+        assignments.append("updated_at=?")
+        values.append(now)
+        values.append(int(card_id))
+        with self.connection() as connection:
+            connection.execute(
+                f"UPDATE cards SET {', '.join(assignments)} WHERE id=?",
+                values,
+            )
+            if project_id is None:
+                row = connection.execute("SELECT project_id FROM cards WHERE id=?", (card_id,)).fetchone()
+                project_id = int(row["project_id"]) if row and row["project_id"] is not None else None
+            if project_id is not None:
+                connection.execute("UPDATE projects SET updated_at=? WHERE id=?", (now, project_id))
+
+    def replace_card_media_asset(
+        self,
+        card_id: int,
+        asset: MediaAsset,
+        *,
+        project_id: int | None = None,
+        image_path: str | None = None,
+        word_audio_path: str | None = None,
+        sentence_audio_path: str | None = None,
+        update_image: bool = False,
+        update_audio: bool = False,
+    ) -> int:
+        """Atualiza a mídia do cartão e substitui seu asset em uma única transação."""
+        if not update_image and not update_audio:
+            raise ValueError("Informe o tipo de mídia que deve ser atualizado.")
+        if asset.card_id is not None and int(asset.card_id) != int(card_id):
+            raise ValueError("O asset de mídia não pertence ao cartão informado.")
+
+        assignments: list[str] = []
+        values: list[object] = []
+        if update_image:
+            assignments.append("image_path=?")
+            values.append(image_path or "")
+        if update_audio:
+            assignments.extend(["word_audio_path=?", "sentence_audio_path=?"])
+            values.extend([word_audio_path or "", sentence_audio_path or ""])
+        now = utc_now_iso()
+        assignments.append("updated_at=?")
+        values.extend([now, int(card_id)])
+
+        with self.connection() as connection:
+            connection.execute(
+                f"UPDATE cards SET {', '.join(assignments)} WHERE id=?",
+                values,
+            )
+            resolved_project_id = project_id or asset.project_id
+            if resolved_project_id is None:
+                row = connection.execute(
+                    "SELECT project_id FROM cards WHERE id=?", (card_id,)
+                ).fetchone()
+                resolved_project_id = int(row["project_id"]) if row else None
+            if resolved_project_id is not None:
+                connection.execute(
+                    "UPDATE projects SET updated_at=? WHERE id=?",
+                    (now, int(resolved_project_id)),
+                )
+            connection.execute(
+                "DELETE FROM media_assets WHERE card_id=? AND kind=?",
+                (card_id, asset.kind),
+            )
+            cursor = self._insert_media_asset(connection, asset)
+            return int(cursor.lastrowid)
+
+    def clear_card_media_asset(
+        self,
+        card_id: int,
+        kind: str,
+        *,
+        project_id: int | None = None,
+        image_path: str | None = None,
+        word_audio_path: str | None = None,
+        sentence_audio_path: str | None = None,
+        update_image: bool = False,
+        update_audio: bool = False,
+    ) -> None:
+        """Limpa a mídia e o asset correspondente de forma atômica."""
+        assignments: list[str] = []
+        values: list[object] = []
+        if update_image:
+            assignments.append("image_path=?")
+            values.append(image_path or "")
+        if update_audio:
+            assignments.extend(["word_audio_path=?", "sentence_audio_path=?"])
+            values.extend([word_audio_path or "", sentence_audio_path or ""])
+        if not assignments:
+            raise ValueError("Informe o tipo de mídia que deve ser atualizado.")
+        now = utc_now_iso()
+        assignments.append("updated_at=?")
+        values.extend([now, int(card_id)])
+        with self.connection() as connection:
+            connection.execute(
+                f"UPDATE cards SET {', '.join(assignments)} WHERE id=?",
+                values,
+            )
+            if project_id is None:
+                row = connection.execute(
+                    "SELECT project_id FROM cards WHERE id=?", (card_id,)
+                ).fetchone()
+                project_id = int(row["project_id"]) if row else None
+            if project_id is not None:
+                connection.execute(
+                    "UPDATE projects SET updated_at=? WHERE id=?", (now, int(project_id))
+                )
+            connection.execute(
+                "DELETE FROM media_assets WHERE card_id=? AND kind=?",
+                (card_id, kind),
+            )
+
+    def count_cards(self, project_id: int) -> int:
+        with self.connection() as connection:
+            row = connection.execute(
+                "SELECT COUNT(*) AS total FROM cards WHERE project_id=?", (project_id,)
+            ).fetchone()
+        return int(row["total"] if row else 0)
+
+    def project_card_counts(self) -> dict[int, int]:
+        with self.connection() as connection:
+            rows = connection.execute(
+                "SELECT project_id, COUNT(*) AS total FROM cards GROUP BY project_id"
+            ).fetchall()
+        return {int(row["project_id"]): int(row["total"]) for row in rows}
+
+    def project_section_counts(self, project_id: int) -> dict[str, int]:
+        with self.connection() as connection:
+            rows = connection.execute(
+                """
+                SELECT section, COUNT(*) AS total
+                FROM cards
+                WHERE project_id=?
+                GROUP BY section
+                """,
+                (project_id,),
+            ).fetchall()
+        return {str(row["section"]): int(row["total"]) for row in rows}
+
+    def list_card_sections(self, project_id: int) -> list[str]:
+        """Lista seções na ordem em que aparecem pela primeira vez no projeto."""
+        with self.connection() as connection:
+            rows = connection.execute(
+                """
+                SELECT section, MIN(id) AS first_id
+                FROM cards
+                WHERE project_id=? AND TRIM(section) <> ''
+                GROUP BY section
+                ORDER BY first_id
+                """,
+                (project_id,),
+            ).fetchall()
+
+        result: list[str] = []
+        seen: set[str] = set()
+        for row in rows:
+            section = str(row["section"]).strip()
+            key = section.casefold()
+            if not section or key in seen:
+                continue
+            seen.add(key)
+            result.append(section)
+        return result
+
+    def list_creation_presets(self) -> list[CreationPreset]:
+        with self.connection() as connection:
+            rows = connection.execute(
+                "SELECT * FROM creation_presets ORDER BY name COLLATE NOCASE"
+            ).fetchall()
+        return [
+            CreationPreset(
+                id=row["id"], name=row["name"], payload=json.loads(row["payload"] or "{}"),
+                created_at=row["created_at"], updated_at=row["updated_at"]
+            ) for row in rows
+        ]
+
+    def save_creation_preset(self, preset: CreationPreset) -> int:
+        now = utc_now_iso()
+        with self.connection() as connection:
+            if preset.id is None:
+                cursor = connection.execute(
+                    """INSERT INTO creation_presets(name, payload, created_at, updated_at)
+                       VALUES (?, ?, ?, ?)""",
+                    (preset.name.strip(), json.dumps(preset.payload, ensure_ascii=False), now, now),
+                )
+                preset.id = int(cursor.lastrowid)
+                preset.created_at = now
+            else:
+                connection.execute(
+                    "UPDATE creation_presets SET name=?, payload=?, updated_at=? WHERE id=?",
+                    (preset.name.strip(), json.dumps(preset.payload, ensure_ascii=False), now, preset.id),
+                )
+            preset.updated_at = now
+        return int(preset.id)
+
+    def delete_creation_preset(self, preset_id: int) -> None:
+        with self.connection() as connection:
+            connection.execute("DELETE FROM creation_presets WHERE id=?", (preset_id,))
 
     def rename_card_section(self, project_id: int, old_name: str, new_name: str) -> None:
         with self.connection() as connection:
@@ -470,31 +719,42 @@ class Database:
 
     def add_media_asset(self, asset: MediaAsset) -> int:
         with self.connection() as connection:
-            cursor = connection.execute(
-                """
-                INSERT INTO media_assets (
-                    project_id, card_id, kind, provider, local_path,
-                    source_title, source_url, author, license_name,
-                    license_url, modifications, metadata_json, created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                (
-                    asset.project_id,
-                    asset.card_id,
-                    asset.kind,
-                    asset.provider,
-                    asset.local_path,
-                    asset.source_title,
-                    asset.source_url,
-                    asset.author,
-                    asset.license_name,
-                    asset.license_url,
-                    asset.modifications,
-                    asset.metadata_json,
-                    asset.created_at,
-                ),
-            )
+            cursor = self._insert_media_asset(connection, asset)
             return int(cursor.lastrowid)
+
+    @staticmethod
+    def _insert_media_asset(connection: sqlite3.Connection, asset: MediaAsset) -> sqlite3.Cursor:
+        return connection.execute(
+            """
+            INSERT INTO media_assets (
+                project_id, card_id, kind, provider, local_path,
+                source_title, source_url, author, license_name,
+                license_url, modifications, metadata_json, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                asset.project_id,
+                asset.card_id,
+                asset.kind,
+                asset.provider,
+                asset.local_path,
+                asset.source_title,
+                asset.source_url,
+                asset.author,
+                asset.license_name,
+                asset.license_url,
+                asset.modifications,
+                asset.metadata_json,
+                asset.created_at,
+            ),
+        )
+
+    def list_media_assets_for_project(self, project_id: int) -> list[MediaAsset]:
+        with self.connection() as connection:
+            rows = connection.execute(
+                "SELECT * FROM media_assets WHERE project_id=? ORDER BY id", (project_id,)
+            ).fetchall()
+        return [MediaAsset(**dict(row)) for row in rows]
 
     def count_media_assets(self) -> int:
         with self.connection() as connection:
@@ -542,6 +802,7 @@ class Database:
             audio_providers=json.loads(row["audio_providers"]),
             fixed_audio_provider=row["fixed_audio_provider"],
             fixed_audio_profile_id=row["fixed_audio_profile_id"] if "fixed_audio_profile_id" in row.keys() else "",
+            audio_profile_preferences=json.loads(row["audio_profile_preferences"] or "{}") if "audio_profile_preferences" in row.keys() else {},
             voicevox_style_id=int(row["voicevox_style_id"]) if "voicevox_style_id" in row.keys() else 0,
             voicevox_style_label=row["voicevox_style_label"] if "voicevox_style_label" in row.keys() else "",
             voicevox_speed_scale=float(row["voicevox_speed_scale"]) if "voicevox_speed_scale" in row.keys() else 1.0,

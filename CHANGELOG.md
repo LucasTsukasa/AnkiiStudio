@@ -4,6 +4,113 @@ Todas as alterações relevantes do AnkiiStudio são registradas neste arquivo.
 
 O formato segue os princípios de [Keep a Changelog](https://keepachangelog.com/) e o projeto utiliza versionamento semântico durante o desenvolvimento.
 
+## [0.11.0-beta.8] - 2026-08-14
+
+### Adicionado
+- **AnkiiStudio Design System v1**, camada visual própria construída sobre Qt/PySide6 sem substituir o toolkit.
+- Design tokens centralizados para temas, tipografia, espaçamento, raios, tamanhos de controles e breakpoints responsivos.
+- `ThemeManager` para aplicar de forma coordenada `QPalette`, stylesheet, estilo proxy e tema ativo.
+- `IconRegistry` central para resolução de ícones e estados ativo/inativo.
+- Componentes reutilizáveis `ASButton`, `ASLineEdit`, `ASTextEdit`, `ASPlainTextEdit`, `ASComboBox`, `ASCard`, `ASDialog`, `ASTabWidget`, `ASContextMenu`, `ASToast`, `ASProgressBar`, `ASTableView`, `ASTableWidget`, `ASSidebar`, `ASSidebarItem`, `ASSwitch`, `ASPageHeader` e `ASSectionCard`.
+- `AnkiiStudioProxyStyle` para métricas visuais centralizadas sem reimplementar comportamento nativo do Qt.
+- Utilitários responsivos compartilhados, incluindo breakpoints Compacto/Médio/Amplo e cálculo de colunas para grids.
+- Documentação técnica do design system em `docs/DESIGN_SYSTEM.md`.
+
+### Alterado
+- Inicialização e troca de tema passam pelo novo Theme Manager, mantendo os temas Escuro, Claro e Carmesim.
+- Cores dos temas passaram a ter uma fonte de verdade em `design_system/tokens.py`; o stylesheet histórico agora consome esses tokens.
+- Botões, campos de texto, combos, cards, diálogos e tabelas das telas atuais foram migrados para componentes `AS*` quando compatível, preservando contratos e lógica existente.
+- Configurações e Atualizações agora usam `ASDialog`; Projetos usa `ASTabWidget`, `ASContextMenu`, `ASLineEdit`, `ASComboBox` e cards do design system.
+- A sidebar principal passou a usar `ASSidebar`/`ASSidebarItem` e o registro central de ícones.
+- O gerenciador de tarefas usa o componente de progresso do design system e notificações independentes podem ser exibidas pelo novo sistema de toasts.
+- Cabeçalhos e cards reutilizáveis existentes foram conectados à nova camada visual para permitir migração sem refatoração destrutiva.
+
+### Complementos e correções de UI/UX da beta.8
+- Corrigida a faixa intermediária de largura na tela **Criar** em que o layout permanecia no modo amplo mesmo sem espaço útil suficiente, causando corte do botão de exclusão de preset. O breakpoint agora considera o viewport real do scroll, as margens da página e o padding dos cards.
+- `PageScrollArea` passa a informar alterações reais do viewport para que páginas responsivas reajam também a mudanças causadas por scrollbar, sidebar e redimensionamento da janela.
+- O cálculo de colunas responsivas agora considera o espaçamento entre cards, evitando grades que escolhiam uma coluna a mais do que cabia confortavelmente.
+- Home e biblioteca de Projetos passaram a usar a largura efetivamente disponível para reorganizar cards e filtros.
+- O estado vazio de **Projetos recentes** ficou mais compacto e informativo, sem reservar uma grande área vazia quando ainda não existem projetos.
+- A janela principal passa a respeitar a área útil do monitor, incluindo barra de tarefas e decorações da janela, reduzindo o tamanho inicial somente quando necessário.
+- O tamanho e a posição da janela principal passam a ser restaurados entre execuções e são reajustados quando ficariam fora dos monitores atualmente conectados.
+- O controle de recolhimento da sidebar recebeu chevrons simples, área clicável previsível, alinhamento apropriado e nome acessível.
+- A página de Áudio passou a utilizar a mesma medição de viewport real para seu layout adaptativo.
+- A pré-visualização em **Projetos → Estrutura e aparência** recebeu uma área de apresentação própria para Desktop/Celular, largura responsiva previsível e bloqueio do scroll horizontal que fazia o cartão parecer comprimido.
+- A biblioteca de **Projetos** passou a usar tiles compactos de tamanho estável, alinhados à esquerda, em vez de esticar poucos projetos para preencher toda a linha.
+- Os cards de projeto receberam menu de contexto visualmente mais discreto, pluralização correta de `cartão/cartões` e data de atualização apresentada no formato da interface em português.
+- A tela **Criar** recebeu hierarquia de seções mais consistente, preset mais compacto e uma barra inferior persistente para manter as ações de criação acessíveis durante a rolagem.
+
+### Otimizações de desempenho
+- Implementado carregamento preguiçoso das páginas principais, reduzindo o trabalho executado durante a inicialização do aplicativo.
+- Ferramentas mais pesadas da área de Projetos passam a ser construídas somente quando o usuário realmente abre o projeto correspondente.
+- A pré-visualização de cartões passa a consultar apenas um cartão de amostra, evitando carregar todos os cartões do projeto apenas para renderizar o preview.
+- Adicionado debounce na atualização da pré-visualização para evitar renderizações repetidas durante alterações rápidas de configuração.
+- Contagens e listagens de seções passam a utilizar consultas agregadas diretamente no SQLite sempre que possível.
+- A página inicial utiliza contagens agregadas de cartões em vez de carregar todos os cartões de cada projeto apenas para exibir totais.
+- A pesquisa da biblioteca de Projetos passa a utilizar debounce para evitar reconstruções a cada caractere digitado.
+- O redimensionamento da biblioteca de Projetos reposiciona os cards existentes quando a quantidade de colunas muda, evitando reconstruções desnecessárias da biblioteca.
+- Atualizações de mídia relacionadas ao mesmo cartão passam a utilizar operações SQLite agrupadas em transações, reduzindo conexões e estados intermediários.
+- Conexões HTTP passam a ser reutilizadas durante operações em lote de imagens e áudio, aproveitando connection pooling e keep-alive.
+- O roteador e os provedores de áudio podem ser reutilizados durante a geração em lote, reduzindo reconstruções repetidas de serviços.
+- Hashes de arquivos passam a ser calculados em streaming, evitando carregar arquivos inteiros na memória.
+- A importação de áudio em lote evita consultas repetidas ao banco carregando os cartões necessários de forma agrupada.
+- Etapas pesadas de importação e exportação passam a ser executadas fora da thread principal da interface quando aplicável, preservando a responsividade da janela.
+- Validações repetitivas de artefatos de imagem utilizam cache enquanto caminho, tamanho e data de modificação do arquivo permanecerem inalterados.
+
+### Preservado
+- Nenhuma mudança foi feita na política de importação/recuperação de JSON/TXT ou no prompt de importação por causa de JSON malformado.
+- Funcionalidades de criação, projetos, áudio, imagens, IA, exportação e persistência permanecem na arquitetura funcional existente.
+
+### Distribuição
+- Versão atualizada para `0.11.0-beta.8`.
+
+## [0.11.0-beta.7] - 2026-08-13
+
+### Adicionado
+- Biblioteca visual de Projetos com pesquisa por nome/tema, filtro por idioma e ordenação por atividade recente, nome ou quantidade de cartões.
+- Duplicação de projetos pelo menu `⋯` e pelo menu de contexto, preservando configurações, cartões e metadados de mídia.
+- Presets de criação persistentes para reaplicar configurações de idioma, modelo, estrutura, áudio e mídia sem armazenar credenciais.
+- Modo de quantidade **Automática** para geração por IA, permitindo que o Gemini determine uma contagem adequada dentro de um limite máximo de segurança.
+- Barra lateral recolhível para modo somente ícones, com persistência do estado.
+- Gerenciador visual de múltiplas tarefas para acompanhar imagem e áudio de forma independente.
+- Ações globais de Desfazer/Refazer para editores de texto e carregamento das traduções nativas do Qt para menus de contexto.
+- Janela própria de atualização com versão instalada, versão disponível, canal e notas da release.
+- Janela categorizada de Configurações, inspirada em um layout de navegação lateral com conteúdo à direita.
+- Painel de áudio específico por projeto e gerenciamento global de provedores/perfis dentro de Configurações.
+- Pré-visualização de cartão com fluxo Frente → Mostrar resposta e modos de largura Desktop/Celular.
+- Gancho opcional de assinatura Authenticode no build Windows e documentação em `docs/WINDOWS_SIGNING.md`.
+
+### Alterado
+- As funcionalidades da antiga página **Modelos** foram incorporadas a **Projetos → Estrutura e aparência**.
+- As configurações globais da antiga página **Áudios** foram movidas para **Configurações → Áudio**, enquanto opções específicas continuam vinculadas ao projeto.
+- A navegação principal foi simplificada para Início, Criar, Projetos, Roadmap, Configurações e Sobre.
+- A tela Criar foi reorganizada em seções recolhíveis e passou a oferecer gerenciamento de presets e configuração de quantidade fixa/automática.
+- A mensagem da página inicial agora apresenta o AnkiiStudio de forma mais ampla como ferramenta para transformar conteúdos em materiais de estudo, sem anunciar módulos ainda não implementados.
+- Atualizações de imagem e áudio no banco passam a gravar somente os campos de mídia correspondentes.
+- O estilo global de `QLabel` usa fundo transparente para eliminar o artefato visual de retângulo/sombra sob textos.
+
+### Corrigido
+- Busca/download de imagens e geração de áudios que compartilhavam a mesma área de progresso e podiam sobrescrever o status uma da outra.
+- Concorrência entre workers de imagem e áudio que podia regravar um snapshot antigo do cartão e perder a mídia gravada pela outra tarefa.
+- Associação do progresso de tarefas em lote ao projeto errado quando o usuário mudava de projeto durante o processamento.
+- Menus de contexto de edição que permaneciam em Inglês quando a interface estava configurada para Português, quando as traduções Qt correspondentes estão disponíveis no runtime.
+
+### Complementos e correções da beta.7
+- Adicionado tema visual **Carmesim** para o aplicativo, baseado em `#1A1A1A` e `#A4133C`, sem substituir os temas Claro e Escuro.
+- Adicionado **tema padrão global dos flashcards** em Configurações → Aparência. Novos projetos recebem uma cópia desse tema; projetos existentes permanecem independentes e podem aplicar o padrão manualmente em Estrutura e aparência.
+- A criação de presets passa a preservar também o tema do cartão, preferências de voz por provedor e os ajustes de VOICEVOX (personagem/estilo, velocidade, tom, entonação, volume e pausas), sem armazenar chaves de API.
+- Configurações → Áudio passa a permitir carregar, escolher, ajustar e ouvir a voz padrão do VOICEVOX, além de ouvir perfis Gemini TTS e ElevenLabs.
+- Criar → Mídias e áudio ganhou uma seção **Avançado** com escolha e prévia de VOICEVOX, Gemini TTS e ElevenLabs, permitindo salvar essas preferências nos presets.
+- Projetos → Áudio do projeto passa a permitir definir e ouvir uma voz preferida por provedor nos modos inteligente/aleatório.
+- Corrigida a geração Gemini para idiomas diferentes de Japonês: a resposta da geração interna agora exige explicitamente `language` e `translation_language`, evitando fallback silencioso para `ja` quando o modelo omite esses campos.
+- Corrigida a geração com quantidade fixa: o AnkiiStudio exige exatamente a quantidade solicitada, tenta uma correção automática uma vez e rejeita a criação incompleta caso a Gemini continue retornando menos/mais cartões.
+- Corrigido o layout responsivo de Cartões dentro de Projetos em larguras reduzidas, evitando compressão/sobreposição da tabela, botões de seleção e editor.
+- O comportamento do importador externo de JSON/TXT e o prompt de importação permanecem inalterados nesta rodada.
+
+### Distribuição
+- Versão atualizada para `0.11.0-beta.7`.
+- O script de build tenta assinar `AnkiiStudio.exe` antes de empacotar quando as variáveis de assinatura estão configuradas; builds sem certificado continuam possíveis e são identificados como não assinados.
+
 ## [0.11.0-beta.6] - 2026-08-11
 
 ### Adicionado

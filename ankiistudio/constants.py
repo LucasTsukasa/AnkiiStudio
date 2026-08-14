@@ -4,7 +4,7 @@ import re
 import unicodedata
 
 APP_NAME = "AnkiiStudio"
-APP_VERSION = "0.11.0-beta.6"
+APP_VERSION = "0.11.0-beta.8"
 ORGANIZATION_NAME = "LucasTsukasa"
 GITHUB_URL = "https://github.com/LucasTsukasa"
 DATABASE_FILENAME = "ankiistudio.db"

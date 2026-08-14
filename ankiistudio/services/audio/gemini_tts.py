@@ -29,6 +29,7 @@ class GeminiTTSProvider(AudioProvider):
         self.voice = voice.strip()
         self.usage_tracker = usage_tracker
         self.language_label = language_label.strip() or "Japanese"
+        self._client = None
 
     def is_available(self) -> bool:
         return bool(self.api_key and self.model and self.voice)
@@ -69,7 +70,9 @@ class GeminiTTSProvider(AudioProvider):
         if not self.is_available():
             raise RuntimeError("Configure a chave da Gemini API.")
 
-        client = genai.Client(api_key=self.api_key)
+        if self._client is None:
+            self._client = genai.Client(api_key=self.api_key)
+        client = self._client
         errors: list[str] = []
         candidates = self._candidate_models()
         if not candidates:

@@ -12,7 +12,7 @@ from ankiistudio.constants import APP_NAME, APP_VERSION, ORGANIZATION_NAME
 from ankiistudio.database import Database
 from ankiistudio.i18n import UiLanguageManager, set_current_language, tr
 from ankiistudio.ui.main_window import MainWindow
-from ankiistudio.ui.theme import build_stylesheet
+from ankiistudio.ui.design_system.themes import apply_design_system
 
 
 def configure_logging(paths: AppPaths) -> None:
@@ -45,13 +45,10 @@ def main() -> int:
         app.installEventFilter(language_manager)
         app._ankiistudio_language_manager = language_manager  # type: ignore[attr-defined]
         resource_dir = Path(__file__).resolve().parent / "resources"
-        app.setStyleSheet(build_stylesheet(resource_dir, database.get_setting("appearance_theme", "dark")))
+        apply_design_system(app, resource_dir, database.get_setting("appearance_theme", "dark"))
         window = MainWindow(database, paths, resource_dir)
         window.show()
-        available = window.screen().availableGeometry()
-        frame = window.frameGeometry()
-        frame.moveCenter(available.center())
-        window.move(frame.topLeft())
+        window.ensure_visible_on_screen(center=not window.geometry_restored)
     except Exception as exc:
         QMessageBox.critical(
             None,

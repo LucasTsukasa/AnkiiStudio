@@ -2,60 +2,18 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from ankiistudio.ui.design_system.tokens import get_theme_tokens
+
 
 def build_stylesheet(resource_dir: Path, theme: str = "dark") -> str:
     icons = resource_dir / "icons"
-    check_icon = (icons / "check.svg").as_posix()
-    radio_icon = (icons / "radio.svg").as_posix()
+    check_name = "check_crimson.svg" if theme == "crimson" else "check.svg"
+    radio_name = "radio_crimson.svg" if theme == "crimson" else "radio.svg"
+    check_icon = (icons / check_name).as_posix()
+    radio_icon = (icons / radio_name).as_posix()
 
-    if theme == "light":
-        c = {
-            "bg": "#F4F7F5",
-            "sidebar": "#FFFFFF",
-            "card": "#FFFFFF",
-            "hero": "#F4FBF7",
-            "input": "#F8FAF9",
-            "input_disabled": "#EDF1EF",
-            "text": "#17211B",
-            "text_soft": "#44534B",
-            "muted": "#66756D",
-            "border": "#D7E0DA",
-            "border_hover": "#B7C8BE",
-            "primary": "#18C96F",
-            "primary_hover": "#12B863",
-            "primary_text": "#FFFFFF",
-            "selected": "#DDF6E8",
-            "selected_border": "#8AD8AE",
-            "danger_bg": "#FFF1F2",
-            "danger_border": "#E8B9BE",
-            "danger_text": "#A5323E",
-            "scroll": "#C8D3CD",
-            "tooltip": "#FFFFFF",
-        }
-    else:
-        c = {
-            "bg": "#080B0A",
-            "sidebar": "#0A0F0C",
-            "card": "#0E1411",
-            "hero": "#0D1712",
-            "input": "#0A100D",
-            "input_disabled": "#090D0B",
-            "text": "#F3F7F4",
-            "text_soft": "#B9C7BF",
-            "muted": "#84968C",
-            "border": "#24332B",
-            "border_hover": "#3A5144",
-            "primary": "#19D978",
-            "primary_hover": "#2BE88A",
-            "primary_text": "#031109",
-            "selected": "#123121",
-            "selected_border": "#1FAF64",
-            "danger_bg": "#241214",
-            "danger_border": "#4A252B",
-            "danger_text": "#F5A6AD",
-            "scroll": "#293A31",
-            "tooltip": "#101813",
-        }
+    t = get_theme_tokens(theme)
+    c = t.legacy_mapping()
 
     return f"""
 * {{
@@ -64,6 +22,7 @@ def build_stylesheet(resource_dir: Path, theme: str = "dark") -> str:
     color: {c['text']};
 }}
 QMainWindow, QWidget {{ background: {c['bg']}; }}
+QLabel {{ background: transparent; }}
 QWidget#PageSurface, QScrollArea#PageScroll, QScrollArea#PageScroll > QWidget > QWidget {{ background: {c['bg']}; }}
 QScrollArea#PageScroll {{ border: 0; }}
 QFrame#Sidebar {{ background: {c['sidebar']}; border-right: 1px solid {c['border']}; }}
@@ -111,6 +70,30 @@ QPushButton#NavButton {{
 }}
 QPushButton#NavButton:hover {{ background: {c['input']}; color: {c['text']}; }}
 QPushButton#NavButton:checked {{ background: {c['selected']}; color: {c['primary']}; font-weight: 700; }}
+QPushButton#SidebarToggle {{ background: transparent; border: 0; border-radius: 9px; padding: 0; color: {c['muted']}; font-size: 18px; font-weight: 700; }}
+QPushButton#SidebarToggle:hover {{ background: {c['input']}; color: {c['text']}; }}
+QPushButton#CollapsibleHeader {{ background: transparent; border: 0; border-radius: 0; padding: 14px 18px 8px 18px; text-align: left; color: {c['text']}; font-size: 15px; font-weight: 750; }}
+QPushButton#CollapsibleHeader:hover {{ background: {c['input']}; }}
+QWidget#CollapsibleBody {{ background: transparent; }}
+QFrame#TaskCenter {{ background: {c['card']}; border: 1px solid {c['border']}; border-radius: 12px; }}
+QFrame#TaskRow {{ background: {c['input']}; border: 1px solid {c['border']}; border-radius: 9px; }}
+QLabel[taskError="true"] {{ color: {c['danger_text']}; }}
+QFrame#ProjectCard {{ background: {c['card']}; border: 1px solid {c['border']}; border-radius: 14px; }}
+QFrame#ProjectCard:hover {{ border-color: {c['primary']}; background: {c['hero']}; }}
+QPushButton#ProjectCardButton {{ background: transparent; border: 0; text-align: left; padding: 0; font-size: 16px; font-weight: 750; color: {c['text']}; }}
+QPushButton#ProjectCardButton:hover {{ color: {c['primary']}; }}
+QToolButton#ProjectCardMenuButton {{
+    background: transparent; border: 1px solid transparent; border-radius: 7px;
+    color: {c['muted']}; font-size: 16px; font-weight: 700; padding: 0;
+}}
+QToolButton#ProjectCardMenuButton:hover {{ background: {c['input']}; border-color: {c['border_hover']}; color: {c['text']}; }}
+QLabel#ProjectTopic {{ color: {c['text_soft']}; font-size: 13px; font-weight: 600; background: transparent; }}
+QFrame#CardPreviewStage {{ background: {c['input']}; border: 1px solid {c['border']}; border-radius: 12px; }}
+QTextBrowser#CardPreviewBrowser {{ background: transparent; border: 0; border-radius: 10px; padding: 0; }}
+QFrame#CreateActionBar {{ background: {c['bg']}; border-top: 1px solid {c['border']}; }}
+QPushButton#SettingsCategory {{ background: transparent; border: 0; text-align: left; padding: 10px 12px; color: {c['muted']}; }}
+QPushButton#SettingsCategory:checked {{ background: {c['selected']}; color: {c['primary']}; font-weight: 750; }}
+QDialog#SettingsDialog, QDialog#UpdateDialog {{ background: {c['bg']}; }}
 QLabel#PageTitle {{ font-size: 25px; font-weight: 800; color: {c['text']}; background: transparent; }}
 QLabel#PageSubtitle {{ color: {c['muted']}; font-size: 13px; background: transparent; }}
 QLabel#SectionTitle {{ font-size: 16px; font-weight: 750; color: {c['text']}; background: transparent; }}
@@ -163,6 +146,7 @@ QPushButton {{
     padding: 9px 14px; font-weight: 650; color: {c['text_soft']};
 }}
 QPushButton:hover {{ background: {c['card']}; border-color: {c['border_hover']}; color: {c['text']}; }}
+QPushButton:focus {{ border: 1px solid {c['primary']}; }}
 QPushButton:pressed {{ background: {c['selected']}; }}
 QPushButton:disabled {{ background: {c['input_disabled']}; border-color: {c['border']}; color: {c['muted']}; }}
 QPushButton#PrimaryButton {{ background: {c['primary']}; color: {c['primary_text']}; border: 1px solid {c['primary']}; font-weight: 750; }}
@@ -202,4 +186,53 @@ QProgressBar::chunk {{ background: {c['primary']}; border-radius: 6px; }}
 QToolTip {{ background: {c['tooltip']}; color: {c['text']}; border: 1px solid {c['border_hover']}; padding: 6px; }}
 QSplitter::handle {{ background: transparent; width: 8px; }}
 QMessageBox {{ background: {c['card']}; }}
+
+/* AnkiiStudio Design System v1 ------------------------------------------------ */
+QFrame#ASSidebar {{ background: {c['sidebar']}; border-right: 1px solid {c['border']}; }}
+QPushButton#ASSidebarItem {{
+    background: transparent; border: 0; border-radius: 9px; padding: 10px 12px;
+    text-align: left; color: {c['muted']}; font-size: 13px; font-weight: 600;
+}}
+QPushButton#ASSidebarItem:hover {{ background: {c['input']}; color: {c['text']}; }}
+QPushButton#ASSidebarItem:checked {{ background: {c['selected']}; color: {c['primary']}; font-weight: 700; }}
+QPushButton#ASButton[asComponent="sidebar-item"] {{
+    background: transparent; border: 0; border-radius: 9px; padding: 10px 12px;
+    text-align: left; color: {c['muted']}; font-size: 13px; font-weight: 600;
+}}
+QPushButton#ASButton[asComponent="sidebar-item"]:hover {{ background: {c['input']}; color: {c['text']}; }}
+QPushButton#ASButton {{ min-height: 18px; }}
+QPushButton#ASButton[asVariant="primary"] {{ background: {c['primary']}; color: {c['primary_text']}; border-color: {c['primary']}; font-weight: 750; }}
+QPushButton#ASButton[asVariant="primary"]:hover {{ background: {c['primary_hover']}; border-color: {c['primary_hover']}; }}
+QPushButton#ASButton[asVariant="secondary"] {{ background: {c['card']}; color: {c['text']}; border-color: {c['border_hover']}; }}
+QPushButton#ASButton[asVariant="ghost"] {{ background: transparent; border-color: transparent; color: {c['text_soft']}; }}
+QPushButton#ASButton[asVariant="ghost"]:hover {{ background: {c['input']}; color: {c['text']}; }}
+QPushButton#ASButton[asVariant="danger"] {{ background: {c['danger_bg']}; color: {c['danger_text']}; border-color: {c['danger_border']}; }}
+QPushButton#ASButton[asVariant="icon"] {{ background: transparent; border-color: transparent; padding: 7px; }}
+QFrame#ASCard, QFrame#ASSectionCard, QFrame#ASToast {{ background: {c['card']}; border: 1px solid {c['border']}; border-radius: 14px; }}
+QFrame#ASCard[asVariant="raised"] {{ background: {c['hero']}; border-color: {c['border_hover']}; }}
+QFrame#ASCard[asVariant="interactive"]:hover {{ background: {c['hero']}; border-color: {c['primary']}; }}
+QFrame#ASCard[asVariant="selected"] {{ background: {c['selected']}; border-color: {c['selected_border']}; }}
+QFrame#ASCard[asVariant="danger"], QFrame#ASToast[asVariant="danger"] {{ background: {c['danger_bg']}; border-color: {c['danger_border']}; }}
+QFrame#ASCard[asVariant="warning"], QFrame#ASToast[asVariant="warning"] {{ background: {t.warning_bg}; border-color: {c['border_hover']}; }}
+QFrame#ASCard[asVariant="success"], QFrame#ASToast[asVariant="success"] {{ background: {t.success_bg}; border-color: {c['selected_border']}; }}
+QFrame#Card[asVariant="danger"] {{ background: {c['danger_bg']}; border-color: {c['danger_border']}; }}
+QFrame#Card[asVariant="success"] {{ background: {t.success_bg}; border-color: {c['selected_border']}; }}
+QLineEdit#ASInput[asError="true"], QTextEdit#ASInput[asError="true"], QPlainTextEdit#ASInput[asError="true"] {{ border-color: {c['danger_text']}; }}
+QComboBox#ASComboBox {{ min-height: 20px; }}
+QDialog#ASDialog {{ background: {c['bg']}; }}
+QTabWidget#ASTabs::pane {{ border: 0; border-top: 1px solid {c['border']}; background: transparent; }}
+QTabBar::tab {{ background: transparent; color: {c['muted']}; border: 0; padding: 10px 14px; font-weight: 650; }}
+QTabBar::tab:hover {{ color: {c['text']}; background: {c['input']}; }}
+QTabBar::tab:selected {{ color: {c['primary']}; border-bottom: 2px solid {c['primary']}; }}
+QMenu#ASContextMenu {{ background: {c['card']}; border: 1px solid {c['border']}; padding: 6px; }}
+QMenu#ASContextMenu::item {{ padding: 7px 24px 7px 10px; border-radius: 6px; }}
+QMenu#ASContextMenu::item:selected {{ background: {c['selected']}; color: {c['text']}; }}
+QProgressBar#ASProgress {{ min-height: 8px; }}
+QTableView#ASTable, QTableWidget#ASTable {{ background: {c['input']}; border: 1px solid {c['border']}; border-radius: 9px; gridline-color: transparent; }}
+QTableView#ASTable::item, QTableWidget#ASTable::item {{ padding: 7px; border-bottom: 1px solid {c['border']}; }}
+QTableView#ASTable::item:selected, QTableWidget#ASTable::item:selected {{ background: {c['selected']}; color: {c['text']}; }}
+QLabel[asTextRole="title"] {{ font-size: 25px; font-weight: 800; color: {c['text']}; }}
+QLabel[asTextRole="section"] {{ font-size: 16px; font-weight: 750; color: {c['text']}; }}
+QLabel[asTextRole="muted"] {{ color: {c['muted']}; }}
+QWidget#ASToastManager {{ background: transparent; }}
 """

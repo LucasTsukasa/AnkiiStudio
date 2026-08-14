@@ -1,12 +1,16 @@
 from __future__ import annotations
 
+from contextlib import contextmanager
 import hashlib
 import json
 import shutil
 from pathlib import Path
+from typing import Iterator
+
+import httpx
 
 from ankiistudio.config import AppPaths, SecretStore
-from ankiistudio.constants import DEFAULT_VOICEVOX_URL, language_label
+from ankiistudio.constants import APP_VERSION, DEFAULT_VOICEVOX_URL, language_label
 from ankiistudio.database import Database
 from ankiistudio.models import FlashcardData, MediaAsset, ProjectData
 from ankiistudio.services.audio.elevenlabs import ElevenLabsProvider
@@ -43,8 +47,11 @@ class ProjectAudioService:
     def _gemini_pool(self, project: ProjectData) -> AudioProviderPool:
         api_key = SecretStore.get("GEMINI_API_KEY")
         profiles = self.profile_service.list_for("gemini", project.language)
+        preferred = project.audio_profile_preferences.get("gemini", "")
         if project.audio_mode == "fixed" and project.fixed_audio_provider == "gemini":
-            profiles = [p for p in profiles if p.id == project.fixed_audio_profile_id]
+            preferred = project.fixed_audio_profile_id or preferred
+        if preferred:
+            profiles = [p for p in profiles if p.id == preferred]
         providers = [
             (
                 self._profile_runtime_key(profile),
@@ -61,11 +68,19 @@ class ProjectAudioService:
         ]
         return AudioProviderPool("gemini", providers, self._blocked_profiles)
 
-    def _eleven_pool(self, project: ProjectData) -> AudioProviderPool:
+    def _eleven_pool(
+        self,
+        project: ProjectData,
+        *,
+        http_client: httpx.Client | None = None,
+    ) -> AudioProviderPool:
         api_key = SecretStore.get("ELEVENLABS_API_KEY")
         profiles = self.profile_service.list_for("elevenlabs", project.language)
+        preferred = project.audio_profile_preferences.get("elevenlabs", "")
         if project.audio_mode == "fixed" and project.fixed_audio_provider == "elevenlabs":
-            profiles = [p for p in profiles if p.id == project.fixed_audio_profile_id]
+            preferred = project.fixed_audio_profile_id or preferred
+        if preferred:
+            profiles = [p for p in profiles if p.id == preferred]
         providers = [
             (
                 self._profile_runtime_key(profile),
@@ -80,15 +95,21 @@ class ProjectAudioService:
                     style=profile.style,
                     speed=profile.speed,
                     speaker_boost=profile.speaker_boost,
+                    client=http_client,
                 ),
             )
             for profile in profiles
         ]
         return AudioProviderPool("elevenlabs", providers, self._blocked_profiles)
 
-    def _build_router(self, project: ProjectData) -> AudioRouter:
+    def _build_router(
+        self,
+        project: ProjectData,
+        *,
+        http_client: httpx.Client | None = None,
+    ) -> AudioRouter:
         providers = {
-            "tatoeba": TatoebaAudioProvider(project.language),
+            "tatoeba": TatoebaAudioProvider(project.language, client=http_client),
             "voicevox": VoicevoxProvider(
                 self.database.get_setting("voicevox_url", DEFAULT_VOICEVOX_URL),
                 project.voicevox_style_id,
@@ -97,14 +118,27 @@ class ProjectAudioService:
                 intonation_scale=project.voicevox_intonation_scale,
                 volume_scale=project.voicevox_volume_scale,
                 pause_length_scale=project.voicevox_pause_length_scale,
+                client=http_client,
             ),
             "wikimedia": WikimediaAudioProvider(
-                WikimediaService(), language_label(project.language)
+                WikimediaService(client=http_client), language_label(project.language)
             ),
             "gemini": self._gemini_pool(project),
-            "elevenlabs": self._eleven_pool(project),
+            "elevenlabs": self._eleven_pool(project, http_client=http_client),
         }
         return AudioRouter(providers)
+
+    @contextmanager
+    def batch_router(self, project: ProjectData) -> Iterator[AudioRouter]:
+        """Cria provedores uma vez e reaproveita conexões durante um lote."""
+        with httpx.Client(
+            timeout=120,
+            follow_redirects=True,
+            headers={
+                "User-Agent": f"AnkiiStudio/{APP_VERSION} (https://github.com/LucasTsukasa/AnkiiStudio)"
+            },
+        ) as client:
+            yield self._build_router(project, http_client=client)
 
     @staticmethod
     def _valid_file(path_text: str) -> bool:
@@ -120,6 +154,7 @@ class ProjectAudioService:
         *,
         words: bool | None = None,
         sentences: bool | None = None,
+        router: AudioRouter | None = None,
     ) -> FlashcardData:
         del words, sentences  # parâmetros mantidos apenas por compatibilidade com chamadas antigas
         if card.id is None or card.project_id is None:
@@ -133,14 +168,14 @@ class ProjectAudioService:
         if not self._valid_file(card.word_audio_path) and self._valid_file(card.sentence_audio_path):
             card.word_audio_path = card.sentence_audio_path
             card.sentence_audio_path = ""
-            self.database.update_card(card)
+            self.database.update_card_media(card.id, project_id=card.project_id, word_audio_path=card.word_audio_path, sentence_audio_path=card.sentence_audio_path, update_audio=True)
         elif card.word_audio_path and not self._valid_file(card.word_audio_path):
             card.word_audio_path = ""
 
         if self._valid_file(card.word_audio_path):
             return card
 
-        router = self._build_router(project)
+        router = router or self._build_router(project)
         card_dir = self.paths.audio_dir / f"project_{card.project_id}"
         card_dir.mkdir(parents=True, exist_ok=True)
         result = router.generate(
@@ -153,10 +188,24 @@ class ProjectAudioService:
             raise RuntimeError("O provedor informou sucesso, mas o arquivo de áudio não foi criado corretamente.")
         card.word_audio_path = result.local_path
         card.sentence_audio_path = ""
-        self.database.update_card(card)
-        self.database.delete_media_assets_for_card(card.id, "audio")
-        self._register_asset(project, card, result, "audio")
+        asset = self._asset_from_result(project, card, result, "audio")
+        self.database.replace_card_media_asset(
+            card.id,
+            asset,
+            project_id=card.project_id,
+            word_audio_path=card.word_audio_path,
+            sentence_audio_path=card.sentence_audio_path,
+            update_audio=True,
+        )
         return card
+
+    @staticmethod
+    def _sha256_file(path: Path, *, chunk_size: int = 1024 * 1024) -> str:
+        digest = hashlib.sha256()
+        with path.open("rb") as stream:
+            while chunk := stream.read(chunk_size):
+                digest.update(chunk)
+        return digest.hexdigest()
 
     def import_audio_file(
         self,
@@ -172,7 +221,7 @@ class ProjectAudioService:
         if not source.is_file() or source.stat().st_size <= 0:
             raise ValueError("O arquivo de áudio selecionado não existe ou está vazio.")
         suffix = source.suffix.lower() or ".audio"
-        digest = hashlib.sha256(source.read_bytes()).hexdigest()[:16]
+        digest = self._sha256_file(source)[:16]
         destination_dir = self.paths.audio_dir / f"project_{project.id}"
         destination_dir.mkdir(parents=True, exist_ok=True)
         destination = destination_dir / f"card_{card.id}_import_{digest}{suffix}"
@@ -181,21 +230,25 @@ class ProjectAudioService:
         previous_paths = {path for path in (card.word_audio_path, card.sentence_audio_path) if path}
         card.word_audio_path = str(destination)
         card.sentence_audio_path = ""
-        self.database.update_card(card)
-        self.database.delete_media_assets_for_card(card.id, "audio")
-        self.database.add_media_asset(
-            MediaAsset(
-                project_id=project.id,
-                card_id=card.id,
-                kind="audio",
-                provider="import",
-                local_path=str(destination),
-                source_title=source.name,
-                metadata_json=json.dumps(
-                    {"original_filename": source.name, "imported": True},
-                    ensure_ascii=False,
-                ),
-            )
+        asset = MediaAsset(
+            project_id=project.id,
+            card_id=card.id,
+            kind="audio",
+            provider="import",
+            local_path=str(destination),
+            source_title=source.name,
+            metadata_json=json.dumps(
+                {"original_filename": source.name, "imported": True},
+                ensure_ascii=False,
+            ),
+        )
+        self.database.replace_card_media_asset(
+            card.id,
+            asset,
+            project_id=card.project_id,
+            word_audio_path=card.word_audio_path,
+            sentence_audio_path=card.sentence_audio_path,
+            update_audio=True,
         )
         for old_path in previous_paths:
             if old_path != str(destination):
@@ -208,8 +261,14 @@ class ProjectAudioService:
         previous_paths = {path for path in (card.word_audio_path, card.sentence_audio_path) if path}
         card.word_audio_path = ""
         card.sentence_audio_path = ""
-        self.database.update_card(card)
-        self.database.delete_media_assets_for_card(card.id, "audio")
+        self.database.clear_card_media_asset(
+            card.id,
+            "audio",
+            project_id=card.project_id,
+            word_audio_path=card.word_audio_path,
+            sentence_audio_path=card.sentence_audio_path,
+            update_audio=True,
+        )
         for old_path in previous_paths:
             self._delete_unreferenced_audio(old_path)
         return card
@@ -233,21 +292,25 @@ class ProjectAudioService:
             return True, []
         return False, ["áudio"]
 
-    def _register_asset(self, project: ProjectData, card: FlashcardData, result, kind: str) -> None:
+    def _asset_from_result(
+        self,
+        project: ProjectData,
+        card: FlashcardData,
+        result,
+        kind: str,
+    ) -> MediaAsset:
         if project.id is None:
             raise ValueError("O projeto precisa estar salvo antes de registrar mídia.")
-        self.database.add_media_asset(
-            MediaAsset(
-                project_id=project.id,
-                card_id=card.id,
-                kind=kind,
-                provider=result.provider,
-                local_path=result.local_path,
-                source_title=result.source_title,
-                source_url=result.source_url,
-                author=result.author,
-                license_name=result.license_name,
-                license_url=result.license_url,
-                metadata_json=result.metadata_json,
-            )
+        return MediaAsset(
+            project_id=project.id,
+            card_id=card.id,
+            kind=kind,
+            provider=result.provider,
+            local_path=result.local_path,
+            source_title=result.source_title,
+            source_url=result.source_url,
+            author=result.author,
+            license_name=result.license_name,
+            license_url=result.license_url,
+            metadata_json=result.metadata_json,
         )

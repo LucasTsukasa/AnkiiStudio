@@ -2,11 +2,15 @@ from __future__ import annotations
 
 import json
 import unicodedata
+from functools import lru_cache
 from pathlib import Path
+
+import httpx
 
 from ankiistudio.database import Database
 from ankiistudio.models import FlashcardData, ImageSearchResult, MediaAsset, ProjectData
 from ankiistudio.services.image_service import ImageService
+from ankiistudio.services.image_sources import ImageSearchService
 
 SUPPORTED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp", ".tif", ".tiff"}
 
@@ -25,13 +29,29 @@ class CardImageService:
         self.image_service = image_service
 
     @staticmethod
-    def has_valid_image(card: FlashcardData) -> bool:
+    @lru_cache(maxsize=2048)
+    def _is_alpha_mask_artifact_cached(path_text: str, mtime_ns: int, size: int) -> bool:
+        del mtime_ns, size  # fazem parte da chave e invalidam o cache quando o arquivo muda
+        return ImageService.is_alpha_mask_artifact(Path(path_text))
+
+    @classmethod
+    def has_valid_image(cls, card: FlashcardData) -> bool:
         if not card.image_path:
             return False
         path = Path(card.image_path)
-        if not path.is_file() or path.stat().st_size <= 0:
+        if not path.is_file():
             return False
-        return not ImageService.is_alpha_mask_artifact(path)
+        try:
+            stat = path.stat()
+        except OSError:
+            return False
+        if stat.st_size <= 0:
+            return False
+        try:
+            resolved = str(path.resolve())
+        except OSError:
+            resolved = str(path)
+        return not cls._is_alpha_mask_artifact_cached(resolved, stat.st_mtime_ns, stat.st_size)
 
     @staticmethod
     def manual_search_terms(card: FlashcardData) -> tuple[str, list[str]]:
@@ -91,6 +111,8 @@ class CardImageService:
         project: ProjectData,
         card: FlashcardData,
         result: ImageSearchResult,
+        *,
+        http_client: httpx.Client | None = None,
     ) -> FlashcardData:
         if project.id is None or card.id is None:
             raise ValueError("Projeto e cartão devem estar salvos.")
@@ -107,7 +129,10 @@ class CardImageService:
         if not download_url:
             raise RuntimeError("A fonte não forneceu uma URL utilizável para a imagem.")
 
-        raw, _ = self.search_service.download(download_url)
+        if isinstance(self.search_service, ImageSearchService):
+            raw, _ = self.search_service.download(download_url, client=http_client)
+        else:
+            raw, _ = self.search_service.download(download_url)
         local_path = self.image_service.optimize(
             raw,
             result.title,
@@ -117,27 +142,30 @@ class CardImageService:
             raise RuntimeError("A imagem foi baixada, mas o arquivo final não pôde ser validado.")
 
         card.image_path = str(local_path)
-        self.database.update_card(card)
-        self.database.delete_media_assets_for_card(card.id, "image")
-        self.database.add_media_asset(
-            MediaAsset(
-                project_id=project.id,
-                card_id=card.id,
-                kind="image",
-                provider=result.provider or "unknown",
-                local_path=str(local_path),
-                source_title=result.title,
-                source_url=result.description_url,
-                author=result.author,
-                license_name=result.license_name,
-                license_url=result.license_url,
-                modifications=(
-                    "SVG rasterizado pelo Wikimedia, composto sobre fundo branco, redimensionado e convertido para WebP."
-                    if is_wikimedia_svg
-                    else "Redimensionamento e conversão para WebP."
-                ),
-                metadata_json=json.dumps(result.model_dump(), ensure_ascii=False),
-            )
+        asset = MediaAsset(
+            project_id=project.id,
+            card_id=card.id,
+            kind="image",
+            provider=result.provider or "unknown",
+            local_path=str(local_path),
+            source_title=result.title,
+            source_url=result.description_url,
+            author=result.author,
+            license_name=result.license_name,
+            license_url=result.license_url,
+            modifications=(
+                "SVG rasterizado pelo Wikimedia, composto sobre fundo branco, redimensionado e convertido para WebP."
+                if is_wikimedia_svg
+                else "Redimensionamento e conversão para WebP."
+            ),
+            metadata_json=json.dumps(result.model_dump(), ensure_ascii=False),
+        )
+        self.database.replace_card_media_asset(
+            card.id,
+            asset,
+            project_id=card.project_id,
+            image_path=card.image_path,
+            update_image=True,
         )
         return card
 
@@ -179,7 +207,13 @@ class CardImageService:
                     return True
         return False
 
-    def apply_best_image(self, project: ProjectData, card: FlashcardData) -> FlashcardData:
+    def apply_best_image(
+        self,
+        project: ProjectData,
+        card: FlashcardData,
+        *,
+        http_client: httpx.Client | None = None,
+    ) -> FlashcardData:
         if not project.card_uses_component(card, "image"):
             raise ValueError("A estrutura deste cartão não utiliza imagens.")
         if self.has_valid_image(card):
@@ -187,12 +221,18 @@ class CardImageService:
 
         if card.image_path:
             card.image_path = ""
-            self.database.update_card(card)
+            self.database.update_card_media(card.id, project_id=card.project_id, image_path=card.image_path, update_image=True)
 
         errors: list[str] = []
         for term in self.preferred_search_terms(card):
             try:
-                if hasattr(self.search_service, "search_provider_ordered"):
+                if isinstance(self.search_service, ImageSearchService):
+                    results = self.search_service.search_provider_ordered(
+                        term,
+                        limit_per_provider=8,
+                        client=http_client,
+                    )
+                elif hasattr(self.search_service, "search_provider_ordered"):
                     results = self.search_service.search_provider_ordered(term, limit_per_provider=8)
                 else:
                     results = self.search_service.search(term, kind="image", limit=8)
@@ -203,7 +243,12 @@ class CardImageService:
                 if not self._wikimedia_result_matches_non_latin_term(result, term):
                     continue
                 try:
-                    return self.apply_search_result(project, card, result)
+                    return self.apply_search_result(
+                        project,
+                        card,
+                        result,
+                        http_client=http_client,
+                    )
                 except Exception as exc:
                     errors.append(f"{result.title}: {exc}")
 
@@ -230,22 +275,25 @@ class CardImageService:
             raise ValueError("O arquivo de imagem está vazio.")
         local_path = self.image_service.optimize(raw, source.name, flatten_transparency=True)
         card.image_path = str(local_path)
-        self.database.update_card(card)
-        self.database.delete_media_assets_for_card(card.id, "image")
-        self.database.add_media_asset(
-            MediaAsset(
-                project_id=project.id,
-                card_id=card.id,
-                kind="image",
-                provider="user_import",
-                local_path=str(local_path),
-                source_title=source.name,
-                modifications="Imagem importada pelo usuário, redimensionada e convertida para WebP.",
-                metadata_json=json.dumps(
-                    {"original_filename": source.name, "imported": True},
-                    ensure_ascii=False,
-                ),
-            )
+        asset = MediaAsset(
+            project_id=project.id,
+            card_id=card.id,
+            kind="image",
+            provider="user_import",
+            local_path=str(local_path),
+            source_title=source.name,
+            modifications="Imagem importada pelo usuário, redimensionada e convertida para WebP.",
+            metadata_json=json.dumps(
+                {"original_filename": source.name, "imported": True},
+                ensure_ascii=False,
+            ),
+        )
+        self.database.replace_card_media_asset(
+            card.id,
+            asset,
+            project_id=card.project_id,
+            image_path=card.image_path,
+            update_image=True,
         )
         return card
 
@@ -254,8 +302,13 @@ class CardImageService:
             raise ValueError("Cartão sem identificador.")
         previous = card.image_path
         card.image_path = ""
-        self.database.update_card(card)
-        self.database.delete_media_assets_for_card(card.id, "image")
+        self.database.clear_card_media_asset(
+            card.id,
+            "image",
+            project_id=card.project_id,
+            image_path=card.image_path,
+            update_image=True,
+        )
         self._delete_unreferenced_file(previous, "image")
         return card
 

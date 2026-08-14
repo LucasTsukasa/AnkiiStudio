@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import hashlib
+from contextlib import contextmanager
+from collections.abc import Iterator
 from pathlib import Path
 
 import httpx
@@ -21,6 +23,7 @@ class VoicevoxProvider(AudioProvider):
         intonation_scale: float = 1.0,
         volume_scale: float = 1.0,
         pause_length_scale: float = 1.0,
+        client: httpx.Client | None = None,
     ) -> None:
         self.base_url = self.normalize_base_url(base_url)
         self.speaker_id = int(speaker_id)
@@ -29,6 +32,16 @@ class VoicevoxProvider(AudioProvider):
         self.intonation_scale = float(intonation_scale)
         self.volume_scale = float(volume_scale)
         self.pause_length_scale = float(pause_length_scale)
+        self._external_client = client
+        self._availability: bool | None = None
+
+    @contextmanager
+    def _client(self, timeout: float) -> Iterator[httpx.Client]:
+        if self._external_client is not None:
+            yield self._external_client
+            return
+        with httpx.Client(timeout=timeout) as client:
+            yield client
 
     @staticmethod
     def normalize_base_url(base_url: str) -> str:
@@ -99,11 +112,19 @@ class VoicevoxProvider(AudioProvider):
         return result
 
     def is_available(self) -> bool:
+        if self._availability is not None:
+            return self._availability
         try:
-            self.get_version(self.base_url, timeout=3)
-            return True
-        except (RuntimeError, ValueError):
-            return False
+            if self._external_client is not None:
+                response = self._external_client.get(f"{self.base_url}/version")
+                response.raise_for_status()
+            else:
+                self.get_version(self.base_url, timeout=3)
+        except (httpx.HTTPError, RuntimeError, ValueError):
+            self._availability = False
+        else:
+            self._availability = True
+        return self._availability
 
     def generate(self, text: str, destination_stem: Path) -> AudioGenerationResult | None:
         if not text.strip():
@@ -119,7 +140,7 @@ class VoicevoxProvider(AudioProvider):
             return AudioGenerationResult(provider=self.key, local_path=str(destination))
 
         try:
-            with httpx.Client(timeout=90) as client:
+            with self._client(90) as client:
                 query_response = client.post(
                     f"{self.base_url}/audio_query",
                     params={"text": text, "speaker": self.speaker_id},

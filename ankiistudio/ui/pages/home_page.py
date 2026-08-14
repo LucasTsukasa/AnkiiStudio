@@ -2,11 +2,12 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import QSize, Signal
+from PySide6.QtCore import QSize, Qt, Signal
 from PySide6.QtWidgets import QGridLayout, QLabel, QListWidget, QListWidgetItem, QVBoxLayout, QWidget
 
 from ankiistudio.constants import TEMPLATE_LABELS, language_label
 from ankiistudio.database import Database
+from ankiistudio.ui.design_system import responsive_columns
 from ankiistudio.ui.widgets import ActionCard, PageHeader, PageScrollArea, SectionCard
 
 
@@ -26,16 +27,17 @@ class HomePage(QWidget):
         layout = QVBoxLayout(content)
         layout.setContentsMargins(24, 22, 24, 22)
         layout.setSpacing(16)
+        self.content_layout = layout
         layout.addWidget(
             PageHeader(
                 "Bem-vindo ao AnkiiStudio",
-                "Crie, organize e exporte flashcards com estrutura personalizada, imagens e áudio.",
+                "Transforme conteúdos em materiais de estudo, organize seus flashcards e prepare seus baralhos para o Anki.",
             )
         )
 
-        cards = QGridLayout()
-        cards.setHorizontalSpacing(12)
-        cards.setVerticalSpacing(12)
+        self.action_grid = QGridLayout()
+        self.action_grid.setHorizontalSpacing(12)
+        self.action_grid.setVerticalSpacing(12)
         icon_dir = resource_dir / "icons"
         create_card = ActionCard(
             "Criar novo projeto",
@@ -58,10 +60,10 @@ class HomePage(QWidget):
         create_card.clicked.connect(self.create_requested)
         import_card.clicked.connect(self.import_requested)
         projects_card.clicked.connect(self.projects_requested)
-        cards.addWidget(create_card, 0, 0)
-        cards.addWidget(import_card, 0, 1)
-        cards.addWidget(projects_card, 0, 2)
-        layout.addLayout(cards)
+        self.action_cards = [create_card, import_card, projects_card]
+        for card in self.action_cards:
+            self.action_grid.addWidget(card, 0, 0)
+        layout.addLayout(self.action_grid)
 
         recent = SectionCard("Projetos recentes", "Continue de onde parou.")
         self.recent_list = QListWidget()
@@ -71,18 +73,54 @@ class HomePage(QWidget):
         layout.addWidget(recent)
         layout.addStretch(1)
 
-        root.addWidget(PageScrollArea(content))
+        self.page_scroll = PageScrollArea(content)
+        self.page_scroll.viewport_resized.connect(lambda _width: self._apply_responsive_layout())
+        root.addWidget(self.page_scroll)
+        self._action_columns = 0
+        self._apply_responsive_layout(force=True)
         self.refresh()
+
+    def _available_content_width(self) -> int:
+        viewport_width = self.page_scroll.viewport().width()
+        if viewport_width <= 0:
+            viewport_width = self.width()
+        margins = self.content_layout.contentsMargins()
+        return max(0, viewport_width - margins.left() - margins.right())
+
+    def _apply_responsive_layout(self, *, force: bool = False) -> None:
+        columns = responsive_columns(
+            self._available_content_width(),
+            item_min_width=260,
+            maximum=3,
+            spacing=self.action_grid.horizontalSpacing(),
+        )
+        if not force and columns == self._action_columns:
+            return
+        self._action_columns = columns
+        for card in self.action_cards:
+            self.action_grid.removeWidget(card)
+        for index, card in enumerate(self.action_cards):
+            self.action_grid.addWidget(card, index // columns, index % columns)
 
     def refresh(self) -> None:
         self.recent_list.clear()
         projects = self.database.list_projects()
         if not projects:
-            item = QListWidgetItem("Nenhum projeto criado ainda.")
+            self.recent_list.setMinimumHeight(124)
+            self.recent_list.setMaximumHeight(124)
+            item = QListWidgetItem(
+                "Nenhum projeto criado ainda.\nSeus projetos recentes aparecerão aqui."
+            )
+            item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+            item.setSizeHint(QSize(0, 92))
+            item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsSelectable)
             self.recent_list.addItem(item)
             return
+        self.recent_list.setMinimumHeight(220)
+        self.recent_list.setMaximumHeight(16777215)
+        counts = self.database.project_card_counts()
         for project in projects[:10]:
-            count = len(self.database.list_cards(int(project.id)))
+            count = counts.get(int(project.id or 0), 0)
             label = TEMPLATE_LABELS.get(project.template_key, project.template_key)
             language = language_label(project.language)
             item = QListWidgetItem(f"{project.name}\n{language} · {label} · {count} cartões")

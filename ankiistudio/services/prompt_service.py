@@ -223,7 +223,8 @@ class PromptService:
         ui_language: str = "pt_BR",
         template_key: str,
         topic: str,
-        quantity: int,
+        quantity: int | None,
+        max_auto_quantity: int = 200,
         deck_name: str,
         front_components: list[str],
         back_components: list[str],
@@ -257,7 +258,7 @@ class PromptService:
             )
 
         mandatory_rules = [
-            f"Crie exatamente {quantity} cartões.",
+            (f"Crie exatamente {quantity} cartões." if quantity is not None else f"Determine uma quantidade adequada de cartões para cobrir o conteúdo sem repetições ou preenchimento artificial. Gere no máximo {max_auto_quantity} cartões."),
             grouping_rule,
             "Preencha `section` com um grupo curto e consistente; cartões do mesmo tipo devem reutilizar o mesmo nome.",
             f"Produza conteúdo natural e correto em {language_label}.",
@@ -300,7 +301,7 @@ Idioma da tradução: {translation_language_label}
 Código do idioma da tradução: {translation_language}
 Modelo: {template_label}
 Categoria interna: {template_key}
-Quantidade: {quantity}
+Quantidade: {quantity if quantity is not None else f"Automática (máximo {max_auto_quantity})"}
 Tema ou contexto: {topic_line}{custom_block}
 Componentes da frente: {front}
 Componentes do verso: {back}
@@ -315,7 +316,7 @@ REGRAS OBRIGATÓRIAS
 
 VALIDAÇÃO FINAL SILENCIOSA
 Antes de responder, confira internamente que:
-- existem exatamente {quantity} objetos em `cards`;
+- {'existem exatamente ' + str(quantity) + ' objetos em `cards`' if quantity is not None else 'a quantidade de objetos em `cards` é pedagogicamente adequada, maior que zero e não excede ' + str(max_auto_quantity)};
 - todos os cartões são únicos e pertinentes ao idioma, modelo e contexto;
 - conteúdos obrigatórios foram representados;
 - `section` está preenchido e consistente;

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from contextlib import contextmanager
 from dataclasses import dataclass
 import hashlib
 import json
@@ -31,14 +32,21 @@ class PixabayImageProvider:
     label = "Pixabay"
     API_URL = "https://pixabay.com/api/"
 
-    def __init__(self, api_key: str, timeout: float = 30.0) -> None:
+    def __init__(self, api_key: str, timeout: float = 30.0, client: httpx.Client | None = None) -> None:
         self.api_key = api_key.strip()
         self.timeout = timeout
+        self._external_client = client
 
     def search(self, term: str, *, limit: int = 12) -> list[ImageSearchResult]:
         if not self.api_key:
             raise RuntimeError("Pixabay está habilitado, mas a API key não foi configurada.")
-        with httpx.Client(timeout=self.timeout, headers={"User-Agent": USER_AGENT}, follow_redirects=True) as client:
+        client = self._external_client or httpx.Client(
+            timeout=self.timeout,
+            headers={"User-Agent": USER_AGENT},
+            follow_redirects=True,
+        )
+        owns_client = self._external_client is None
+        try:
             response = client.get(
                 self.API_URL,
                 params={
@@ -51,6 +59,9 @@ class PixabayImageProvider:
             )
             response.raise_for_status()
             payload = response.json()
+        finally:
+            if owns_client:
+                client.close()
         results: list[ImageSearchResult] = []
         for item in payload.get("hits", []):
             file_url = str(item.get("largeImageURL") or item.get("webformatURL") or "")
@@ -80,24 +91,31 @@ class PexelsImageProvider:
     label = "Pexels"
     API_URL = "https://api.pexels.com/v1/search"
 
-    def __init__(self, api_key: str, timeout: float = 30.0) -> None:
+    def __init__(self, api_key: str, timeout: float = 30.0, client: httpx.Client | None = None) -> None:
         self.api_key = api_key.strip()
         self.timeout = timeout
+        self._external_client = client
 
     def search(self, term: str, *, limit: int = 12) -> list[ImageSearchResult]:
         if not self.api_key:
             raise RuntimeError("Pexels está habilitado, mas a API key não foi configurada.")
-        with httpx.Client(
+        client = self._external_client or httpx.Client(
             timeout=self.timeout,
-            headers={"User-Agent": USER_AGENT, "Authorization": self.api_key},
+            headers={"User-Agent": USER_AGENT},
             follow_redirects=True,
-        ) as client:
+        )
+        owns_client = self._external_client is None
+        try:
             response = client.get(
                 self.API_URL,
                 params={"query": term.strip(), "per_page": max(1, min(limit, 80))},
+                headers={"Authorization": self.api_key},
             )
             response.raise_for_status()
             payload = response.json()
+        finally:
+            if owns_client:
+                client.close()
         results: list[ImageSearchResult] = []
         for item in payload.get("photos", []):
             sources = item.get("src") or {}
@@ -149,6 +167,16 @@ class ImageSearchService:
         self.database = database
         self.timeout = timeout
 
+    @contextmanager
+    def client_session(self):
+        """Reaproveita conexões HTTP durante uma pesquisa/operação em lote."""
+        with httpx.Client(
+            timeout=60,
+            headers={"User-Agent": USER_AGENT},
+            follow_redirects=True,
+        ) as client:
+            yield client
+
     @staticmethod
     def _enabled(database: Database, key: str, default: bool = False) -> bool:
         return database.get_setting(f"image_source_{key}", "1" if default else "0") == "1"
@@ -170,18 +198,35 @@ class ImageSearchService:
         requested = {str(key) for key in provider_keys}
         return [key for key in enabled if key in requested]
 
-    def _providers(self, provider_keys: Iterable[str] | None = None) -> list[ImageProvider]:
+    def _providers(
+        self,
+        provider_keys: Iterable[str] | None = None,
+        *,
+        client: httpx.Client | None = None,
+    ) -> list[ImageProvider]:
         providers: list[ImageProvider] = []
         for key in self._selected_provider_keys(provider_keys):
             if key == "wikimedia":
-                provider = WikimediaService(timeout=self.timeout)
+                provider = WikimediaService(timeout=self.timeout, client=client)
                 provider.key = "wikimedia"  # type: ignore[attr-defined]
                 provider.label = "Wikimedia Commons"  # type: ignore[attr-defined]
                 providers.append(provider)  # type: ignore[arg-type]
             elif key == "pixabay":
-                providers.append(PixabayImageProvider(SecretStore.get("PIXABAY_API_KEY"), timeout=self.timeout))
+                providers.append(
+                    PixabayImageProvider(
+                        SecretStore.get("PIXABAY_API_KEY"),
+                        timeout=self.timeout,
+                        client=client,
+                    )
+                )
             elif key == "pexels":
-                providers.append(PexelsImageProvider(SecretStore.get("PEXELS_API_KEY"), timeout=self.timeout))
+                providers.append(
+                    PexelsImageProvider(
+                        SecretStore.get("PEXELS_API_KEY"),
+                        timeout=self.timeout,
+                        client=client,
+                    )
+                )
         return providers
 
     def _provider_search(self, provider: ImageProvider, term: str, *, limit: int) -> list[ImageSearchResult]:
@@ -221,8 +266,17 @@ class ImageSearchService:
         *,
         limit: int = 12,
         provider_keys: Iterable[str] | None = None,
+        client: httpx.Client | None = None,
     ) -> ImageSearchOutcome:
-        providers = self._providers(provider_keys)
+        if client is None:
+            with self.client_session() as session_client:
+                return self.search_with_warnings(
+                    term,
+                    limit=limit,
+                    provider_keys=provider_keys,
+                    client=session_client,
+                )
+        providers = self._providers(provider_keys, client=client)
         if not providers:
             raise RuntimeError("Nenhuma fonte de imagem ativa foi selecionada para esta pesquisa.")
         per_provider = max(4, min(12, limit))
@@ -263,10 +317,16 @@ class ImageSearchService:
         kind: str = "image",
         limit: int = 12,
         provider_keys: Iterable[str] | None = None,
+        client: httpx.Client | None = None,
     ) -> list[ImageSearchResult]:
         if kind != "image":
             raise ValueError("ImageSearchService pesquisa somente imagens.")
-        return self.search_with_warnings(term, limit=limit, provider_keys=provider_keys).results
+        return self.search_with_warnings(
+            term,
+            limit=limit,
+            provider_keys=provider_keys,
+            client=client,
+        ).results
 
     def search_provider_ordered(
         self,
@@ -274,10 +334,19 @@ class ImageSearchService:
         *,
         limit_per_provider: int = 8,
         provider_keys: Iterable[str] | None = None,
+        client: httpx.Client | None = None,
     ) -> list[ImageSearchResult]:
+        if client is None:
+            with self.client_session() as session_client:
+                return self.search_provider_ordered(
+                    term,
+                    limit_per_provider=limit_per_provider,
+                    provider_keys=provider_keys,
+                    client=session_client,
+                )
         results: list[ImageSearchResult] = []
         errors: list[str] = []
-        providers = self._providers(provider_keys)
+        providers = self._providers(provider_keys, client=client)
         if not providers:
             raise RuntimeError("Nenhuma fonte de imagem ativa foi selecionada para esta pesquisa.")
         for provider in providers:
@@ -289,16 +358,14 @@ class ImageSearchService:
             raise RuntimeError(" | ".join(errors))
         return results
 
-    def download(self, url: str) -> tuple[bytes, str]:
+    def download(self, url: str, *, client: httpx.Client | None = None) -> tuple[bytes, str]:
         if not url.startswith("https://"):
             raise ValueError("A imagem deve usar HTTPS.")
-        with httpx.Client(
-            timeout=60,
-            headers={"User-Agent": USER_AGENT},
-            follow_redirects=True,
-        ) as client:
-            response = client.get(url)
-            response.raise_for_status()
+        if client is None:
+            with self.client_session() as session_client:
+                return self.download(url, client=session_client)
+        response = client.get(url)
+        response.raise_for_status()
         return response.content, response.headers.get("content-type", "application/octet-stream")
 
 

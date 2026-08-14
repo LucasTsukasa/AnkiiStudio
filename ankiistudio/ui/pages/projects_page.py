@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (
     QPushButton,
     QProgressBar,
     QScrollArea,
+    QSizePolicy,
     QHeaderView,
     QTableWidget,
     QTableWidgetItem,
@@ -38,16 +39,17 @@ from ankiistudio.services.image_service import ImageService
 from ankiistudio.services.image_sources import ImageSearchService
 from ankiistudio.services.media_service import CardImageService, SUPPORTED_IMAGE_EXTENSIONS
 from ankiistudio.services.project_service import ProjectService
+from ankiistudio.ui.design_system.components import ASButton, ASComboBox, ASLineEdit, ASProgressBar, ASTableWidget
 from ankiistudio.ui.dialogs.image_search_dialog import ImageSearchDialog
 from ankiistudio.ui.dialogs.audio_batch_import_dialog import AudioBatchImportDialog
-from ankiistudio.ui.widgets import AdaptiveSplitter, PageHeader, PageScrollArea, SectionCard, StatusBanner
+from ankiistudio.ui.widgets import AdaptiveSplitter, PageHeader, PageScrollArea, SectionCard, StatusBanner, TaskCenter
 from ankiistudio.ui.workers import Worker
 
 
 class ProjectsPage(QWidget):
     changed = Signal()
 
-    def __init__(self, database: Database, paths: AppPaths) -> None:
+    def __init__(self, database: Database, paths: AppPaths, *, embedded: bool = False) -> None:
         super().__init__()
         self.database = database
         self.paths = paths
@@ -62,6 +64,8 @@ class ProjectsPage(QWidget):
         self.audio_import_service = AudioImportService(self.audio_service)
         self.export_service = AnkiExportService()
         self._workers: list[Worker] = []
+        self._active_bulk_tasks: set[str] = set()
+        self._export_in_progress = False
         self._ai_buttons: dict[str, QToolButton] = {}
         self._ai_busy_field: str | None = None
         self._ai_spinner_frames = ("◐", "◓", "◑", "◒")
@@ -76,17 +80,18 @@ class ProjectsPage(QWidget):
         root = QVBoxLayout(content)
         root.setContentsMargins(22, 20, 22, 22)
         root.setSpacing(12)
-        root.addWidget(PageHeader(
+        self.page_header = PageHeader(
             "Projetos",
             "Revise os cartões, processe mídias e selecione o conteúdo que será exportado.",
-        ))
+        )
+        root.addWidget(self.page_header)
         self.status = StatusBanner()
         root.addWidget(self.status)
-        self.progress = QProgressBar()
-        self.progress.setRange(0, 100)
-        self.progress.setValue(0)
+        # Compatibilidade visual com chamadas antigas; tarefas em lote usam linhas independentes.
+        self.progress = ASProgressBar()
         self.progress.hide()
-        root.addWidget(self.progress)
+        self.task_center = TaskCenter()
+        root.addWidget(self.task_center)
 
         toolbar = SectionCard()
         toolbar_row = QGridLayout()
@@ -94,15 +99,18 @@ class ProjectsPage(QWidget):
         toolbar_row.setVerticalSpacing(8)
         project_label = QLabel("Projeto")
         project_label.setObjectName("FieldLabel")
-        self.project_combo = QComboBox()
+        self.project_label = project_label
+        self.toolbar_card = toolbar
+        self.toolbar_layout = toolbar_row
+        self.project_combo = ASComboBox()
         self.project_combo.currentIndexChanged.connect(self.load_project)
-        self.refresh_button = QPushButton("Atualizar")
+        self.refresh_button = ASButton("Atualizar")
         self.refresh_button.setObjectName("SubtleButton")
-        self.delete_project_button = QPushButton("Excluir projeto")
+        self.delete_project_button = ASButton("Excluir projeto")
         self.delete_project_button.setObjectName("DangerButton")
-        self.export_selected_button = QPushButton("Exportar selecionados")
+        self.export_selected_button = ASButton("Exportar selecionados")
         self.export_selected_button.setObjectName("SubtleButton")
-        self.export_all_button = QPushButton("Exportar todos")
+        self.export_all_button = ASButton("Exportar todos")
         self.export_all_button.setObjectName("PrimaryButton")
         self.export_button = self.export_all_button
         self.refresh_button.clicked.connect(self.refresh)
@@ -118,16 +126,28 @@ class ProjectsPage(QWidget):
         toolbar_row.addWidget(self.export_all_button, 1, 5)
         toolbar.root.addLayout(toolbar_row)
         root.addWidget(toolbar)
+        if embedded:
+            self.page_header.hide()
+            self.project_label.hide()
+            self.project_combo.hide()
+            self.refresh_button.hide()
+            self.delete_project_button.hide()
+            toolbar_row.addWidget(self.export_selected_button, 0, 0)
+            toolbar_row.addWidget(self.export_all_button, 0, 1)
+            toolbar_row.setColumnStretch(2, 1)
 
         splitter = AdaptiveSplitter(breakpoint=900)
+        self.content_splitter = splitter
 
         left_card = SectionCard(
             "Cartões",
             "Marque os cartões que deseja exportar. Selecione uma linha para editar o conteúdo.",
         )
-        left_card.setMinimumHeight(430)
-        self.table = QTableWidget(0, 6)
-        self.table.setMinimumHeight(330)
+        left_card.setMinimumHeight(360)
+        left_card.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.MinimumExpanding)
+        self.cards_panel = left_card
+        self.table = ASTableWidget(0, 6)
+        self.table.setMinimumHeight(250)
         self.table.setHorizontalHeaderLabels(["Exportar", "Grupo", "Palavra", "Tradução", "Imagem", "Áudio"])
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
         self.table.setSelectionMode(QTableWidget.SelectionMode.ExtendedSelection)
@@ -147,10 +167,10 @@ class ProjectsPage(QWidget):
         selection_actions = QGridLayout()
         selection_actions.setHorizontalSpacing(8)
         selection_actions.setVerticalSpacing(8)
-        self.select_all_button = QPushButton("Marcar todos")
-        self.select_none_button = QPushButton("Desmarcar todos")
-        self.add_card_button = QPushButton("Adicionar cartão")
-        self.delete_card_button = QPushButton("Excluir cartão")
+        self.select_all_button = ASButton("Marcar todos")
+        self.select_none_button = ASButton("Desmarcar todos")
+        self.add_card_button = ASButton("Adicionar cartão")
+        self.delete_card_button = ASButton("Excluir cartão")
         for button in (self.select_all_button, self.select_none_button, self.add_card_button):
             button.setObjectName("SubtleButton")
         self.delete_card_button.setObjectName("DangerButton")
@@ -177,12 +197,12 @@ class ProjectsPage(QWidget):
         self.form.setHorizontalSpacing(10)
         self.form.setVerticalSpacing(7)
         self.form.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapLongRows)
-        self.section_combo = QComboBox()
-        self.word = QLineEdit()
-        self.reading = QLineEdit()
-        self.romanization = QLineEdit()
-        self.translation = QLineEdit()
-        self.example = QLineEdit()
+        self.section_combo = ASComboBox()
+        self.word = ASLineEdit()
+        self.reading = ASLineEdit()
+        self.romanization = ASLineEdit()
+        self.translation = ASLineEdit()
+        self.example = ASLineEdit()
         self.explanation = QTextEdit()
         self.explanation.setMaximumHeight(100)
         self.mnemonic = QTextEdit()
@@ -236,16 +256,16 @@ class ProjectsPage(QWidget):
         media_row = QGridLayout()
         media_row.setHorizontalSpacing(8)
         media_row.setVerticalSpacing(8)
-        self.image_button = QPushButton("Pesquisar imagem")
-        self.bulk_image_button = QPushButton("Imagens para todos")
-        self.import_image_button = QPushButton("Importar imagem")
-        self.remove_image_button = QPushButton("Remover imagem")
-        self.audio_button = QPushButton("Áudio deste cartão")
-        self.bulk_audio_button = QPushButton("Áudios para todos")
-        self.import_audio_button = QPushButton("Importar áudio")
-        self.batch_import_audio_button = QPushButton("Importar áudios em lote")
-        self.remove_audio_button = QPushButton("Remover áudio")
-        self.save_button = QPushButton("Salvar alterações")
+        self.image_button = ASButton("Pesquisar imagem")
+        self.bulk_image_button = ASButton("Imagens para todos")
+        self.import_image_button = ASButton("Importar imagem")
+        self.remove_image_button = ASButton("Remover imagem")
+        self.audio_button = ASButton("Áudio deste cartão")
+        self.bulk_audio_button = ASButton("Áudios para todos")
+        self.import_audio_button = ASButton("Importar áudio")
+        self.batch_import_audio_button = ASButton("Importar áudios em lote")
+        self.remove_audio_button = ASButton("Remover áudio")
+        self.save_button = ASButton("Salvar alterações")
         for button in (
             self.image_button,
             self.bulk_image_button,
@@ -287,17 +307,34 @@ class ProjectsPage(QWidget):
         editor_scroll.setWidgetResizable(True)
         editor_scroll.setFrameShape(QScrollArea.Shape.NoFrame)
         editor_scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        editor_scroll.setMinimumHeight(430)
+        editor_scroll.setMinimumHeight(360)
+        editor_scroll.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.MinimumExpanding)
+        self.editor_scroll = editor_scroll
         editor_scroll.setWidget(editor_content)
         splitter.addWidget(editor_scroll)
         splitter.setStretchFactor(0, 3)
         splitter.setStretchFactor(1, 2)
         splitter.setSizes([650, 430])
+        splitter.orientation_changed.connect(self._apply_splitter_orientation)
+        self._apply_splitter_orientation(splitter.orientation())
+        QTimer.singleShot(0, splitter.refresh_orientation)
         root.addWidget(splitter, 1)
         root.addStretch(0)
 
         outer.addWidget(PageScrollArea(content))
         self.refresh()
+
+    def _apply_splitter_orientation(self, orientation: object) -> None:
+        vertical = orientation == Qt.Orientation.Vertical
+        if vertical:
+            # Em largura reduzida os painéis passam a fazer parte do scroll externo.
+            # A altura mínima evita que a tabela e seus botões sejam comprimidos uns
+            # sobre os outros, como ocorria no layout embutido da beta.7.
+            self.content_splitter.setMinimumHeight(760)
+            self.content_splitter.setSizes([380, 380])
+        else:
+            self.content_splitter.setMinimumHeight(400)
+            self.content_splitter.setSizes([650, 430])
 
     def _keep_worker(self, worker: Worker) -> None:
         self._workers.append(worker)
@@ -355,6 +392,9 @@ class ProjectsPage(QWidget):
             self.select_none_button,
         ):
             button.setEnabled(has_project)
+        if self._export_in_progress:
+            self.export_selected_button.setEnabled(False)
+            self.export_all_button.setEnabled(False)
         self.delete_card_button.setEnabled(bool(selected_ids))
         self.delete_card_button.setText(
             tr(f"Excluir {len(selected_ids)} cartões") if len(selected_ids) > 1 else tr("Excluir cartão")
@@ -381,9 +421,9 @@ class ProjectsPage(QWidget):
         self.image_button.setEnabled(card_uses_images)
         self.import_image_button.setEnabled(card_uses_images)
         self.remove_image_button.setEnabled(card_uses_images and has_image)
-        self.bulk_image_button.setEnabled(has_project and project_uses_images)
+        self.bulk_image_button.setEnabled(has_project and project_uses_images and "image" not in self._active_bulk_tasks)
         self.audio_button.setEnabled(card_uses_audio)
-        self.bulk_audio_button.setEnabled(has_project and project_uses_audio)
+        self.bulk_audio_button.setEnabled(has_project and project_uses_audio and "audio" not in self._active_bulk_tasks)
         self.import_audio_button.setEnabled(card_uses_audio)
         self.remove_audio_button.setEnabled(card_uses_audio and has_audio)
         self.batch_import_audio_button.setEnabled(has_project and project_uses_audio)
@@ -522,6 +562,9 @@ class ProjectsPage(QWidget):
         }[field]
         self.status.show_message(tr(success_message))
         self._update_action_states()
+
+    def select_project(self, project_id: int) -> None:
+        self.refresh(select_project_id=project_id)
 
     def refresh(self, select_project_id: int | None = None) -> None:
         current = select_project_id
@@ -995,7 +1038,6 @@ class ProjectsPage(QWidget):
         }.get(state, state)
 
     def _bulk_media_progress(self, percent: int, payload: str) -> None:
-        self.progress.setValue(percent)
         try:
             data = json.loads(payload)
         except json.JSONDecodeError:
@@ -1003,18 +1045,22 @@ class ProjectsPage(QWidget):
         kind = str(data.get("kind") or "")
         state = str(data.get("state") or "")
         card_id = data.get("card_id")
+        project_id = int(data.get("project_id") or 0)
         if kind == "image":
             display = {"working": "Buscando…", "done": "Sim", "existing": "Sim", "error": "Falhou"}.get(state, state)
             self._set_media_status(card_id, 4, display)
             noun = "Imagens"
+            task_key = f"images:{project_id}"
         else:
             display = {"working": "Gerando…", "done": "Sim", "existing": "Sim", "error": "Falhou"}.get(state, state)
             self._set_media_status(card_id, 5, display)
             noun = "Áudios"
-        self.status.show_message(
-            f"{noun}: {data.get('index')}/{data.get('total')} · {data.get('word')} · {self._progress_state_label(state)}",
-            error=state == "error",
+            task_key = f"audio:{project_id}"
+        detail = (
+            f"{data.get('index')}/{data.get('total')} · {data.get('word')} · "
+            f"{self._progress_state_label(state)}"
         )
+        self.task_center.update_task(task_key, percent, detail)
 
     def generate_all_images(self) -> None:
         project = self.current_project
@@ -1034,56 +1080,61 @@ class ProjectsPage(QWidget):
             f"Buscar automaticamente imagens ausentes para {len(cards)} cartões usando as fontes habilitadas nas Configurações?",
         ) != QMessageBox.StandardButton.Yes:
             return
+        self._active_bulk_tasks.add("image")
         self.bulk_image_button.setEnabled(False)
-        self.progress.setValue(0)
-        self.progress.show()
-        self.status.show_message("Preparando busca de imagens...")
+        image_task_key = f"images:{project.id}"
+        self.task_center.begin(image_task_key, "Busca de imagens", f"0/{len(cards)} · preparando")
 
-        def run_all() -> tuple[int, int, list[str]]:
+        def run_all() -> tuple[int, int, int, list[str]]:
             completed = 0
             existing = 0
             errors: list[str] = []
             total = len(cards)
-            for index, card in enumerate(cards, start=1):
-                worker.signals.progress.emit(
-                    int((index - 1) * 100 / total),
-                    json.dumps({"kind": "image", "state": "working", "card_id": card.id, "word": card.word, "index": index, "total": total}, ensure_ascii=False),
-                )
-                if self.image_service.has_valid_image(card):
-                    existing += 1
-                    state = "existing"
-                else:
-                    try:
-                        self.image_service.apply_best_image(project, card)
-                        completed += 1
-                        state = "done"
-                    except Exception as exc:
-                        errors.append(f"{card.word}: {exc}")
-                        state = "error"
-                worker.signals.progress.emit(
-                    int(index * 100 / total),
-                    json.dumps({"kind": "image", "state": state, "card_id": card.id, "word": card.word, "index": index, "total": total}, ensure_ascii=False),
-                )
-            return completed, existing, errors
+            with self.image_search_service.client_session() as http_client:
+                for index, card in enumerate(cards, start=1):
+                    worker.signals.progress.emit(
+                        int((index - 1) * 100 / total),
+                        json.dumps({"kind": "image", "project_id": project.id, "state": "working", "card_id": card.id, "word": card.word, "index": index, "total": total}, ensure_ascii=False),
+                    )
+                    if self.image_service.has_valid_image(card):
+                        existing += 1
+                        state = "existing"
+                    else:
+                        try:
+                            self.image_service.apply_best_image(project, card, http_client=http_client)
+                            completed += 1
+                            state = "done"
+                        except Exception as exc:
+                            errors.append(f"{card.word}: {exc}")
+                            state = "error"
+                    worker.signals.progress.emit(
+                        int(index * 100 / total),
+                        json.dumps({"kind": "image", "project_id": project.id, "state": state, "card_id": card.id, "word": card.word, "index": index, "total": total}, ensure_ascii=False),
+                    )
+            return int(project.id), completed, existing, errors
 
         worker = Worker(run_all)
         worker.signals.progress.connect(self._bulk_media_progress)
         worker.signals.result.connect(self._bulk_images_finished)
-        worker.signals.error.connect(lambda message: self.status.show_message(message, error=True))
-        worker.signals.finished.connect(lambda: self._update_action_states())
+        worker.signals.error.connect(lambda message, key=image_task_key: self.task_center.finish(key, message, error=True))
+        worker.signals.finished.connect(lambda: self._bulk_task_finished("image"))
         self._keep_worker(worker)
 
+    def _bulk_task_finished(self, kind: str) -> None:
+        self._active_bulk_tasks.discard(kind)
+        self._update_action_states()
+
     def _bulk_images_finished(self, result: object) -> None:
-        completed, existing, errors = result
-        self.progress.setValue(100)
+        project_id, completed, existing, errors = result
+        task_key = f"images:{project_id}"
         if errors:
-            self.status.show_message(
-                f"Busca concluída: {completed} imagens adicionadas, {existing} já existiam e {len(errors)} falharam. Primeira falha: {errors[0]}",
-                error=True,
-            )
+            message = f"{completed} adicionadas · {existing} existentes · {len(errors)} falharam · {errors[0]}"
+            self.task_center.finish(task_key, message, error=True)
         else:
-            self.status.show_message(f"Busca concluída: {completed} imagens adicionadas e {existing} já existentes.")
-        self.populate_cards()
+            message = f"{completed} imagens adicionadas · {existing} já existentes"
+            self.task_center.finish(task_key, message)
+        if self.current_project is not None and self.current_project.id == project_id:
+            self.populate_cards()
         self.changed.emit()
 
     def generate_card_audio(self) -> None:
@@ -1205,66 +1256,75 @@ class ProjectsPage(QWidget):
             f"Gerar os áudios ausentes de {len(cards)} cartões que utilizam Áudio? Serviços por API podem consumir sua cota.",
         ) != QMessageBox.StandardButton.Yes:
             return
+        self._active_bulk_tasks.add("audio")
         self.bulk_audio_button.setEnabled(False)
-        self.progress.setValue(0)
-        self.progress.show()
-        self.status.show_message("Preparando geração de áudios...")
+        self.audio_service.reset_provider_failures()
+        audio_task_key = f"audio:{project.id}"
+        self.task_center.begin(audio_task_key, "Geração de áudios", f"0/{len(cards)} · preparando")
 
-        def run_all() -> tuple[int, int, list[str]]:
+        def run_all() -> tuple[int, int, int, list[str]]:
             completed = 0
             existing = 0
             errors: list[str] = []
             total = len(cards)
-            for index, card in enumerate(cards, start=1):
-                worker.signals.progress.emit(
-                    int((index - 1) * 100 / total),
-                    json.dumps({"kind": "audio", "state": "working", "card_id": card.id, "word": card.word, "index": index, "total": total}, ensure_ascii=False),
-                )
-                before_ok, _ = self.audio_service.audio_status(project, card)
-                if before_ok:
-                    existing += 1
-                    state = "existing"
-                else:
-                    try:
-                        updated = self.audio_service.generate_for_card(project, card)
-                        ok, missing = self.audio_service.audio_status(project, updated)
-                        if not ok:
-                            raise RuntimeError("faltam " + ", ".join(missing))
-                        completed += 1
-                        state = "done"
-                    except Exception as exc:
-                        errors.append(f"{card.word}: {exc}")
-                        state = "error"
-                worker.signals.progress.emit(
-                    int(index * 100 / total),
-                    json.dumps({"kind": "audio", "state": state, "card_id": card.id, "word": card.word, "index": index, "total": total}, ensure_ascii=False),
-                )
-            return completed, existing, errors
+            with self.audio_service.batch_router(project) as router:
+                for index, card in enumerate(cards, start=1):
+                    worker.signals.progress.emit(
+                        int((index - 1) * 100 / total),
+                        json.dumps({"kind": "audio", "project_id": project.id, "state": "working", "card_id": card.id, "word": card.word, "index": index, "total": total}, ensure_ascii=False),
+                    )
+                    before_ok, _ = self.audio_service.audio_status(project, card)
+                    if before_ok:
+                        existing += 1
+                        state = "existing"
+                    else:
+                        try:
+                            updated = self.audio_service.generate_for_card(
+                                project,
+                                card,
+                                router=router,
+                            )
+                            ok, missing = self.audio_service.audio_status(project, updated)
+                            if not ok:
+                                raise RuntimeError("faltam " + ", ".join(missing))
+                            completed += 1
+                            state = "done"
+                        except Exception as exc:
+                            errors.append(f"{card.word}: {exc}")
+                            state = "error"
+                    worker.signals.progress.emit(
+                        int(index * 100 / total),
+                        json.dumps({"kind": "audio", "project_id": project.id, "state": state, "card_id": card.id, "word": card.word, "index": index, "total": total}, ensure_ascii=False),
+                    )
+            return int(project.id), completed, existing, errors
 
         worker = Worker(run_all)
         worker.signals.progress.connect(self._bulk_media_progress)
         worker.signals.result.connect(self._bulk_audio_finished)
-        worker.signals.error.connect(lambda message: self.status.show_message(message, error=True))
-        worker.signals.finished.connect(lambda: self._update_action_states())
+        worker.signals.error.connect(lambda message, key=audio_task_key: self.task_center.finish(key, message, error=True))
+        worker.signals.finished.connect(lambda: self._bulk_task_finished("audio"))
         self._keep_worker(worker)
 
     def _bulk_audio_finished(self, result: object) -> None:
-        completed, existing, errors = result
-        self.progress.setValue(100)
+        project_id, completed, existing, errors = result
+        task_key = f"audio:{project_id}"
         if errors:
-            self.status.show_message(
-                f"Geração concluída: {completed} cartões receberam áudio, {existing} já estavam completos e {len(errors)} falharam. Primeira falha: {errors[0]}",
-                error=True,
-            )
+            message = f"{completed} concluídos · {existing} existentes · {len(errors)} falharam · {errors[0]}"
+            self.task_center.finish(task_key, message, error=True)
         else:
-            self.status.show_message(
-                f"Geração concluída: {completed} cartões receberam áudio e {existing} já estavam completos."
-            )
-        self.populate_cards()
+            message = f"{completed} cartões receberam áudio · {existing} já completos"
+            self.task_center.finish(task_key, message)
+        if self.current_project is not None and self.current_project.id == project_id:
+            self.populate_cards()
         self.changed.emit()
 
+    def _set_export_busy(self, busy: bool) -> None:
+        self._export_in_progress = bool(busy)
+        self._update_action_states()
+
     def _export_cards(self, cards: list[FlashcardData], title: str) -> None:
-        if self.current_project is None:
+        project = self.current_project
+        if project is None or self._export_in_progress:
             return
         if not cards:
             QMessageBox.warning(self, "Nada selecionado", "Selecione ao menos um cartão para exportar.")
@@ -1275,42 +1335,77 @@ class ProjectsPage(QWidget):
         filename, _ = QFileDialog.getSaveFileName(
             self,
             title,
-            str(last_dir / f"{self.current_project.name}.apkg"),
+            str(last_dir / f"{project.name}.apkg"),
             "Pacote do Anki (*.apkg)",
         )
         if not filename:
             return
+
+        destination = Path(filename)
+        export_cards = list(cards)
+        self._set_export_busy(True)
+        worker = Worker(self.export_service.analyze_cards, project, export_cards)
+        worker.signals.result.connect(
+            lambda result, p=project, c=export_cards, d=destination: self._export_analysis_finished(p, c, d, result)
+        )
+        worker.signals.error.connect(self._export_failed)
+        self._keep_worker(worker)
+
+    def _export_analysis_finished(
+        self,
+        project: ProjectData,
+        cards: list[FlashcardData],
+        destination: Path,
+        result: object,
+    ) -> None:
         try:
-            errors, warnings = self.export_service.analyze_cards(self.current_project, cards)
-            if errors:
-                raise ValueError(
-                    "Alguns cartões ficariam sem conteúdo na frente:\n\n"
-                    + "\n".join(f"• {item}" for item in errors[:8])
-                    + ("\n..." if len(errors) > 8 else "")
-                )
-            if warnings:
-                preview = "\n".join(f"• {item}" for item in warnings[:8])
-                suffix = "\n..." if len(warnings) > 8 else ""
-                answer = QMessageBox.question(
-                    self,
-                    "Mídias ou campos ausentes",
-                    f"{len(warnings)} cartão(ões) possuem componentes ausentes. "
-                    "Os componentes vazios serão omitidos e o restante será exportado normalmente.\n\n"
-                    f"{preview}{suffix}\n\nContinuar com a exportação?",
-                )
-                if answer != QMessageBox.StandardButton.Yes:
-                    return
-            output = self.export_service.export(self.current_project, cards, Path(filename))
-        except Exception as exc:
-            QMessageBox.critical(self, "Falha na exportação", str(exc))
+            errors, warnings = result  # type: ignore[misc]
+        except Exception:
+            self._export_failed("Resultado inválido ao analisar os cartões para exportação.")
             return
-        self.database.set_setting("last_export_dir", str(Path(output).parent))
+
+        if errors:
+            message = (
+                "Alguns cartões ficariam sem conteúdo na frente:\n\n"
+                + "\n".join(f"• {item}" for item in errors[:8])
+                + ("\n..." if len(errors) > 8 else "")
+            )
+            self._export_failed(message)
+            return
+
+        if warnings:
+            preview = "\n".join(f"• {item}" for item in warnings[:8])
+            suffix = "\n..." if len(warnings) > 8 else ""
+            answer = QMessageBox.question(
+                self,
+                "Mídias ou campos ausentes",
+                f"{len(warnings)} cartão(ões) possuem componentes ausentes. "
+                "Os componentes vazios serão omitidos e o restante será exportado normalmente.\n\n"
+                f"{preview}{suffix}\n\nContinuar com a exportação?",
+            )
+            if answer != QMessageBox.StandardButton.Yes:
+                self._set_export_busy(False)
+                return
+
+        worker = Worker(self.export_service.export, project, cards, destination)
+        worker.signals.result.connect(lambda output, count=len(cards): self._export_finished(output, count))
+        worker.signals.error.connect(self._export_failed)
+        self._keep_worker(worker)
+
+    def _export_finished(self, output: object, card_count: int) -> None:
+        output_path = Path(output)
+        self.database.set_setting("last_export_dir", str(output_path.parent))
+        self._set_export_busy(False)
         QMessageBox.information(
             self,
             "Exportação concluída",
-            f"{len(cards)} cartões foram gravados no pacote:\n{output}\n\n"
+            f"{card_count} cartões foram gravados no pacote:\n{output_path}\n\n"
             "Se o Anki mostrar menos cartões novos na tela de estudo, confira o limite diário de Novos nas opções do baralho.",
         )
+
+    def _export_failed(self, message: str) -> None:
+        self._set_export_busy(False)
+        QMessageBox.critical(self, "Falha na exportação", str(message))
 
     def export_selected(self) -> None:
         if self.current_project is None or self.current_project.id is None:

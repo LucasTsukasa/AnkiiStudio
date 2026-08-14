@@ -151,3 +151,48 @@ def test_legacy_elevenlabs_speed_is_clamped_instead_of_dropping_profile() -> Non
         }
     )
     assert profile.speed == 1.2
+
+
+def test_preferred_gemini_profile_limits_intelligent_pool(tmp_path: Path, monkeypatch) -> None:
+    database = Database(tmp_path / "preferred-gemini.sqlite")
+    profile_service = AudioProfileService(database)
+    first = AudioVoiceProfile(provider="gemini", language="en", name="A", model="m1", voice="v1")
+    second = AudioVoiceProfile(provider="gemini", language="en", name="B", model="m2", voice="v2")
+    profile_service.save([first, second])
+    monkeypatch.setattr("ankiistudio.services.audio_service.SecretStore.get", lambda key: "test-key")
+    project = ProjectData(
+        name="English",
+        language="en",
+        template_key="custom",
+        creation_mode="manual",
+        front_components=["word"],
+        back_components=["audio"],
+        audio_mode="intelligent",
+        audio_providers=["gemini"],
+        audio_profile_preferences={"gemini": second.id},
+    )
+    audio = ProjectAudioService(database, SimpleNamespace(audio_dir=tmp_path / "audio"))
+    pool = audio._gemini_pool(project)
+    assert [name for name, _provider in pool.providers] == ["B"]
+
+
+def test_voicevox_global_defaults_roundtrip_preserves_zero_values(tmp_path: Path) -> None:
+    from ankiistudio.services.audio_preferences import (
+        VoicevoxSettingsData,
+        load_voicevox_defaults,
+        save_voicevox_defaults,
+    )
+
+    database = Database(tmp_path / "voicevox-defaults.sqlite")
+    expected = VoicevoxSettingsData(
+        style_id=46,
+        style_label="Teste - Normal",
+        speed_scale=1.15,
+        pitch_scale=0.0,
+        intonation_scale=0.95,
+        volume_scale=1.0,
+        pause_length_scale=0.0,
+    )
+    save_voicevox_defaults(database, expected)
+    loaded = load_voicevox_defaults(database)
+    assert loaded == expected

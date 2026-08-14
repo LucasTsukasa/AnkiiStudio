@@ -18,10 +18,11 @@ from ankiistudio.constants import (
     LANGUAGE_LABELS,
 )
 from ankiistudio.services.audio_profile_service import AudioVoiceProfile
+from ankiistudio.ui.design_system.components import ASComboBox, ASDialog, ASLineEdit
 from ankiistudio.ui.widgets import SearchableComboBox
 
 
-class AudioProfileDialog(QDialog):
+class AudioProfileDialog(ASDialog):
     def __init__(
         self,
         provider: str,
@@ -41,25 +42,25 @@ class AudioProfileDialog(QDialog):
 
         self.language_combo = SearchableComboBox()
         self.language_combo.set_items([(label, code) for code, label in LANGUAGE_LABELS.items()], "ja")
-        self.name_input = QLineEdit()
+        self.name_input = ASLineEdit()
         self.name_input.setPlaceholderText("Ex.: Japonês natural")
 
         if provider == "gemini":
-            self.model_combo = QComboBox()
+            self.model_combo = ASComboBox()
             self.model_combo.setEditable(True)
             for model_key, label in GEMINI_TTS_MODEL_OPTIONS:
                 if model_key != "auto":
                     self.model_combo.addItem(label, model_key)
-            self.voice_input = QLineEdit()
+            self.voice_input = ASLineEdit()
             self.voice_input.setPlaceholderText("Ex.: Kore")
             form.addRow("Idioma", self.language_combo)
             form.addRow("Nome", self.name_input)
             form.addRow("Modelo TTS", self.model_combo)
             form.addRow("Voz", self.voice_input)
         else:
-            self.model_input = QLineEdit(DEFAULT_ELEVEN_MODEL)
+            self.model_input = ASLineEdit(DEFAULT_ELEVEN_MODEL)
             self.model_input.setPlaceholderText("Ex.: eleven_multilingual_v2")
-            self.voice_input = QLineEdit()
+            self.voice_input = ASLineEdit()
             self.voice_input.setPlaceholderText("Voice ID da ElevenLabs")
             form.addRow("Idioma", self.language_combo)
             form.addRow("Nome", self.name_input)

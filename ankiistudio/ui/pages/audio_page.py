@@ -28,6 +28,7 @@ from ankiistudio.services.audio.voicevox import VoicevoxProvider
 from ankiistudio.services.audio_profile_service import AudioProfileService, AudioVoiceProfile
 from ankiistudio.services.audio_service import ProjectAudioService
 from ankiistudio.services.gemini_tts_usage import GeminiTTSUsageTracker
+from ankiistudio.ui.design_system.components import ASButton, ASComboBox, ASProgressBar
 from ankiistudio.ui.dialogs.audio_profile_dialog import AudioProfileDialog
 from ankiistudio.ui.dialogs.voicevox_settings_dialog import VoicevoxSettingsDialog
 from ankiistudio.ui.widgets import PageHeader, PageScrollArea, SearchableComboBox, SectionCard, StatusBanner
@@ -69,6 +70,7 @@ class AudioPage(QWidget):
         layout = QVBoxLayout(content)
         layout.setContentsMargins(24, 22, 24, 22)
         layout.setSpacing(14)
+        self.content_layout = layout
         layout.addWidget(
             PageHeader(
                 "Áudios",
@@ -85,18 +87,18 @@ class AudioPage(QWidget):
         self.project_grid = QGridLayout()
         self.project_grid.setHorizontalSpacing(12)
         self.project_grid.setVerticalSpacing(8)
-        self.project_combo = QComboBox()
+        self.project_combo = ASComboBox()
         self.project_combo.currentIndexChanged.connect(self.load_project)
-        self.mode_combo = QComboBox()
+        self.mode_combo = ASComboBox()
         self.mode_combo.addItem("Seleção inteligente — recomendada", "intelligent")
         self.mode_combo.addItem("Somente um provedor fixo", "fixed")
         self.mode_combo.addItem("Alternância aleatória", "random")
         self.mode_combo.currentIndexChanged.connect(self._update_mode_controls)
-        self.fixed_combo = QComboBox()
+        self.fixed_combo = ASComboBox()
         for key, label in AUDIO_PROVIDER_LABELS.items():
             self.fixed_combo.addItem(label, key)
         self.fixed_combo.currentIndexChanged.connect(self._refresh_fixed_profile_combo)
-        self.fixed_profile_combo = QComboBox()
+        self.fixed_profile_combo = ASComboBox()
 
         self.project_cell = self._field_cell("Projeto", self.project_combo)
         self.mode_cell = self._field_cell("Modo", self.mode_combo)
@@ -144,9 +146,9 @@ class AudioPage(QWidget):
                 self.profile_lists[key] = profile_list
                 card.root.addWidget(profile_list)
                 buttons = QHBoxLayout()
-                add_button = QPushButton("Adicionar voz")
-                edit_button = QPushButton("Editar")
-                delete_button = QPushButton("Remover")
+                add_button = ASButton("Adicionar voz")
+                edit_button = ASButton("Editar")
+                delete_button = ASButton("Remover")
                 for button in (add_button, edit_button, delete_button):
                     button.setObjectName("SubtleButton")
                 add_button.clicked.connect(lambda _=False, provider=key: self._add_profile(provider))
@@ -169,9 +171,9 @@ class AudioPage(QWidget):
                 self.voicevox_combo.currentIndexChanged.connect(self._voicevox_selected)
                 self._add_field(card, "Personagem / estilo", self.voicevox_combo)
                 voice_actions = QHBoxLayout()
-                self.voicevox_load_button = QPushButton("Carregar vozes")
-                self.voicevox_adjust_button = QPushButton("Ajustar voz")
-                self.voicevox_test_button = QPushButton("▶ Ouvir exemplo")
+                self.voicevox_load_button = ASButton("Carregar vozes")
+                self.voicevox_adjust_button = ASButton("Ajustar voz")
+                self.voicevox_test_button = ASButton("▶ Ouvir exemplo")
                 for button in (self.voicevox_load_button, self.voicevox_adjust_button, self.voicevox_test_button):
                     button.setObjectName("SubtleButton")
                 self.voicevox_load_button.clicked.connect(self.load_voicevox_styles)
@@ -192,15 +194,15 @@ class AudioPage(QWidget):
             "Geração",
             "Processa somente os áudios ausentes exigidos pela estrutura do projeto.",
         )
-        self.progress = QProgressBar()
+        self.progress = ASProgressBar()
         self.progress.setRange(0, 100)
         self.progress.setValue(0)
         self.progress.hide()
         generation_card.root.addWidget(self.progress)
         actions = QHBoxLayout()
-        self.save_button = QPushButton("Salvar configuração")
+        self.save_button = ASButton("Salvar configuração")
         self.save_button.setObjectName("SubtleButton")
-        self.generate_button = QPushButton("Gerar áudios ausentes")
+        self.generate_button = ASButton("Gerar áudios ausentes")
         self.generate_button.setObjectName("PrimaryButton")
         self.save_button.clicked.connect(self.save_project)
         self.generate_button.clicked.connect(self.generate_all)
@@ -210,7 +212,9 @@ class AudioPage(QWidget):
         generation_card.root.addLayout(actions)
         layout.addWidget(generation_card)
         layout.addStretch(1)
-        root.addWidget(PageScrollArea(content))
+        self.page_scroll = PageScrollArea(content)
+        self.page_scroll.viewport_resized.connect(lambda _width: self._apply_responsive_layout())
+        root.addWidget(self.page_scroll)
 
         self._apply_responsive_layout(force=True)
         self.refresh()
@@ -231,12 +235,15 @@ class AudioPage(QWidget):
     def _add_field(cls, card: SectionCard, label: str, widget: QWidget) -> None:
         card.root.addWidget(cls._field_cell(label, widget))
 
-    def resizeEvent(self, event) -> None:  # type: ignore[override]
-        self._apply_responsive_layout()
-        super().resizeEvent(event)
+    def _responsive_content_width(self) -> int:
+        viewport_width = self.page_scroll.viewport().width()
+        if viewport_width <= 0:
+            viewport_width = self.width()
+        margins = self.content_layout.contentsMargins()
+        return max(0, viewport_width - margins.left() - margins.right())
 
     def _apply_responsive_layout(self, force: bool = False) -> None:
-        compact = self.width() < self.RESPONSIVE_BREAKPOINT
+        compact = self._responsive_content_width() < self.RESPONSIVE_BREAKPOINT
         if not force and compact == self._compact_layout:
             return
         self._compact_layout = compact
@@ -638,26 +645,31 @@ class AudioPage(QWidget):
             existing = 0
             errors: list[str] = []
             total = len(cards)
-            for index, card in enumerate(cards, start=1):
-                before_ok, _ = self.service.audio_status(self.current_project, card)
-                if before_ok:
-                    existing += 1
-                    state = "existing"
-                else:
-                    try:
-                        updated = self.service.generate_for_card(self.current_project, card)
-                        ok, missing = self.service.audio_status(self.current_project, updated)
-                        if not ok:
-                            raise RuntimeError("faltam " + ", ".join(missing))
-                        completed += 1
-                        state = "done"
-                    except Exception as exc:
-                        errors.append(f"{card.word}: {exc}")
-                        state = "error"
-                worker.signals.progress.emit(
-                    int(index * 100 / total),
-                    json.dumps({"word": card.word, "state": state, "index": index, "total": total}, ensure_ascii=False),
-                )
+            with self.service.batch_router(self.current_project) as router:
+                for index, card in enumerate(cards, start=1):
+                    before_ok, _ = self.service.audio_status(self.current_project, card)
+                    if before_ok:
+                        existing += 1
+                        state = "existing"
+                    else:
+                        try:
+                            updated = self.service.generate_for_card(
+                                self.current_project,
+                                card,
+                                router=router,
+                            )
+                            ok, missing = self.service.audio_status(self.current_project, updated)
+                            if not ok:
+                                raise RuntimeError("faltam " + ", ".join(missing))
+                            completed += 1
+                            state = "done"
+                        except Exception as exc:
+                            errors.append(f"{card.word}: {exc}")
+                            state = "error"
+                    worker.signals.progress.emit(
+                        int(index * 100 / total),
+                        json.dumps({"word": card.word, "state": state, "index": index, "total": total}, ensure_ascii=False),
+                    )
             return completed, existing, errors
 
         worker = Worker(run_all)
