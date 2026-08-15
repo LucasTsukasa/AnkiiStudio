@@ -271,6 +271,11 @@ class ProjectsHubPage(QWidget):
         """Atualiza textos dinâmicos dos cards sem tocar no estado do editor."""
         self.refresh_library()
 
+    def refresh_audio_profiles(self) -> None:
+        """Reflete perfis globais novos/editados no projeto que já está aberto."""
+        if self.audio_panel is not None:
+            self.audio_panel.refresh_audio_profiles()
+
     def refresh_library(self, *_args) -> None:
         projects = self.database.list_projects()
         selected_language = self.language_filter.currentData() if self.language_filter.count() else None

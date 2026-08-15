@@ -17,9 +17,10 @@ class FakeWikimedia:
         self.searches.append(term)
         if self.succeed_on is not None and term != self.succeed_on:
             return []
+        title = "File:Domestic cat.jpg" if term in {"domestic cat", "gato"} else "File:Cat.jpg"
         return [
             WikimediaMediaResult(
-                title="File:Cat.jpg",
+                title=title,
                 file_url="https://example.invalid/cat.jpg",
                 description_url="https://commons.wikimedia.org/wiki/File:Cat.jpg",
                 license_name="CC0",
@@ -87,20 +88,20 @@ def _saved_project_and_card(tmp_path: Path, wikimedia: FakeWikimedia):
     return project, card, service
 
 
-def test_best_image_prioritizes_concrete_ai_search_terms(tmp_path: Path) -> None:
+def test_best_image_tries_original_word_before_concrete_ai_search_terms(tmp_path: Path) -> None:
     wikimedia = FakeWikimedia(succeed_on="domestic cat")
     project, card, service = _saved_project_and_card(tmp_path, wikimedia)
     updated = service.apply_best_image(project, card)
     assert Path(updated.image_path).is_file()
-    assert wikimedia.searches == ["domestic cat"]
+    assert wikimedia.searches == ["猫", "domestic cat"]
 
 
-def test_best_image_falls_back_from_concrete_term_to_translation(tmp_path: Path) -> None:
+def test_best_image_falls_back_from_original_and_visual_term_to_translation(tmp_path: Path) -> None:
     wikimedia = FakeWikimedia(succeed_on="gato")
     project, card, service = _saved_project_and_card(tmp_path, wikimedia)
     updated = service.apply_best_image(project, card)
     assert Path(updated.image_path).is_file()
-    assert wikimedia.searches == ["domestic cat", "gato"]
+    assert wikimedia.searches == ["猫", "domestic cat", "gato"]
 
 
 def test_bulk_image_search_uses_exact_original_word_when_no_visual_terms(tmp_path: Path) -> None:
@@ -152,6 +153,76 @@ def test_bulk_image_search_falls_back_to_translation_after_original_word(tmp_pat
     assert Path(updated.image_path).is_file()
     assert wikimedia.searches == ["お", "O"]
 
+
+
+class FakeRelevanceWikimedia(FakeWikimedia):
+    def search(self, term: str, *, kind: str, limit: int):
+        self.searches.append(term)
+        if term != "メロン":
+            return []
+        return [
+            WikimediaMediaResult(
+                title="File:Melon Stadium football match.jpg",
+                file_url="https://example.invalid/stadium.jpg",
+                description="Football players inside a stadium",
+            ),
+            WikimediaMediaResult(
+                title="File:Fresh melon fruit.jpg",
+                file_url="https://example.invalid/melon.jpg",
+                description="Fresh melon fruit cut open",
+            ),
+        ]
+
+
+def test_automatic_image_selection_ranks_relevant_candidate_instead_of_first_result(tmp_path: Path) -> None:
+    database = Database(tmp_path / "relevance.db")
+    project = ProjectData(
+        name="Vocabulário",
+        template_key="custom",
+        front_components=["image", "word"],
+        back_components=["translation"],
+    )
+    project_id = database.create_project(project)
+    project = database.get_project(project_id)
+    card_id = database.add_cards(
+        project_id,
+        [
+            FlashcardData(
+                word="メロン",
+                translation="melão",
+                image_search_terms=["melon fruit"],
+            )
+        ],
+    )[0]
+    card = database.get_card(card_id)
+    assert project is not None and card is not None
+
+    wikimedia = FakeRelevanceWikimedia()
+    service = CardImageService(database, wikimedia, FakeImageService(tmp_path / "images"))
+    updated = service.apply_best_image(project, card)
+
+    assert Path(updated.image_path).is_file()
+    assert wikimedia.searches == ["メロン"]
+    assert wikimedia.downloads == ["https://example.invalid/melon.jpg"]
+
+
+def test_automatic_image_selection_rejects_unrelated_candidates_when_visual_terms_exist() -> None:
+    card = FlashcardData(
+        word="メロン",
+        translation="melão",
+        image_search_terms=["melon fruit"],
+    )
+    stadium = WikimediaMediaResult(
+        title="File:Melon Stadium football match.jpg",
+        file_url="https://example.invalid/stadium.jpg",
+        description="Football stadium at night",
+    )
+    fruit = WikimediaMediaResult(
+        title="File:Fresh melon fruit.jpg",
+        file_url="https://example.invalid/melon.jpg",
+    )
+    ranked = CardImageService._rank_relevant_results(card, "メロン", [stadium, fruit])
+    assert [item.title for item in ranked] == ["File:Fresh melon fruit.jpg"]
 
 def test_image_generation_is_rejected_when_image_not_in_structure(tmp_path: Path) -> None:
     database = Database(tmp_path / "db.sqlite")

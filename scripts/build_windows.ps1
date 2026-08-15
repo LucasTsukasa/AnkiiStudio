@@ -18,7 +18,7 @@ New-Item -ItemType Directory -Force -Path $dataDir | Out-Null
 
 $releaseDir = Join-Path (Get-Location) "release"
 New-Item -ItemType Directory -Force -Path $releaseDir | Out-Null
-$zipPath = Join-Path $releaseDir "AnkiiStudio-Portable-0.11.0-beta.8.zip"
+$zipPath = Join-Path $releaseDir "AnkiiStudio-Portable-0.11.0-beta.9.zip"
 if (Test-Path $zipPath) { Remove-Item $zipPath -Force }
 Compress-Archive -Path "$portableDir\*" -DestinationPath $zipPath -CompressionLevel Optimal
 
@@ -37,5 +37,5 @@ finally {
 
 Write-Host "Build portátil concluído:" -ForegroundColor Green
 Write-Host "  Executável: dist\AnkiiStudio\AnkiiStudio.exe"
-Write-Host "  Pacote: release\AnkiiStudio-Portable-0.11.0-beta.8.zip"
+Write-Host "  Pacote: release\AnkiiStudio-Portable-0.11.0-beta.9.zip"
 Write-Host "  Dados locais: dist\AnkiiStudio\data\"

@@ -176,7 +176,9 @@ class ProjectAudioSettingsPanel(QWidget):
         self._refresh_fixed_profiles()
         self._update_mode()
 
-    def _refresh_preferred_profiles(self) -> None:
+    def _refresh_preferred_profiles(
+        self, selected_profiles: dict[str, str] | None = None
+    ) -> None:
         project = self.current_project
         if project is None:
             return
@@ -186,7 +188,10 @@ class ProjectAudioSettingsPanel(QWidget):
             combo.addItem("Automática — usar perfis habilitados", "")
             for profile in self.profile_service.list_for(provider, project.language):
                 combo.addItem(profile.display_name, profile.id)
-            target = project.audio_profile_preferences.get(provider, "")
+            if selected_profiles is not None:
+                target = selected_profiles.get(provider, "")
+            else:
+                target = project.audio_profile_preferences.get(provider, "")
             index = combo.findData(target) if target else 0
             combo.setCurrentIndex(index if index >= 0 else 0)
             combo.blockSignals(False)
@@ -196,7 +201,9 @@ class ProjectAudioSettingsPanel(QWidget):
         self.fixed_combo.setEnabled(fixed)
         self.fixed_profile_combo.setEnabled(fixed and str(self.fixed_combo.currentData() or "") in {"gemini", "elevenlabs"})
 
-    def _refresh_fixed_profiles(self, *_args) -> None:
+    def _refresh_fixed_profiles(
+        self, *_args, target_profile_id: str | None = None
+    ) -> None:
         self.fixed_profile_combo.clear()
         project = self.current_project
         provider = str(self.fixed_combo.currentData() or "")
@@ -205,8 +212,21 @@ class ProjectAudioSettingsPanel(QWidget):
             return
         for profile in self.profile_service.list_for(provider, project.language):
             self.fixed_profile_combo.addItem(profile.display_name, profile.id)
-        self._select_data(self.fixed_profile_combo, project.fixed_audio_profile_id)
+        target = project.fixed_audio_profile_id if target_profile_id is None else target_profile_id
+        self._select_data(self.fixed_profile_combo, target)
         self._update_mode()
+
+    def refresh_audio_profiles(self) -> None:
+        """Atualiza somente as listas de vozes globais sem recarregar o projeto."""
+        if self.current_project is None:
+            return
+        preferred = {
+            provider: str(combo.currentData() or "")
+            for provider, combo in self.preferred_profile_combos.items()
+        }
+        fixed_profile = str(self.fixed_profile_combo.currentData() or "")
+        self._refresh_preferred_profiles(preferred)
+        self._refresh_fixed_profiles(target_profile_id=fixed_profile)
 
     def _play_preview_result(self, result: object, message: str) -> None:
         local_path = getattr(result, "local_path", "")

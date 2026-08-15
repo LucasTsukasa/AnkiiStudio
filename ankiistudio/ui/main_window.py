@@ -270,6 +270,11 @@ class MainWindow(QMainWindow):
             refresh_audio_options = getattr(create_page, "refresh_audio_options", None)
             if callable(refresh_audio_options):
                 refresh_audio_options()
+        projects_page = self._loaded_page(2)
+        if projects_page is not None:
+            refresh_project_audio = getattr(projects_page, "refresh_audio_profiles", None)
+            if callable(refresh_project_audio):
+                refresh_project_audio()
         self._settings_dialog = None
 
     def _settings_status(self, text: str, *, error: bool = False) -> None:

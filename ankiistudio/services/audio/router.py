@@ -39,8 +39,13 @@ class AudioRouter:
         errors: list[str] = []
         for key in order:
             provider = self.providers.get(key)
-            if provider is None or not provider.is_available():
+            if provider is None:
                 errors.append(f"{key}: indisponível")
+                continue
+            if not provider.is_available():
+                reason = getattr(provider, "availability_error", None)
+                detail = reason() if callable(reason) else "indisponível"
+                errors.append(f"{key}: {detail}")
                 continue
             try:
                 result = provider.generate(text, destination_stem)

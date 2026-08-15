@@ -11,6 +11,7 @@ from ankiistudio.constants import (
     TEMPLATE_SECTIONS,
 )
 from ankiistudio.models import ImportedDeck
+from ankiistudio.services.deck_schema import build_generation_schema
 
 
 class PromptService:
@@ -245,7 +246,13 @@ class PromptService:
 
         front = ", ".join(COMPONENT_LABELS.get(item, item) for item in front_components) or "nenhum"
         back = ", ".join(COMPONENT_LABELS.get(item, item) for item in back_components) or "nenhum"
-        schema = ImportedDeck.model_json_schema()
+        selected_components = list(dict.fromkeys(front_components + back_components))
+        schema = build_generation_schema(
+            ImportedDeck.model_json_schema(),
+            required_components=selected_components,
+            expected_cards=quantity,
+            maximum_cards=max_auto_quantity if quantity is None else None,
+        )
 
         grouping_items = custom_items if custom_items else (topic_items if len(topic_items) > 1 else [])
         grouping_rule = ""
@@ -271,7 +278,10 @@ class PromptService:
             f'O campo `language` deve ser exatamente "{language}" e `translation_language` deve ser exatamente "{translation_language}"; `format_version` deve ser "1.0" e `category` deve ser "{template_key}".',
             f'O campo `deck_name` deve ser exatamente {json.dumps(deck_name, ensure_ascii=False)}.',
             "O JSON Schema é a autoridade final sobre nomes de campos, tipos e estrutura.",
-            "Retorne somente um objeto JSON válido, sem Markdown, comentários ou texto fora do JSON.",
+            "Retorne somente um objeto JSON estritamente válido, sem Markdown, comentários ou texto antes/depois do JSON.",
+            'Use exclusivamente aspas duplas ASCII como delimitadores JSON. Dentro de valores de string, escape toda aspa dupla literal como `\\"` e toda barra invertida literal como `\\\\`; nunca deixe aspas internas sem escape.',
+            "Não use vírgula final antes de `}` ou `]`, não use aspas simples como delimitadores e não produza `NaN`, `Infinity` ou outros valores que não pertencem ao JSON padrão.",
+            "Antes de responder, trate a saída como se fosse serializada por uma biblioteca JSON: se um texto contiver aspas, barras invertidas, tabulações ou quebras de linha, aplique os escapes JSON correspondentes.",
         ]
         rules = mandatory_rules + cls._template_rules(language, template_key, template_label)
         rules += cls._component_rules(
@@ -324,8 +334,9 @@ Antes de responder, confira internamente que:
 - nenhum caminho ou arquivo de mídia foi inventado;
 - `format_version`, `language`, `translation_language`, `category` e `deck_name` têm os valores exigidos;
 - a saída respeita o JSON Schema;
-- o resultado é JSON sintaticamente válido;
-- não existe texto fora do JSON.
+- o resultado é JSON sintaticamente válido e pode ser processado diretamente por `json.loads`;
+- todas as aspas internas em strings estão escapadas corretamente;
+- não existem vírgulas finais, comentários, blocos Markdown ou texto fora do JSON.
 
 Se qualquer item falhar, corrija-o antes da resposta final.
 

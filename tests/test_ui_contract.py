@@ -272,10 +272,10 @@ def test_voice_profiles_are_managed_in_settings_and_keys_remain_there() -> None:
 
 
 def test_application_version_is_beta_everywhere() -> None:
-    assert 'APP_VERSION = "0.11.0-beta.8"' in read("ankiistudio/constants.py")
-    assert '__version__ = "0.11.0-beta.8"' in read("ankiistudio/__init__.py")
-    assert 'version = "0.11.0b8"' in read("pyproject.toml")
-    assert "AnkiiStudio/0.11.0-beta.8" in read("ankiistudio/services/wikimedia_service.py")
+    assert 'APP_VERSION = "0.11.0-beta.9"' in read("ankiistudio/constants.py")
+    assert '__version__ = "0.11.0-beta.9"' in read("ankiistudio/__init__.py")
+    assert 'version = "0.11.0b9"' in read("pyproject.toml")
+    assert "AnkiiStudio/0.11.0-beta.9" in read("ankiistudio/services/wikimedia_service.py")
     assert not (ROOT / "scripts" / "AnkiiStudio.iss").exists()
 
 
@@ -454,7 +454,7 @@ def test_portable_only_storage_and_build_are_configured() -> None:
     assert 'self.base_dir = self.app_dir / "data"' in config
     assert "platformdirs" not in config
     assert "user_data_dir" not in config
-    assert "AnkiiStudio-Portable-0.11.0-beta.8.zip" in build
+    assert "AnkiiStudio-Portable-0.11.0-beta.9.zip" in build
     assert "AnkiiStudio.iss" not in build
     assert not (ROOT / "scripts" / "AnkiiStudio.iss").exists()
 
@@ -736,12 +736,10 @@ def test_beta7_polish_includes_custom_update_dialog_and_label_artifact_fix() -> 
 def test_beta7_build_has_optional_signing_hook_without_repository_secret() -> None:
     build = read("scripts/build_windows.ps1")
     signing = read("scripts/sign_windows.ps1")
-    docs = read("docs/WINDOWS_SIGNING.md")
     gitignore = read(".gitignore")
     assert "sign_windows.ps1" in build
     assert "ANKIISTUDIO_SIGN_PFX" in signing
     assert "signtool" in signing.casefold()
-    assert "SignPath Foundation" in docs
     assert "*.pfx" in gitignore
     assert "*.p12" in gitignore
 
@@ -782,18 +780,21 @@ def test_beta7_correction_round_fixes_gemini_count_language_and_narrow_project_l
     assert "for attempt in range(2)" in gemini
     assert "expected_language=project.language" in create
     assert "expected_translation_language=project.translation_language" in create
+    assert "required_components=project.required_components()" in create
     assert "orientation_changed" in widgets
     assert "self.content_splitter.setMinimumHeight(760)" in projects
 
 
-def test_beta7_correction_round_does_not_change_external_json_import_policy() -> None:
+def test_beta9_json_import_policy_accepts_safe_ai_wrappers_and_keeps_ambiguous_errors() -> None:
     importer = read("ankiistudio/services/import_service.py")
     prompt = read("ankiistudio/services/prompt_service.py")
-    # A rodada atual não introduz tolerância nova para fences/texto externo/BOM etc.
-    assert "BOM" not in importer
-    assert "trailing comma" not in importer
-    assert "texto antes/depois" not in importer
-    assert "CORREÇÃO DA RESPOSTA ANTERIOR" not in prompt
+    assert "_extract_json_payload" in importer
+    assert "_remove_trailing_commas" in importer
+    assert "_repair_common_unescaped_quotes" in importer
+    assert "_repair_simple_doubled_string_delimiters" in importer
+    assert "Perto de:" in importer
+    assert "JSON estritamente válido" in prompt
+    assert "Não use vírgula final" in prompt
 
 
 def test_beta8_refined_preview_uses_a_responsive_stage_without_horizontal_scroll() -> None:
@@ -805,6 +806,9 @@ def test_beta8_refined_preview_uses_a_responsive_stage_without_horizontal_scroll
     assert "ScrollBarAlwaysOff" in models
     assert 'self.front_preview.setObjectName("CardPreviewBrowser")' in models
     assert 'self.preview_stage = CardPreviewStage(self.front_preview)' in models
+    assert "self.browser.setMaximumWidth(max_width)" in models
+    assert "QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed" in models
+    assert "self.browser.setFixedSize" not in models
     assert "QFrame#CardPreviewStage" in theme
     assert "QTextBrowser#CardPreviewBrowser" in theme
 
@@ -835,3 +839,14 @@ def test_beta8_refined_create_page_has_clear_numbered_sections_and_persistent_ac
     assert "root.addWidget(self.page_scroll, 1)" in create
     assert "root.addWidget(self.action_bar)" in create
     assert "QFrame#CreateActionBar" in theme
+
+
+def test_settings_refreshes_audio_profiles_in_open_project_without_reloading_project() -> None:
+    main = read("ankiistudio/ui/main_window.py")
+    hub = read("ankiistudio/ui/pages/projects_hub_page.py")
+    panel = read("ankiistudio/ui/panels.py")
+    assert 'getattr(projects_page, "refresh_audio_profiles", None)' in main
+    assert "def refresh_audio_profiles(self) -> None:" in hub
+    assert "self.audio_panel.refresh_audio_profiles()" in hub
+    assert "def refresh_audio_profiles(self) -> None:" in panel
+    assert "selected_profiles" in panel

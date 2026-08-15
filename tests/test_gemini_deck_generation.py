@@ -149,3 +149,121 @@ def test_generation_accepts_other_supported_target_languages(monkeypatch, langua
     )
     assert deck.language == language
     assert len(deck.cards) == 2
+
+def test_generation_retries_when_selected_components_are_empty(monkeypatch) -> None:
+    first = _payload(count=1)
+    first["cards"][0].update(
+        {
+            "example": "",
+            "example_translation": "",
+            "explanation": "",
+            "mnemonic": "",
+        }
+    )
+    second = _payload(count=1)
+    second["cards"][0].update(
+        {
+            "example": "I study every day.",
+            "example_translation": "Eu estudo todos os dias.",
+            "explanation": "Uma explicação útil.",
+            "mnemonic": "Associe a palavra a uma rotina diária.",
+        }
+    )
+    service, client = _service(monkeypatch, [first, second])
+
+    deck = service.generate_deck(
+        "prompt",
+        expected_cards=1,
+        expected_language="en",
+        expected_translation_language="pt",
+        required_components=["word", "translation", "example", "explanation", "mnemonic"],
+    )
+
+    assert deck.cards[0].example == "I study every day."
+    assert deck.cards[0].explanation == "Uma explicação útil."
+    assert deck.cards[0].mnemonic == "Associe a palavra a uma rotina diária."
+    assert len(client.interactions.calls) == 2
+    retry_prompt = client.interactions.calls[1]["input"]
+    assert "componentes selecionados" in retry_prompt
+    assert "Exemplo" in retry_prompt
+    assert "Explicação" in retry_prompt
+    assert "Mnemônico" in retry_prompt
+
+
+def test_generation_does_not_require_unselected_optional_components(monkeypatch) -> None:
+    service, client = _service(monkeypatch, [_payload(count=1)])
+    deck = service.generate_deck(
+        "prompt",
+        expected_cards=1,
+        expected_language="en",
+        expected_translation_language="pt",
+        required_components=["word", "translation", "image", "audio"],
+    )
+    assert len(deck.cards) == 1
+    assert deck.cards[0].example == ""
+    assert len(client.interactions.calls) == 1
+
+
+def test_generation_requires_example_translation_with_example_component(monkeypatch) -> None:
+    invalid = _payload(count=1)
+    invalid["cards"][0].update({"example": "Hello!", "example_translation": ""})
+    valid = _payload(count=1)
+    valid["cards"][0].update({"example": "Hello!", "example_translation": "Olá!"})
+    service, client = _service(monkeypatch, [invalid, valid])
+
+    deck = service.generate_deck(
+        "prompt",
+        expected_cards=1,
+        expected_language="en",
+        expected_translation_language="pt",
+        required_components=["word", "translation", "example"],
+    )
+
+    assert deck.cards[0].example_translation == "Olá!"
+    assert len(client.interactions.calls) == 2
+
+
+
+def test_structured_output_schema_requires_selected_components(monkeypatch) -> None:
+    payload = _payload(count=1)
+    payload["cards"][0].update(
+        {
+            "example": "I like apples.",
+            "example_translation": "Eu gosto de maçãs.",
+            "explanation": "Exemplo de uso.",
+            "mnemonic": "Associe apple a maçã.",
+        }
+    )
+    service, client = _service(monkeypatch, [payload])
+    service.generate_deck(
+        "prompt",
+        expected_cards=1,
+        expected_language="en",
+        expected_translation_language="pt",
+        required_components=["word", "translation", "example", "explanation", "mnemonic"],
+    )
+    schema = client.interactions.calls[0]["response_format"]["schema"]
+    card_schema = schema["$defs"]["FlashcardData"]
+    required = set(card_schema["required"])
+    assert {"word", "translation", "example", "example_translation", "explanation", "mnemonic"} <= required
+    for field in ("word", "translation", "example", "example_translation", "explanation", "mnemonic"):
+        assert "Obrigatório nesta geração" in card_schema["properties"][field]["description"]
+    assert schema["properties"]["cards"]["minItems"] == 1
+    assert schema["properties"]["cards"]["maxItems"] == 1
+
+
+def test_structured_output_schema_does_not_require_unselected_text_fields(monkeypatch) -> None:
+    service, client = _service(monkeypatch, [_payload(count=1)])
+    service.generate_deck(
+        "prompt",
+        expected_cards=1,
+        expected_language="en",
+        expected_translation_language="pt",
+        required_components=["word", "translation"],
+    )
+    card_schema = client.interactions.calls[0]["response_format"]["schema"]["$defs"]["FlashcardData"]
+    required = set(card_schema["required"])
+    assert {"word", "translation"} <= required
+    assert "example" not in required
+    assert "explanation" not in required
+    assert "mnemonic" not in required

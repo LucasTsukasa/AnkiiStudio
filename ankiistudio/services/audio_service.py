@@ -50,8 +50,21 @@ class ProjectAudioService:
         preferred = project.audio_profile_preferences.get("gemini", "")
         if project.audio_mode == "fixed" and project.fixed_audio_provider == "gemini":
             preferred = project.fixed_audio_profile_id or preferred
+        unavailable_message = ""
         if preferred:
             profiles = [p for p in profiles if p.id == preferred]
+            if not profiles:
+                unavailable_message = (
+                    f"A voz Gemini TTS selecionada não está habilitada para {language_label(project.language)}. "
+                    "Abra Configurações → Áudio e selecione/crie um perfil compatível."
+                )
+        elif not profiles:
+            unavailable_message = (
+                f"Nenhum perfil Gemini TTS habilitado para {language_label(project.language)}. "
+                "Abra Configurações → Áudio e adicione uma voz para esse idioma."
+            )
+        if profiles and not api_key.strip():
+            unavailable_message = "A chave da Gemini API não está configurada nas Configurações."
         providers = [
             (
                 self._profile_runtime_key(profile),
@@ -66,7 +79,9 @@ class ProjectAudioService:
             )
             for profile in profiles
         ]
-        return AudioProviderPool("gemini", providers, self._blocked_profiles)
+        return AudioProviderPool(
+            "gemini", providers, self._blocked_profiles, unavailable_message=unavailable_message
+        )
 
     def _eleven_pool(
         self,
@@ -79,8 +94,21 @@ class ProjectAudioService:
         preferred = project.audio_profile_preferences.get("elevenlabs", "")
         if project.audio_mode == "fixed" and project.fixed_audio_provider == "elevenlabs":
             preferred = project.fixed_audio_profile_id or preferred
+        unavailable_message = ""
         if preferred:
             profiles = [p for p in profiles if p.id == preferred]
+            if not profiles:
+                unavailable_message = (
+                    f"A voz ElevenLabs selecionada não está habilitada para {language_label(project.language)}. "
+                    "Abra Configurações → Áudio e selecione/crie um perfil compatível."
+                )
+        elif not profiles:
+            unavailable_message = (
+                f"Nenhum perfil ElevenLabs habilitado para {language_label(project.language)}. "
+                "Abra Configurações → Áudio e adicione uma voz para esse idioma."
+            )
+        if profiles and not api_key.strip():
+            unavailable_message = "A chave da ElevenLabs não está configurada nas Configurações."
         providers = [
             (
                 self._profile_runtime_key(profile),
@@ -100,7 +128,9 @@ class ProjectAudioService:
             )
             for profile in profiles
         ]
-        return AudioProviderPool("elevenlabs", providers, self._blocked_profiles)
+        return AudioProviderPool(
+            "elevenlabs", providers, self._blocked_profiles, unavailable_message=unavailable_message
+        )
 
     def _build_router(
         self,

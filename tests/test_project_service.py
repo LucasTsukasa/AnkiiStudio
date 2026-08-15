@@ -50,6 +50,50 @@ def test_sanitize_cards_obeys_exact_structure() -> None:
     assert sanitized.sentence_audio_path == ""
 
 
+
+def test_sanitize_preserves_image_search_terms_when_image_is_selected() -> None:
+    project = _project(
+        front_components=["image", "word"],
+        back_components=["translation"],
+    )
+    card = FlashcardData(
+        word="メロン",
+        translation="melão",
+        image_search_terms=["melon fruit", "fresh melon"],
+    )
+    sanitized = ProjectService.sanitize_cards_for_structure(project, [card])[0]
+    assert sanitized.image_search_terms == ["melon fruit", "fresh melon"]
+
+
+
+def test_create_from_import_keeps_visual_search_terms_for_image_cards(tmp_path: Path) -> None:
+    database = Database(tmp_path / "visual-terms.db")
+    service = ProjectService(database)
+    project = _project(
+        language="ja",
+        translation_language="pt",
+        front_components=["image", "word"],
+        back_components=["translation"],
+    )
+    imported = ImportedDeck(
+        language="ja",
+        translation_language="pt",
+        category="custom",
+        deck_name="Teste",
+        cards=[
+            FlashcardData(
+                word="メロン",
+                translation="melão",
+                image_search_terms=["melon fruit"],
+            )
+        ],
+    )
+
+    project_id = service.create_from_import(project, imported)
+    cards = database.list_cards(project_id)
+    assert cards[0].image_search_terms == ["melon fruit"]
+
+
 def test_audio_does_not_keep_or_require_example() -> None:
     project = _project(
         front_components=["word"],

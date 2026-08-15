@@ -1205,6 +1205,7 @@ class CreatePage(QWidget):
             expected_cards=requested_quantity,
             expected_language=project.language,
             expected_translation_language=project.translation_language,
+            required_components=project.required_components(),
         )
 
         def save(imported_deck: object) -> None:

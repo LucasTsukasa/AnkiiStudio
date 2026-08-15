@@ -5,8 +5,9 @@ from typing import Literal
 from google import genai
 from pydantic import BaseModel, Field, ValidationError, field_validator
 
-from ankiistudio.constants import language_label, normalize_language_code
+from ankiistudio.constants import COMPONENT_LABELS, language_label, normalize_language_code
 from ankiistudio.models import FlashcardData, ImportedDeck, ProjectData
+from ankiistudio.services.deck_schema import build_generation_schema
 
 
 FieldAiTarget = Literal["example", "explanation", "mnemonic"]
@@ -63,6 +64,7 @@ class GeminiContentService:
         expected_cards: int | None = None,
         expected_language: str | None = None,
         expected_translation_language: str | None = None,
+        required_components: list[str] | tuple[str, ...] | None = None,
     ) -> ImportedDeck:
         expected_language = (
             normalize_language_code(expected_language) if expected_language else None
@@ -74,6 +76,20 @@ class GeminiContentService:
         )
         if expected_cards is not None and expected_cards < 1:
             raise ValueError("A quantidade esperada de cartões precisa ser maior que zero.")
+        required_components = tuple(
+            dict.fromkeys(
+                str(component).strip()
+                for component in (required_components or ())
+                if str(component).strip()
+            )
+        )
+
+        response_schema = build_generation_schema(
+            GeminiGeneratedDeck.model_json_schema(),
+            required_components=required_components,
+            expected_cards=expected_cards,
+            maximum_cards=maximum_cards,
+        )
 
         last_error: Exception | None = None
         input_prompt = prompt
@@ -84,7 +100,7 @@ class GeminiContentService:
                 response_format={
                     "type": "text",
                     "mime_type": "application/json",
-                    "schema": GeminiGeneratedDeck.model_json_schema(),
+                    "schema": response_schema,
                 },
             )
             if not interaction.output_text:
@@ -98,6 +114,7 @@ class GeminiContentService:
                     expected_cards=expected_cards,
                     expected_language=expected_language,
                     expected_translation_language=expected_translation_language,
+                    required_components=required_components,
                 )
             except (ValidationError, ValueError, RuntimeError) as exc:
                 last_error = exc
@@ -108,6 +125,7 @@ class GeminiContentService:
                         expected_cards=expected_cards,
                         expected_language=expected_language,
                         expected_translation_language=expected_translation_language,
+                        required_components=required_components,
                     )
                     continue
                 raise RuntimeError(str(exc)) from exc
@@ -124,6 +142,7 @@ class GeminiContentService:
         expected_cards: int | None,
         expected_language: str | None,
         expected_translation_language: str | None,
+        required_components: tuple[str, ...] = (),
     ) -> None:
         if deck.format_version != "1.0":
             raise RuntimeError(
@@ -152,6 +171,65 @@ class GeminiContentService:
                 "A Gemini retornou o idioma de tradução incorreto "
                 f"({deck.translation_language}); esperado: {expected_translation_language}."
             )
+        GeminiContentService._validate_required_components(deck, required_components)
+
+    @staticmethod
+    def _validate_required_components(
+        deck: GeminiGeneratedDeck,
+        required_components: tuple[str, ...],
+    ) -> None:
+        """Garante que a geração interna respeite os componentes escolhidos.
+
+        `FlashcardData` mantém defaults vazios por compatibilidade com edição manual e
+        importação externa. A geração Gemini, porém, não pode aceitar silenciosamente
+        um campo selecionado como vazio. Imagem/Áudio são obtidos depois e, por isso,
+        não exigem caminho de mídia nesta etapa.
+        """
+        required_fields: dict[str, tuple[str, ...]] = {
+            "word": ("word",),
+            "reading": ("reading",),
+            "romanization": ("romanization",),
+            "translation": ("translation",),
+            "example": ("example", "example_translation"),
+            "explanation": ("explanation",),
+            "mnemonic": ("mnemonic",),
+        }
+        field_labels = {
+            "word": "Conteúdo principal",
+            "reading": "Leitura",
+            "romanization": "Romaji / Romanização",
+            "translation": "Tradução",
+            "example": "Exemplo",
+            "example_translation": "Tradução do exemplo",
+            "explanation": "Explicação",
+            "mnemonic": "Mnemônico",
+        }
+
+        fields: list[str] = []
+        for component in required_components:
+            for field in required_fields.get(component, ()):
+                if field not in fields:
+                    fields.append(field)
+        if not fields:
+            return
+
+        failures: list[str] = []
+        for index, card in enumerate(deck.cards, start=1):
+            missing = [
+                field_labels[field]
+                for field in fields
+                if not str(getattr(card, field, "") or "").strip()
+            ]
+            if missing:
+                failures.append(f"cartão {index}: {', '.join(missing)}")
+
+        if failures:
+            detail = "; ".join(failures[:5])
+            if len(failures) > 5:
+                detail += f"; e mais {len(failures) - 5} cartão(ões)"
+            raise RuntimeError(
+                "A Gemini deixou componentes selecionados sem conteúdo. " + detail + "."
+            )
 
     @staticmethod
     def _retry_prompt(
@@ -161,6 +239,7 @@ class GeminiContentService:
         expected_cards: int | None,
         expected_language: str | None,
         expected_translation_language: str | None,
+        required_components: tuple[str, ...] = (),
     ) -> str:
         requirements: list[str] = []
         if expected_cards is not None:
@@ -173,6 +252,18 @@ class GeminiContentService:
                 f"`{expected_translation_language}`"
             )
         requirements.append("inclua explicitamente `language` e `translation_language`")
+        content_components = [
+            component
+            for component in required_components
+            if component not in {"image", "audio"}
+        ]
+        if content_components:
+            labels = ", ".join(
+                COMPONENT_LABELS.get(component, component) for component in content_components
+            )
+            requirements.append(
+                "preencha em todos os cartões os componentes selecionados: " + labels
+            )
         detail = "; ".join(requirements)
         return (
             original_prompt

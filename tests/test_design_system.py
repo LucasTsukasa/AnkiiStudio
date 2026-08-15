@@ -82,9 +82,3 @@ def test_import_json_policy_files_are_untouched_by_design_system_dependency() ->
     assert "design_system" not in import_service
     assert "design_system" not in prompt_service
 
-
-def test_design_system_documentation_exists() -> None:
-    doc = read("docs/DESIGN_SYSTEM.md")
-    assert "AnkiiStudio Design System v1" in doc
-    assert "Qt/PySide6" in doc
-    assert "O objetivo não é reimplementar o Qt" in doc

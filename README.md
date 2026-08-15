@@ -80,7 +80,6 @@ Os projetos são exportados diretamente em `.apkg`, sem depender do AnkiConnect.
 
 A interface utiliza Qt/PySide6 como motor de janela e integração com o sistema operacional, mas a identidade visual é organizada pelo **AnkiiStudio Design System**. A camada própria centraliza tokens de cor/tipografia/espaçamento, temas, ícones, componentes reutilizáveis e breakpoints responsivos. Isso permite evoluir telas como Criar, Projetos, Configurações e futuros módulos de estudo sem depender da aparência padrão do Qt nem reimplementar recursos fundamentais de acessibilidade, foco, teclado e eventos.
 
-A documentação técnica está em `docs/DESIGN_SYSTEM.md`.
 
 ## Desempenho
 
@@ -181,7 +180,7 @@ O AnkiiStudio oferece diferentes formas de adicionar conteúdo aos projetos.
 
 ### Conteúdo com IA
 
-A integração com **Google Gemini** permite gerar conteúdo estruturado de acordo com o idioma, modelo e configuração definidos no projeto. Na geração interna, o AnkiiStudio valida explicitamente o idioma-alvo/idioma de tradução retornados e, quando a quantidade é fixa, exige exatamente o número solicitado antes de criar o projeto.
+A integração com **Google Gemini** permite gerar conteúdo estruturado de acordo com o idioma, modelo e configuração definidos no projeto. Na geração interna, o AnkiiStudio valida explicitamente o idioma-alvo/idioma de tradução retornados e, quando a quantidade é fixa, exige exatamente o número solicitado antes de criar o projeto. O schema enviado à Gemini também acompanha a estrutura escolhida: campos pedagógicos selecionados, como Exemplo, Explicação e Mnemônico, são exigidos na própria resposta estruturada e validados novamente antes da criação.
 
 Na criação personalizada, a quantidade pode ser definida manualmente ou deixada em **Automática**. Nesse modo, a IA escolhe uma quantidade adequada para cobrir o conteúdo solicitado, respeitando um limite máximo de segurança e evitando completar artificialmente a saída apenas para atingir um número fixo. Modelos internos com quantidade própria continuam utilizando a contagem determinada pelo conteúdo do modelo.
 
@@ -191,7 +190,7 @@ Na página **Projetos**, os campos **Exemplo**, **Explicação** e **Mnemônico*
 
 ### Importação
 
-Também é possível importar conteúdo previamente preparado em formatos estruturados, permitindo utilizar respostas geradas externamente ou materiais próprios.
+Também é possível importar conteúdo previamente preparado em formatos estruturados, permitindo utilizar respostas geradas externamente ou materiais próprios. O mesmo verificador é usado para texto colado e arquivos JSON/TXT. Respostas de IA com invólucros comuns — como um único bloco `json`, texto simples antes/depois do objeto, BOM, vírgulas finais e alguns casos reconhecíveis de aspas não escapadas — podem ser normalizadas de forma conservadora; conteúdo estruturalmente ambíguo continua sendo rejeitado em vez de ser adivinhado.
 
 ### Conteúdo interno
 
@@ -359,7 +358,7 @@ Os estados públicos utilizados são:
 
 O build possui um gancho opcional de assinatura Authenticode em `scripts/sign_windows.ps1`. Quando um certificado de assinatura estiver configurado no ambiente de build, o executável é assinado e verificado antes da criação do ZIP portátil. Sem certificado, o build continua e informa explicitamente que o artefato permanece sem assinatura.
 
-O procedimento e a preparação para uma futura integração com assinatura de projeto open source estão documentados em [`docs/WINDOWS_SIGNING.md`](docs/WINDOWS_SIGNING.md). Certificados e senhas nunca devem ser adicionados ao repositório.
+Certificados, senhas e outros segredos de assinatura nunca devem ser adicionados ao repositório.
 
 ## Dados locais
 
@@ -455,7 +454,6 @@ AnkiiStudio/
 │   ├── services/
 │   └── ui/
 │       └── design_system/
-├── docs/
 ├── scripts/
 ├── tests/
 ├── AnkiiStudio.spec
@@ -476,7 +474,6 @@ AnkiiStudio/
 | `ankiistudio/services/` | Serviços, integrações e regras de negócio |
 | `ankiistudio/ui/` | Interface gráfica |
 | `ankiistudio/ui/design_system/` | Design tokens, temas e componentes reutilizáveis da interface |
-| `docs/` | Documentação técnica do projeto, incluindo Design System e assinatura do Windows |
 | `tests/` | Testes automatizados |
 | `scripts/` | Scripts auxiliares e de build |
 

@@ -4,6 +4,27 @@ Todas as alterações relevantes do AnkiiStudio são registradas neste arquivo.
 
 O formato segue os princípios de [Keep a Changelog](https://keepachangelog.com/) e o projeto utiliza versionamento semântico durante o desenvolvimento.
 
+## [0.11.0-beta.9] - 2026-08-14
+
+### Corrigido
+- A geração interna com Gemini agora valida os componentes de conteúdo selecionados na estrutura. Se Exemplo, Explicação, Mnemônico ou outro campo textual obrigatório vier vazio, a resposta é rejeitada e recebe uma nova tentativa automática em vez de criar silenciosamente um baralho incompleto.
+- O structured output da Gemini agora utiliza um JSON Schema dinâmico: campos selecionados são marcados como obrigatórios e não vazios, e a quantidade fixa também é restringida no próprio schema antes da validação pós-resposta.
+- O prompt destinado a IAs externas passou a exigir JSON estrito, escapes corretos para aspas/barras dentro de strings, ausência de vírgulas finais, Markdown, comentários ou texto externo, e também usa schema coerente com os componentes selecionados.
+- A importação JSON/TXT agora normaliza de forma conservadora problemas comuns de conteúdo copiado de IAs: BOM, um único bloco Markdown JSON, texto simples antes/depois de um único objeto, vírgulas finais estruturais, delimitadores duplicados simples e aspas internas não escapadas reconhecíveis. Estruturas ambíguas continuam sendo rejeitadas e o erro mostra o trecho próximo da falha.
+- Conteúdo colado e conteúdo carregado de arquivo passam explicitamente pelo mesmo pipeline de extração, reparo seguro e validação.
+- Perfis Gemini TTS e ElevenLabs criados/editados/removidos em Configurações são atualizados no painel de áudio de um projeto já aberto sem recarregar o projeto ou descartar edições locais.
+- Falhas de áudio por ausência de perfil compatível, perfil selecionado indisponível ou API key ausente agora informam a causa específica em vez de apenas exibir `provedor: indisponível`.
+- A busca automática de imagens agora preserva `image_search_terms` quando Imagem faz parte da estrutura, tenta primeiro o conteúdo principal original e classifica os candidatos por relevância textual antes de baixar a imagem. Resultados que não atingem relevância suficiente são ignorados em vez de serem aceitos apenas por aparecerem primeiro na fonte.
+- A pré-visualização Desktop em **Projetos → Estrutura e aparência** deixou de impor uma largura fixa ao layout externo. O preview mantém o limite de 760 px quando houver espaço, mas pode encolher dentro do viewport sem ultrapassar a janela; o modo Celular mantém seu limite próprio.
+- Removidas referências e testes que exigiam a pasta `docs/`, cuja exclusão do repositório é intencional. A infraestrutura funcional do Design System e do gancho de assinatura permanece no código.
+
+### Preservado
+- Os reparos de JSON permanecem deliberadamente conservadores: o importador não converte sintaxes arbitrárias nem inventa valores quando a estrutura é ambígua.
+- Funcionalidades não relacionadas às correções desta rodada permanecem na arquitetura funcional existente.
+
+### Distribuição
+- Versão atualizada para `0.11.0-beta.9`.
+
 ## [0.11.0-beta.8] - 2026-08-14
 
 ### Adicionado
@@ -14,7 +35,6 @@ O formato segue os princípios de [Keep a Changelog](https://keepachangelog.com/
 - Componentes reutilizáveis `ASButton`, `ASLineEdit`, `ASTextEdit`, `ASPlainTextEdit`, `ASComboBox`, `ASCard`, `ASDialog`, `ASTabWidget`, `ASContextMenu`, `ASToast`, `ASProgressBar`, `ASTableView`, `ASTableWidget`, `ASSidebar`, `ASSidebarItem`, `ASSwitch`, `ASPageHeader` e `ASSectionCard`.
 - `AnkiiStudioProxyStyle` para métricas visuais centralizadas sem reimplementar comportamento nativo do Qt.
 - Utilitários responsivos compartilhados, incluindo breakpoints Compacto/Médio/Amplo e cálculo de colunas para grids.
-- Documentação técnica do design system em `docs/DESIGN_SYSTEM.md`.
 
 ### Alterado
 - Inicialização e troca de tema passam pelo novo Theme Manager, mantendo os temas Escuro, Claro e Carmesim.
@@ -78,7 +98,7 @@ O formato segue os princípios de [Keep a Changelog](https://keepachangelog.com/
 - Janela categorizada de Configurações, inspirada em um layout de navegação lateral com conteúdo à direita.
 - Painel de áudio específico por projeto e gerenciamento global de provedores/perfis dentro de Configurações.
 - Pré-visualização de cartão com fluxo Frente → Mostrar resposta e modos de largura Desktop/Celular.
-- Gancho opcional de assinatura Authenticode no build Windows e documentação em `docs/WINDOWS_SIGNING.md`.
+- Gancho opcional de assinatura Authenticode no build Windows.
 
 ### Alterado
 - As funcionalidades da antiga página **Modelos** foram incorporadas a **Projetos → Estrutura e aparência**.

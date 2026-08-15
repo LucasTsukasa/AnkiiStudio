@@ -196,3 +196,81 @@ def test_voicevox_global_defaults_roundtrip_preserves_zero_values(tmp_path: Path
     save_voicevox_defaults(database, expected)
     loaded = load_voicevox_defaults(database)
     assert loaded == expected
+
+
+def test_audio_pool_explains_missing_profile_for_project_language(tmp_path: Path, monkeypatch) -> None:
+    database = Database(tmp_path / "missing-profile.sqlite")
+    profile_service = AudioProfileService(database)
+    profile_service.save([
+        AudioVoiceProfile(provider="elevenlabs", language="ja", name="JP", model="eleven_multilingual_v2", voice="jp-id")
+    ])
+    monkeypatch.setattr("ankiistudio.services.audio_service.SecretStore.get", lambda key: "test-key")
+    project = ProjectData(
+        name="English",
+        language="en",
+        template_key="custom",
+        creation_mode="manual",
+        front_components=["word"],
+        back_components=["audio"],
+        audio_mode="fixed",
+        audio_providers=["elevenlabs"],
+        fixed_audio_provider="elevenlabs",
+    )
+    audio = ProjectAudioService(database, SimpleNamespace(audio_dir=tmp_path / "audio"))
+    pool = audio._eleven_pool(project)
+    assert pool.is_available() is False
+    message = pool.availability_error()
+    assert "Nenhum perfil ElevenLabs habilitado" in message
+    assert "Inglês" in message
+
+
+def test_audio_pool_explains_missing_api_key(tmp_path: Path, monkeypatch) -> None:
+    database = Database(tmp_path / "missing-key.sqlite")
+    profile_service = AudioProfileService(database)
+    profile_service.save([
+        AudioVoiceProfile(provider="gemini", language="en", name="EN", model="model", voice="Kore")
+    ])
+    monkeypatch.setattr("ankiistudio.services.audio_service.SecretStore.get", lambda key: "")
+    project = ProjectData(
+        name="English",
+        language="en",
+        template_key="custom",
+        creation_mode="manual",
+        front_components=["word"],
+        back_components=["audio"],
+        audio_providers=["gemini"],
+    )
+    audio = ProjectAudioService(database, SimpleNamespace(audio_dir=tmp_path / "audio"))
+    pool = audio._gemini_pool(project)
+    assert pool.is_available() is False
+    assert "chave da Gemini API" in pool.availability_error()
+
+
+def test_audio_router_surfaces_profile_configuration_reason(tmp_path: Path) -> None:
+    from ankiistudio.services.audio.profile_pool import AudioProviderPool
+    from ankiistudio.services.audio.router import AudioRouter
+
+    message = "Nenhum perfil ElevenLabs habilitado para Inglês. Abra Configurações → Áudio."
+    pool = AudioProviderPool("elevenlabs", [], unavailable_message=message)
+    router = AudioRouter({"elevenlabs": pool})
+    project = ProjectData(
+        name="English",
+        language="en",
+        template_key="custom",
+        creation_mode="manual",
+        front_components=["word"],
+        back_components=["audio"],
+        audio_mode="fixed",
+        audio_providers=["elevenlabs"],
+        fixed_audio_provider="elevenlabs",
+    )
+    try:
+        router.generate(
+            text="apple",
+            destination_stem=tmp_path / "apple",
+            project=project,
+        )
+    except RuntimeError as exc:
+        assert message in str(exc)
+    else:
+        raise AssertionError("O router deveria explicar por que o provedor está indisponível.")

@@ -123,9 +123,14 @@ class ProjectService:
             updates["part_of_speech"] = ""
             updates["level"] = ""
             updates["tags"] = []
-            updates["image_search_terms"] = []
             if "image" not in selected:
+                updates["image_search_terms"] = []
                 updates["image_path"] = ""
+            else:
+                # `image_search_terms` é metadado funcional da busca automática.
+                # Preserve-o quando Imagem faz parte da estrutura; caso contrário,
+                # os termos produzidos pela Gemini seriam descartados antes do lote.
+                updates["image_search_terms"] = list(card.image_search_terms)
 
             if "audio" in selected:
                 # Migra automaticamente áudio legado da frase para o componente único de áudio.

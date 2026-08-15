@@ -188,3 +188,30 @@ def test_prompt_supports_automatic_ai_quantity_with_safe_limit() -> None:
     assert "Gere no máximo 200 cartões" in prompt
     assert "Crie exatamente None" not in prompt
     assert "não excede 200" in prompt
+
+
+def test_prompt_requires_strict_json_escaping_and_dynamic_selected_fields() -> None:
+    import json
+
+    prompt = PromptService.build(
+        language="en",
+        translation_language="pt",
+        template_key="custom",
+        topic="frutas",
+        quantity=3,
+        deck_name="Basic English",
+        front_components=["image", "word"],
+        back_components=["translation", "example", "explanation", "mnemonic"],
+        custom_content=["Frutas"],
+    )
+    assert "JSON estritamente válido" in prompt
+    assert "aspas internas" in prompt
+    assert "Não use vírgula final" in prompt
+    assert "sem Markdown" in prompt
+    schema_text = prompt.split("JSON SCHEMA OBRIGATÓRIO\n", 1)[1]
+    schema = json.loads(schema_text)
+    card_schema = schema["$defs"]["FlashcardData"]
+    required = set(card_schema["required"])
+    assert {"word", "translation", "example", "example_translation", "explanation", "mnemonic", "image_search_terms"} <= required
+    assert schema["properties"]["cards"]["minItems"] == 3
+    assert schema["properties"]["cards"]["maxItems"] == 3

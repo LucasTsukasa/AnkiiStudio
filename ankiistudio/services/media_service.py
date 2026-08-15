@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 import unicodedata
 from functools import lru_cache
 from pathlib import Path
@@ -83,21 +84,14 @@ class CardImageService:
     def preferred_search_terms(card: FlashcardData) -> list[str]:
         """Retorna a ordem de consultas usada pela busca automática/em lote.
 
-        Quando o cartão possui `image_search_terms`, esses termos visuais explícitos
-        continuam tendo prioridade, pois foram criados justamente para representar
-        conceitos concretos/abstratos de forma pesquisável. Quando a lista está vazia,
-        o conteúdo principal original vem primeiro. Essa regra é importante para kana,
-        letras e símbolos isolados: `お` deve ser pesquisado como `お`, e não como a
-        tradução `O`. A tradução permanece como fallback caso a consulta principal não
-        produza uma imagem utilizável.
+        O conteúdo principal original vem primeiro, reproduzindo a consulta que o
+        usuário vê na pesquisa manual. Termos visuais explícitos gerados/importados
+        entram em seguida e a tradução permanece como fallback. Para kana, letras e
+        símbolos isolados isso preserva a busca pelo próprio caractere.
         """
         ordered: list[str] = []
         seen: set[str] = set()
-        candidates = (
-            [*card.image_search_terms, card.translation, card.word]
-            if card.image_search_terms
-            else [card.word, card.translation]
-        )
+        candidates = [card.word, *card.image_search_terms, card.translation]
         for candidate in candidates:
             text = str(candidate or "").strip()
             key = unicodedata.normalize("NFKC", text).casefold()
@@ -105,6 +99,126 @@ class CardImageService:
                 seen.add(key)
                 ordered.append(text)
         return ordered
+
+    @staticmethod
+    def _normalize_match_text(value: str) -> str:
+        normalized = unicodedata.normalize("NFKD", str(value or ""))
+        without_marks = "".join(ch for ch in normalized if not unicodedata.combining(ch))
+        return " ".join(re.sub(r"[^\w]+", " ", without_marks.casefold(), flags=re.UNICODE).split())
+
+    @staticmethod
+    def _canonical_match_token(token: str) -> str:
+        """Normalização leve para plurais ingleses comuns sem tentar fazer NLP."""
+        if len(token) > 4 and token.endswith("ies"):
+            return token[:-3] + "y"
+        if len(token) > 3 and token.endswith("s") and not token.endswith("ss"):
+            return token[:-1]
+        return token
+
+    @classmethod
+    def _match_tokens(cls, value: str) -> list[str]:
+        return [
+            cls._canonical_match_token(token)
+            for token in cls._normalize_match_text(value).split()
+            if token
+        ]
+
+    @classmethod
+    def _term_metadata_score(cls, result: ImageSearchResult, term: str) -> int:
+        """Pontua quanto os metadados do resultado representam um termo visual.
+
+        A pontuação usa apenas título/descrição fornecidos pela fonte. Ela não tenta
+        inferir o conteúdo dos pixels e, por isso, é conservadora: correspondência
+        completa recebe nota alta; correspondência parcial de termos compostos não
+        basta para a seleção automática.
+        """
+        wanted = cls._match_tokens(term)
+        if not wanted:
+            return 0
+
+        title_tokens = set(cls._match_tokens(result.title))
+        description_tokens = set(cls._match_tokens(result.description))
+
+        def coverage(tokens: set[str]) -> float:
+            if not tokens:
+                return 0.0
+            matched = sum(1 for token in wanted if token in tokens)
+            return matched / len(wanted)
+
+        title_coverage = coverage(title_tokens)
+        description_coverage = coverage(description_tokens)
+        if title_coverage >= 1.0:
+            return 120
+        if description_coverage >= 1.0:
+            return 95
+        best = max(title_coverage, description_coverage)
+        if best >= 0.75:
+            return 70
+        if best >= 0.50:
+            return 35
+        if best > 0:
+            return 15
+        return 0
+
+    @classmethod
+    def _result_relevance_score(
+        cls,
+        card: FlashcardData,
+        result: ImageSearchResult,
+        searched_term: str,
+    ) -> int:
+        """Retorna a relevância textual usada somente na seleção automática.
+
+        Quando há `image_search_terms`, eles funcionam como a evidência principal de
+        relevância. Isso impede que o primeiro resultado semanticamente distante de
+        uma busca ampla seja aceito apenas porque a fonte o retornou. Sem termos
+        visuais explícitos, preservamos o comportamento histórico (incluindo a regra
+        especial de kana) para não regredir cartões antigos/modelos internos.
+        """
+        if not card.image_search_terms:
+            return 100 if cls._wikimedia_result_matches_non_latin_term(result, searched_term) else 0
+
+        visual_score = max(
+            (cls._term_metadata_score(result, term) for term in card.image_search_terms),
+            default=0,
+        )
+        if visual_score:
+            return visual_score
+
+        # Um título/descrição que contém literalmente o conteúdo original não deve ser
+        # descartado só porque os termos auxiliares vieram em outro idioma.
+        original_score = cls._term_metadata_score(result, card.word)
+        if original_score >= 95:
+            return original_score
+
+        # A consulta em andamento e a tradução servem apenas como evidência fraca
+        # quando existem termos visuais explícitos; sozinhas não ultrapassam o limiar.
+        return max(
+            min(cls._term_metadata_score(result, searched_term), 55),
+            min(cls._term_metadata_score(result, card.translation), 50),
+        )
+
+    @classmethod
+    def _rank_relevant_results(
+        cls,
+        card: FlashcardData,
+        searched_term: str,
+        results: list[ImageSearchResult],
+    ) -> list[ImageSearchResult]:
+        minimum_score = 60 if card.image_search_terms else 1
+        ranked: list[tuple[int, int, ImageSearchResult]] = []
+        for index, result in enumerate(results):
+            if not cls._wikimedia_result_matches_non_latin_term(result, searched_term):
+                # Quando há termos visuais explícitos, um resultado Wikimedia pode ter
+                # título em outro idioma e ainda ser válido; nesse caso a pontuação
+                # desses termos é a autoridade.
+                if not card.image_search_terms:
+                    continue
+            score = cls._result_relevance_score(card, result, searched_term)
+            if score >= minimum_score:
+                ranked.append((score, index, result))
+        ranked.sort(key=lambda item: (-item[0], item[1]))
+        return [result for _score, _index, result in ranked]
 
     def apply_search_result(
         self,
@@ -239,9 +353,10 @@ class CardImageService:
             except Exception as exc:
                 errors.append(f"{term}: {exc}")
                 continue
-            for result in results:
-                if not self._wikimedia_result_matches_non_latin_term(result, term):
-                    continue
+            ranked_results = self._rank_relevant_results(card, term, list(results))
+            if results and not ranked_results:
+                errors.append(f"{term}: nenhum resultado atingiu relevância suficiente")
+            for result in ranked_results:
                 try:
                     return self.apply_search_result(
                         project,

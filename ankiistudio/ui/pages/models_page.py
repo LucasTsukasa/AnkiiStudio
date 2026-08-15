@@ -62,28 +62,35 @@ class CardPreviewStage(QFrame):
         self._layout = QVBoxLayout(self)
         self._layout.setContentsMargins(22, 22, 22, 22)
         self._layout.setSpacing(0)
-        self._layout.addWidget(self.browser, alignment=Qt.AlignmentFlag.AlignCenter)
+
+        # O browser pode crescer até a largura simulada do dispositivo, mas nunca
+        # força o container/página a ultrapassar o viewport disponível. Os stretches
+        # laterais apenas centralizam o preview quando há espaço sobrando.
+        self._preview_row = QHBoxLayout()
+        self._preview_row.setContentsMargins(0, 0, 0, 0)
+        self._preview_row.setSpacing(0)
+        self._preview_row.addStretch(1)
+        self._preview_row.addWidget(self.browser, 1000)
+        self._preview_row.addStretch(1)
+        self._layout.addLayout(self._preview_row)
         self.set_device("desktop")
 
     def set_device(self, device: str) -> None:
         self._device = "mobile" if device == "mobile" else "desktop"
-        self.setMinimumHeight(564 if self._device == "mobile" else 444)
-        self._sync_browser_size()
-
-    def resizeEvent(self, event) -> None:  # type: ignore[override]
-        super().resizeEvent(event)
-        self._sync_browser_size()
-
-    def _sync_browser_size(self) -> None:
-        margins = self._layout.contentsMargins()
-        available_width = max(260, self.width() - margins.left() - margins.right())
         if self._device == "mobile":
-            target_width = min(self.MOBILE_MAX_WIDTH, available_width)
+            max_width = self.MOBILE_MAX_WIDTH
             target_height = self.MOBILE_HEIGHT
+            minimum_height = 564
         else:
-            target_width = min(self.DESKTOP_MAX_WIDTH, available_width)
+            max_width = self.DESKTOP_MAX_WIDTH
             target_height = self.DESKTOP_HEIGHT
-        self.browser.setFixedSize(target_width, target_height)
+            minimum_height = 444
+
+        self.setMinimumHeight(minimum_height)
+        self.browser.setMinimumWidth(0)
+        self.browser.setMaximumWidth(max_width)
+        self.browser.setFixedHeight(target_height)
+        self.browser.updateGeometry()
 
 
 class ModelsPage(QWidget):
@@ -278,7 +285,7 @@ class ModelsPage(QWidget):
         self.preview = self.front_preview
         self.front_preview.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.front_preview.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        self.front_preview.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        self.front_preview.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self.front_preview.setOpenExternalLinks(False)
         self.preview_stage = CardPreviewStage(self.front_preview)
         preview_card.root.addWidget(self.preview_stage)
