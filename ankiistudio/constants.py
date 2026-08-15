@@ -5,7 +5,7 @@ import unicodedata
 
 APP_NAME = "BenkyouStudio"
 LEGACY_APP_NAME = "AnkiiStudio"
-APP_VERSION = "0.11.0"
+APP_VERSION = "0.11.1"
 ORGANIZATION_NAME = "LucasTsukasa"
 GITHUB_URL = "https://github.com/LucasTsukasa"
 APP_REPOSITORY_URL = "https://github.com/LucasTsukasa/BenkyouStudio"

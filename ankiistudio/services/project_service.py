@@ -249,18 +249,19 @@ class ProjectService:
         card_map = {
             int(old.id): new_id for old, new_id in zip(source_cards, new_card_ids, strict=True) if old.id is not None
         }
-        for asset in self.database.list_media_assets_for_project(project_id):
-            self.database.add_media_asset(
-                asset.model_copy(
-                    deep=True,
-                    update={
-                        "id": None,
-                        "project_id": new_project_id,
-                        "card_id": card_map.get(int(asset.card_id)) if asset.card_id is not None else None,
-                        "created_at": utc_now_iso(),
-                    },
-                )
+        copied_assets = [
+            asset.model_copy(
+                deep=True,
+                update={
+                    "id": None,
+                    "project_id": new_project_id,
+                    "card_id": card_map.get(int(asset.card_id)) if asset.card_id is not None else None,
+                    "created_at": utc_now_iso(),
+                },
             )
+            for asset in self.database.list_media_assets_for_project(project_id)
+        ]
+        self.database.add_media_assets(copied_assets)
         return new_project_id
 
     @staticmethod

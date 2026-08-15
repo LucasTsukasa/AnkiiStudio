@@ -4,6 +4,23 @@ Todas as alterações relevantes do BenkyouStudio são registradas neste arquivo
 
 O formato segue os princípios de [Keep a Changelog](https://keepachangelog.com/) e o projeto utiliza versionamento semântico durante o desenvolvimento.
 
+## [0.11.1] - 2026-08-15
+
+### Corrigido
+- O salvamento de **Configurações** deixa de regravar credenciais no keyring quando o valor não mudou, persiste as configurações SQLite da operação em uma única transação e reaplica o Design System somente quando o tema realmente foi alterado. O fluxo também registra tempos separados de validação, keyring, SQLite, Design System e total no log para diagnóstico de performance.
+- A duplicação de projetos passa a executar o trabalho pesado em `Worker`, evitando bloqueio da interface, e grava os metadados de mídia duplicados em lote dentro de uma única transação SQLite.
+- Durante geração em lote de áudio, o painel de uso observado do Gemini TTS deixa de ser recalculado a cada cartão; a atualização passa a ser periódica durante a operação e obrigatória ao final.
+- A importação individual de imagens passa a executar leitura, decodificação, redimensionamento e conversão em `Worker` após benchmark confirmar custo perceptível na thread da interface. A importação individual de áudio permanece inalterada nesta patch porque as medições com arquivos típicos não indicaram freeze perceptível.
+
+### Preservado
+- A versão `0.11.1` é uma patch de estabilidade e responsividade: não adiciona funcionalidades, não altera regras de negócio e não introduz grandes refatorações.
+
+### Distribuição
+- Versão atualizada de `0.11.0` para `0.11.1`.
+- O build portátil passa a gerar somente `BenkyouStudio.exe`, sem o alias legado `AnkiiStudio.exe`.
+- Pacote portátil esperado: `BenkyouStudio-Portable-0.11.1.zip`.
+- O atualizador passa a selecionar apenas assets `BenkyouStudio-Portable-*.zip` e exige `BenkyouStudio.exe` no payload.
+
 ## [0.11.0] - 2026-08-15
 
 ### Corrigido

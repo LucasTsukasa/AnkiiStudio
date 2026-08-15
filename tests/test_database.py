@@ -491,3 +491,62 @@ def test_audio_profile_preferences_roundtrip(tmp_path: Path) -> None:
         "gemini": "gemini-profile",
         "elevenlabs": "eleven-profile",
     }
+
+
+def test_set_settings_persists_multiple_values_with_one_connection(tmp_path: Path) -> None:
+    from contextlib import contextmanager
+
+    db = Database(tmp_path / "settings-batch.db")
+    original_connection = db.connection
+    calls = 0
+
+    @contextmanager
+    def counted_connection():
+        nonlocal calls
+        calls += 1
+        with original_connection() as connection:
+            yield connection
+
+    db.connection = counted_connection  # type: ignore[method-assign]
+    db.set_settings({"one": "1", "two": "2", "three": "3"})
+
+    assert calls == 1
+    assert db.get_setting("one") == "1"
+    assert db.get_setting("two") == "2"
+    assert db.get_setting("three") == "3"
+
+
+def test_add_media_assets_inserts_batch_with_one_connection(tmp_path: Path) -> None:
+    from contextlib import contextmanager
+    from ankiistudio.models import MediaAsset
+
+    db = Database(tmp_path / "media-batch.db")
+    project_id = db.create_project(
+        ProjectData(
+            name="Batch",
+            template_key="custom",
+            front_components=["word"],
+            back_components=["translation"],
+        )
+    )
+    card_ids = db.add_cards(project_id, [FlashcardData(word="a"), FlashcardData(word="b")])
+    assets = [
+        MediaAsset(project_id=project_id, card_id=card_ids[0], kind="image", provider="test", local_path="a.webp"),
+        MediaAsset(project_id=project_id, card_id=card_ids[1], kind="audio", provider="test", local_path="b.mp3"),
+    ]
+    original_connection = db.connection
+    calls = 0
+
+    @contextmanager
+    def counted_connection():
+        nonlocal calls
+        calls += 1
+        with original_connection() as connection:
+            yield connection
+
+    db.connection = counted_connection  # type: ignore[method-assign]
+    ids = db.add_media_assets(assets)
+
+    assert calls == 1
+    assert len(ids) == 2
+    assert len(db.list_media_assets_for_project(project_id)) == 2

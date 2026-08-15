@@ -722,6 +722,17 @@ class Database:
             cursor = self._insert_media_asset(connection, asset)
             return int(cursor.lastrowid)
 
+    def add_media_assets(self, assets: list[MediaAsset]) -> list[int]:
+        """Insere vários assets em uma única transação SQLite."""
+        if not assets:
+            return []
+        ids: list[int] = []
+        with self.connection() as connection:
+            for asset in assets:
+                cursor = self._insert_media_asset(connection, asset)
+                ids.append(int(cursor.lastrowid))
+        return ids
+
     @staticmethod
     def _insert_media_asset(connection: sqlite3.Connection, asset: MediaAsset) -> sqlite3.Cursor:
         return connection.execute(
@@ -767,13 +778,19 @@ class Database:
         return str(row["value"]) if row else default
 
     def set_setting(self, key: str, value: str) -> None:
+        self.set_settings({key: value})
+
+    def set_settings(self, values: dict[str, str]) -> None:
+        """Persiste um conjunto de configurações em uma única transação."""
+        if not values:
+            return
         with self.connection() as connection:
-            connection.execute(
+            connection.executemany(
                 """
                 INSERT INTO settings(key, value) VALUES (?, ?)
                 ON CONFLICT(key) DO UPDATE SET value=excluded.value
                 """,
-                (key, value),
+                list(values.items()),
             )
 
     @staticmethod

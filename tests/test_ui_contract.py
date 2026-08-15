@@ -253,8 +253,28 @@ def test_api_keys_remain_editable_inside_settings() -> None:
     settings = read("ankiistudio/ui/pages/settings_page.py")
     assert "self.gemini_key = ASLineEdit()" in settings
     assert "self.eleven_key = ASLineEdit()" in settings
-    assert 'SecretStore.set("GEMINI_API_KEY"' in settings
-    assert 'SecretStore.set("ELEVENLABS_API_KEY"' in settings
+    assert '"GEMINI_API_KEY": self.gemini_key.text().strip()' in settings
+    assert '"ELEVENLABS_API_KEY": self.eleven_key.text().strip()' in settings
+    assert "changed_secrets" in settings
+    assert "SecretStore.set(key, value)" in settings
+    assert "self.database.set_settings(values)" in settings
+    assert "if app is not None and theme_changed:" in settings
+    assert '"Settings Save: validation=%.2fms keyring=%.2fms sqlite=%.2fms design_system=%.2fms total=%.2fms' in settings
+
+
+def test_0_11_1_responsiveness_patch_keeps_heavy_work_out_of_hot_ui_paths() -> None:
+    hub = read("ankiistudio/ui/pages/projects_hub_page.py")
+    project_service = read("ankiistudio/services/project_service.py")
+    audio = read("ankiistudio/ui/pages/audio_page.py")
+    projects = read("ankiistudio/ui/pages/projects_page.py")
+    assert "Worker(self.project_service.duplicate_project, project_id)" in hub
+    assert "self.database.add_media_assets(copied_assets)" in project_service
+    assert "self._gemini_usage_refresh_timer.start()" in audio
+    assert "self._gemini_usage_refresh_timer.stop()" in audio
+    progress = audio[audio.index("def _generation_progress"):audio.index("def _generation_worker_finished") ]
+    assert "refresh_gemini_usage()" not in progress
+    assert "Worker(self.image_service.import_image_file" in projects
+    assert "Worker(self.audio_service.import_audio_file" not in projects
 
 
 def test_voice_profiles_are_managed_in_settings_and_keys_remain_there() -> None:
@@ -273,12 +293,12 @@ def test_voice_profiles_are_managed_in_settings_and_keys_remain_there() -> None:
 
 def test_application_version_is_stable_and_user_agent_is_centralized() -> None:
     constants = read("ankiistudio/constants.py")
-    assert 'APP_VERSION = "0.11.0"' in constants
+    assert 'APP_VERSION = "0.11.1"' in constants
     assert 'APP_NAME = "BenkyouStudio"' in constants
     assert 'LEGACY_APP_NAME = "AnkiiStudio"' in constants
     assert 'name = "benkyoustudio"' in read("pyproject.toml")
-    assert '__version__ = "0.11.0"' in read("ankiistudio/__init__.py")
-    assert 'version = "0.11.0"' in read("pyproject.toml")
+    assert '__version__ = "0.11.1"' in read("ankiistudio/__init__.py")
+    assert 'version = "0.11.1"' in read("pyproject.toml")
     assert 'APP_USER_AGENT = f"{APP_NAME}/{APP_VERSION}' in constants
     for relative_path in (
         "ankiistudio/services/audio/tatoeba_audio.py",
@@ -469,7 +489,7 @@ def test_portable_only_storage_and_build_are_configured() -> None:
     assert 'self.base_dir = self.app_dir / "data"' in config
     assert "platformdirs" not in config
     assert "user_data_dir" not in config
-    assert "BenkyouStudio-Portable-0.11.0.zip" in build
+    assert "BenkyouStudio-Portable-0.11.1.zip" in build
     assert "BenkyouStudio.iss" not in build
     assert not (ROOT / "scripts" / "BenkyouStudio.iss").exists()
 
@@ -665,9 +685,10 @@ def test_beta6_updater_accepts_wrapped_portable_build_and_build_keeps_root_exe()
     updater = read("ankiistudio/services/update_service.py")
     build = read("scripts/build_windows.ps1")
     assert "_resolve_payload_dir" in updater
-    assert 'executable_names = (f"{APP_NAME}.exe", f"{LEGACY_APP_NAME}.exe")' in updater
+    assert 'executable_name = f"{APP_NAME}.exe"' in updater
+    assert 'LEGACY_APP_NAME' not in updater
     assert 'BenkyouStudio.exe não está na raiz do ZIP' in build
-    assert 'alias de compatibilidade AnkiiStudio.exe ausente' in build
+    assert 'AnkiiStudio.exe' not in build
 
 
 def test_beta6_projects_has_field_ai_only_for_example_explanation_and_mnemonic() -> None:

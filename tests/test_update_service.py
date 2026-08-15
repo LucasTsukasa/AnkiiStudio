@@ -171,12 +171,38 @@ def test_update_payload_accepts_executable_at_zip_root(tmp_path: Path) -> None:
     assert UpdateService._resolve_payload_dir(staging) == staging
 
 
-def test_update_payload_accepts_legacy_executable_during_name_transition(tmp_path: Path) -> None:
+def test_update_payload_rejects_legacy_executable_without_benkyoustudio(tmp_path: Path) -> None:
     staging = tmp_path / "staging-legacy-root"
     staging.mkdir()
     (staging / "AnkiiStudio.exe").write_bytes(b"exe")
     (staging / "_internal").mkdir()
-    assert UpdateService._resolve_payload_dir(staging) == staging
+    with pytest.raises(RuntimeError, match="BenkyouStudio.exe"):
+        UpdateService._resolve_payload_dir(staging)
+
+
+def test_portable_asset_ignores_legacy_portable_zip() -> None:
+    assets = [
+        {
+            "name": "AnkiiStudio-Portable-0.11.1.zip",
+            "browser_download_url": "https://example.invalid/legacy.zip",
+        },
+        {
+            "name": "BenkyouStudio-Portable-0.11.1.zip",
+            "browser_download_url": "https://example.invalid/current.zip",
+        },
+    ]
+    selected = UpdateService._portable_asset(assets)
+    assert selected is assets[1]
+
+
+def test_portable_asset_rejects_release_without_benkyoustudio_portable() -> None:
+    assets = [
+        {
+            "name": "AnkiiStudio-Portable-0.11.1.zip",
+            "browser_download_url": "https://example.invalid/legacy.zip",
+        }
+    ]
+    assert UpdateService._portable_asset(assets) is None
 
 
 def test_update_payload_accepts_single_wrapper_directory(tmp_path: Path) -> None:

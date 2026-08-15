@@ -66,6 +66,7 @@ class ProjectsPage(QWidget):
         self._workers: list[Worker] = []
         self._active_bulk_tasks: set[str] = set()
         self._export_in_progress = False
+        self._image_import_in_progress = False
         self._ai_buttons: dict[str, QToolButton] = {}
         self._ai_busy_field: str | None = None
         self._ai_spinner_frames = ("◐", "◓", "◑", "◒")
@@ -419,7 +420,7 @@ class ProjectsPage(QWidget):
         has_image = bool(has_card and self.current_card and self.current_card.image_path)
         has_audio = bool(has_card and self.current_card and self.current_card.audio_path)
         self.image_button.setEnabled(card_uses_images)
-        self.import_image_button.setEnabled(card_uses_images)
+        self.import_image_button.setEnabled(card_uses_images and not self._image_import_in_progress)
         self.remove_image_button.setEnabled(card_uses_images and has_image)
         self.bulk_image_button.setEnabled(has_project and project_uses_images and "image" not in self._active_bulk_tasks)
         self.audio_button.setEnabled(card_uses_audio)
@@ -972,14 +973,35 @@ class ProjectsPage(QWidget):
         if not filename:
             return
         persisted = self._persisted_current_card()
-        if persisted is None:
+        if persisted is None or persisted.id is None:
             return
-        try:
-            updated = self.image_service.import_image_file(project, persisted, Path(filename))
-        except Exception as exc:
-            QMessageBox.critical(self, "Não foi possível importar", str(exc))
-            return
-        self._image_applied(updated, message="Imagem importada e associada ao cartão.")
+        target_card_id = int(persisted.id)
+        self._image_import_in_progress = True
+        self._update_action_states()
+        self.status.show_message("Importando e otimizando a imagem...")
+        worker = Worker(self.image_service.import_image_file, project, persisted, Path(filename))
+
+        def imported(result: object) -> None:
+            if not isinstance(result, FlashcardData):
+                return
+            if self.current_card is not None and self.current_card.id == target_card_id:
+                self._image_applied(result, message="Imagem importada e associada ao cartão.")
+                return
+            self._set_media_status(target_card_id, 4, "Sim")
+            self.status.show_message("Imagem importada e associada ao cartão.")
+            self.changed.emit()
+
+        def failed(message: str) -> None:
+            QMessageBox.critical(self, "Não foi possível importar", message)
+
+        def finished() -> None:
+            self._image_import_in_progress = False
+            self._update_action_states()
+
+        worker.signals.result.connect(imported)
+        worker.signals.error.connect(failed)
+        worker.signals.finished.connect(finished)
+        self._keep_worker(worker)
 
     def remove_card_image(self) -> None:
         if self.current_card is None or not self.current_card.image_path:

@@ -1,6 +1,10 @@
 from __future__ import annotations
 
+from dataclasses import asdict
+import json
+import logging
 from pathlib import Path
+from time import perf_counter
 
 from PySide6.QtCore import Qt, QThreadPool, QUrl, Signal
 from PySide6.QtMultimedia import QAudioOutput, QMediaPlayer
@@ -30,11 +34,11 @@ from ankiistudio.services.audio.elevenlabs import ElevenLabsProvider
 from ankiistudio.services.audio.gemini_tts import GeminiTTSProvider
 from ankiistudio.services.audio.voicevox import VoicevoxProvider
 from ankiistudio.services.audio_preferences import (
-    VoicevoxSettingsData, load_voicevox_defaults, preview_text, save_voicevox_defaults,
+    VOICEVOX_DEFAULTS_KEY, VoicevoxSettingsData, load_voicevox_defaults, preview_text, save_voicevox_defaults,
 )
 from ankiistudio.services.audio_profile_service import AudioProfileService, AudioVoiceProfile
 from ankiistudio.services.gemini_tts_usage import GeminiTTSUsageTracker
-from ankiistudio.services.theme_settings import load_default_card_theme, save_default_card_theme
+from ankiistudio.services.theme_settings import DEFAULT_CARD_THEME_SETTING, load_default_card_theme
 from ankiistudio.ui.design_system.components import ASButton, ASComboBox, ASLineEdit
 from ankiistudio.ui.deck_theme_editor import DeckThemeEditor
 from ankiistudio.ui.dialogs.audio_profile_dialog import AudioProfileDialog
@@ -42,6 +46,9 @@ from ankiistudio.ui.dialogs.voicevox_settings_dialog import VoicevoxSettingsDial
 from ankiistudio.ui.design_system.themes import apply_design_system
 from ankiistudio.ui.widgets import PageScrollArea, SearchableComboBox, SectionCard, StatusBanner
 from ankiistudio.ui.workers import Worker
+
+
+logger = logging.getLogger(__name__)
 
 
 class SettingsPage(QWidget):
@@ -284,12 +291,20 @@ class SettingsPage(QWidget):
             combo.setCurrentIndex(index)
 
     def load(self) -> None:
-        self._select_data(self.appearance_combo, self.database.get_setting("appearance_theme", "dark"))
+        appearance_theme = self.database.get_setting("appearance_theme", "dark")
+        self._loaded_appearance_theme = appearance_theme
+        self._select_data(self.appearance_combo, appearance_theme)
         self._select_data(self.ui_language_combo, self.database.get_setting("ui_language", "pt_BR"))
-        self.gemini_key.setText(SecretStore.get("GEMINI_API_KEY"))
-        self.eleven_key.setText(SecretStore.get("ELEVENLABS_API_KEY"))
-        self.pixabay_key.setText(SecretStore.get("PIXABAY_API_KEY"))
-        self.pexels_key.setText(SecretStore.get("PEXELS_API_KEY"))
+        self._loaded_secret_values = {
+            "GEMINI_API_KEY": SecretStore.get("GEMINI_API_KEY"),
+            "ELEVENLABS_API_KEY": SecretStore.get("ELEVENLABS_API_KEY"),
+            "PIXABAY_API_KEY": SecretStore.get("PIXABAY_API_KEY"),
+            "PEXELS_API_KEY": SecretStore.get("PEXELS_API_KEY"),
+        }
+        self.gemini_key.setText(self._loaded_secret_values["GEMINI_API_KEY"])
+        self.eleven_key.setText(self._loaded_secret_values["ELEVENLABS_API_KEY"])
+        self.pixabay_key.setText(self._loaded_secret_values["PIXABAY_API_KEY"])
+        self.pexels_key.setText(self._loaded_secret_values["PEXELS_API_KEY"])
         self.wikimedia_images.setChecked(self.database.get_setting("image_source_wikimedia", "1") == "1")
         self.pixabay_images.setChecked(self.database.get_setting("image_source_pixabay", "0") == "1")
         self.pexels_images.setChecked(self.database.get_setting("image_source_pexels", "0") == "1")
@@ -303,7 +318,12 @@ class SettingsPage(QWidget):
             self.voicevox_default_combo.set_items([(label, self._voicevox_defaults.style_id)], self._voicevox_defaults.style_id)
 
     def save(self) -> None:
+        total_started = perf_counter()
+        timings: dict[str, float] = {}
+        changed_secret_count = 0
+        theme_changed = False
         try:
+            phase_started = perf_counter()
             pixabay_key = self.pixabay_key.text().strip()
             pexels_key = self.pexels_key.text().strip()
             if not any((self.wikimedia_images.isChecked(), self.pixabay_images.isChecked(), self.pexels_images.isChecked())):
@@ -312,10 +332,13 @@ class SettingsPage(QWidget):
                 raise ValueError("Informe a API key do Pixabay antes de habilitar essa fonte.")
             if self.pexels_images.isChecked() and not pexels_key:
                 raise ValueError("Informe a API key do Pexels antes de habilitar essa fonte.")
-            SecretStore.set("GEMINI_API_KEY", self.gemini_key.text().strip())
-            SecretStore.set("ELEVENLABS_API_KEY", self.eleven_key.text().strip())
-            SecretStore.set("PIXABAY_API_KEY", pixabay_key)
-            SecretStore.set("PEXELS_API_KEY", pexels_key)
+
+            secret_values = {
+                "GEMINI_API_KEY": self.gemini_key.text().strip(),
+                "ELEVENLABS_API_KEY": self.eleven_key.text().strip(),
+                "PIXABAY_API_KEY": pixabay_key,
+                "PEXELS_API_KEY": pexels_key,
+            }
             selected_ui_language = str(self.ui_language_combo.currentData() or "pt_BR")
             values = {
                 "appearance_theme": str(self.appearance_combo.currentData()),
@@ -327,20 +350,59 @@ class SettingsPage(QWidget):
                 "image_source_pexels": "1" if self.pexels_images.isChecked() else "0",
                 "check_updates": "1" if self.check_updates.isChecked() else "0",
             }
-            for key, value in values.items():
-                self.database.set_setting(key, value)
             if hasattr(self, "default_card_theme_editor"):
-                save_default_card_theme(self.database, self.default_card_theme_editor.theme())
+                values[DEFAULT_CARD_THEME_SETTING] = self.default_card_theme_editor.theme().model_dump_json()
             if hasattr(self, "voicevox_default_combo") and self.voicevox_default_combo.currentData() is not None:
                 self._voicevox_defaults.style_id = int(self.voicevox_default_combo.currentData())
                 self._voicevox_defaults.style_label = self.voicevox_default_combo.currentText().strip()
-                save_voicevox_defaults(self.database, self._voicevox_defaults)
+                values[VOICEVOX_DEFAULTS_KEY] = json.dumps(asdict(self._voicevox_defaults), ensure_ascii=False)
+            theme_changed = values["appearance_theme"] != getattr(self, "_loaded_appearance_theme", "dark")
+            timings["validation_ms"] = (perf_counter() - phase_started) * 1000
+
+            phase_started = perf_counter()
+            loaded_secret_values = getattr(self, "_loaded_secret_values", {})
+            changed_secrets = {
+                key: value
+                for key, value in secret_values.items()
+                if value != loaded_secret_values.get(key, "")
+            }
+            for key, value in changed_secrets.items():
+                SecretStore.set(key, value)
+                loaded_secret_values[key] = value
+            changed_secret_count = len(changed_secrets)
+            timings["keyring_ms"] = (perf_counter() - phase_started) * 1000
+
+            phase_started = perf_counter()
+            self.database.set_settings(values)
+            timings["sqlite_ms"] = (perf_counter() - phase_started) * 1000
+
+            phase_started = perf_counter()
             app = QApplication.instance()
-            if app is not None:
+            if app is not None and theme_changed:
                 apply_design_system(app, self.resource_dir, values["appearance_theme"])
+            timings["design_system_ms"] = (perf_counter() - phase_started) * 1000
+
+            self._loaded_secret_values = secret_values.copy()
+            self._loaded_appearance_theme = values["appearance_theme"]
         except Exception as exc:
+            logger.exception(
+                "Falha ao salvar configurações após %.2f ms",
+                (perf_counter() - total_started) * 1000,
+            )
             QMessageBox.critical(self, "Falha ao salvar", str(exc))
             return
+
+        timings["total_ms"] = (perf_counter() - total_started) * 1000
+        logger.info(
+            "Settings Save: validation=%.2fms keyring=%.2fms sqlite=%.2fms design_system=%.2fms total=%.2fms keyring_updates=%d theme_changed=%s",
+            timings["validation_ms"],
+            timings["keyring_ms"],
+            timings["sqlite_ms"],
+            timings["design_system_ms"],
+            timings["total_ms"],
+            changed_secret_count,
+            theme_changed,
+        )
         self.status.show_message(tr("Configurações salvas."))
 
     def _ui_language_selected(self, _index: int) -> None:

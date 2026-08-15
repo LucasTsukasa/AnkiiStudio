@@ -12,7 +12,7 @@ from pathlib import Path
 import httpx
 
 from ankiistudio.config import AppPaths
-from ankiistudio.constants import APP_NAME, APP_USER_AGENT, APP_VERSION, LEGACY_APP_NAME
+from ankiistudio.constants import APP_NAME, APP_USER_AGENT, APP_VERSION
 
 GITHUB_REPOSITORY = "LucasTsukasa/BenkyouStudio"
 GITHUB_API = f"https://api.github.com/repos/{GITHUB_REPOSITORY}/releases"
@@ -120,10 +120,16 @@ class UpdateService:
 
     @staticmethod
     def _portable_asset(assets: list[dict]) -> dict | None:
+        expected_prefix = f"{APP_NAME}-Portable-".casefold()
         for asset in assets:
             name = str(asset.get("name") or "")
             url = str(asset.get("browser_download_url") or "")
-            if name.lower().endswith(".zip") and "portable" in name.lower() and url.startswith("https://"):
+            normalized_name = name.casefold()
+            if (
+                normalized_name.startswith(expected_prefix)
+                and normalized_name.endswith(".zip")
+                and url.startswith("https://")
+            ):
                 return asset
         return None
 
@@ -160,12 +166,12 @@ class UpdateService:
     def _resolve_payload_dir(staging: Path) -> Path:
         """Localiza a raiz real do build portátil após a extração.
 
-        Releases atuais usam ``BenkyouStudio.exe``. Durante a transição de nome,
-        ``AnkiiStudio.exe`` também é aceito como formato legado para que pacotes
-        anteriores continuem reconhecíveis. Estruturas ambíguas permanecem rejeitadas.
+        A partir da 0.11.1, pacotes de atualização devem conter exclusivamente o
+        executável principal ``BenkyouStudio.exe``. Estruturas ambíguas permanecem
+        rejeitadas.
         """
-        executable_names = (f"{APP_NAME}.exe", f"{LEGACY_APP_NAME}.exe")
-        if any((staging / name).is_file() for name in executable_names):
+        executable_name = f"{APP_NAME}.exe"
+        if (staging / executable_name).is_file():
             return staging
 
         ignored_names = {"__MACOSX", ".DS_Store", "Thumbs.db"}
@@ -177,14 +183,14 @@ class UpdateService:
         candidates = [
             path
             for path in directories
-            if any((path / name).is_file() for name in executable_names)
+            if (path / executable_name).is_file()
         ]
         if len(candidates) == 1 and len(directories) == 1 and not files:
             return candidates[0]
 
         raise RuntimeError(
             f"O pacote de atualização não contém um build portátil válido do {APP_NAME} "
-            "na raiz nem em uma única pasta contêiner."
+            f"com {executable_name} na raiz nem em uma única pasta contêiner."
         )
 
     @staticmethod

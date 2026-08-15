@@ -71,7 +71,7 @@
     {
       "id": "0.11.0",
       "status": "completed",
-      "current": true,
+      "current": false,
       "title": "BenkyouStudio 0.11.0",
       "description": "Primeira versão estável sob o nome BenkyouStudio, promovida a partir da beta.9 validada do AnkiiStudio com correções finais de recuperação e manutenção.",
       "details": [
@@ -79,6 +79,20 @@
         "Atualizador portátil recuperável com backup antes da substituição e rollback automático em caso de falha",
         "Perfis de áudio preservados quando a configuração JSON persistida estiver inválida ou parcialmente inválida",
         "User-Agent HTTP centralizado e derivado automaticamente da versão do aplicativo"
+      ]
+    },
+    {
+      "id": "0.11.1",
+      "status": "completed",
+      "current": true,
+      "title": "BenkyouStudio 0.11.1",
+      "description": "Patch de estabilidade e responsividade da linha 0.11.x, com foco em reduzir bloqueios da interface e consolidar a distribuição sob o nome BenkyouStudio.",
+      "details": [
+        "Salvamento de Configurações otimizado para evitar operações desnecessárias de keyring, SQLite e reaplicação de tema",
+        "Duplicação de projetos movida para Worker com inserção de mídias em lote",
+        "Atualização de uso do Gemini TTS limitada durante lotes e sincronizada ao final",
+        "Importação individual de imagem movida para Worker após confirmação de custo perceptível",
+        "Distribuição portátil e updater passam a usar exclusivamente BenkyouStudio.exe"
       ]
     },
     {

@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from PySide6.QtCore import QThreadPool, QUrl, Qt
+from PySide6.QtCore import QThreadPool, QTimer, QUrl, Qt
 from PySide6.QtMultimedia import QAudioOutput, QMediaPlayer
 from PySide6.QtWidgets import (
     QCheckBox,
@@ -57,6 +57,9 @@ class AudioPage(QWidget):
         self.thread_pool = QThreadPool.globalInstance()
         self.current_project: ProjectData | None = None
         self._workers: list[Worker] = []
+        self._gemini_usage_refresh_timer = QTimer(self)
+        self._gemini_usage_refresh_timer.setInterval(1000)
+        self._gemini_usage_refresh_timer.timeout.connect(self.refresh_gemini_usage)
         self._compact_layout = False
         self._voicevox_styles: list[dict[str, object]] = []
         self.preview_audio_output = QAudioOutput(self)
@@ -639,6 +642,7 @@ class AudioPage(QWidget):
         self.progress.setValue(0)
         self.progress.show()
         self.status.show_message("Gerando áudios ausentes...")
+        self._gemini_usage_refresh_timer.start()
 
         def run_all() -> tuple[int, int, list[str]]:
             completed = 0
@@ -691,9 +695,9 @@ class AudioPage(QWidget):
             f"Áudios: {data.get('index')}/{data.get('total')} · {data.get('word')} · {state_label}",
             error=state == "error",
         )
-        self.refresh_gemini_usage()
 
     def _generation_worker_finished(self) -> None:
+        self._gemini_usage_refresh_timer.stop()
         self._update_generation_state()
         self.refresh_gemini_usage()
 
@@ -707,4 +711,3 @@ class AudioPage(QWidget):
             )
         else:
             self.status.show_message(f"Concluído: {completed} gerados e {existing} já existentes.")
-        self.refresh_gemini_usage()

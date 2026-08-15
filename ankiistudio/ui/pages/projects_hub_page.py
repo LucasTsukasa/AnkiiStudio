@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from PySide6.QtCore import Qt, Signal, QTimer
+from PySide6.QtCore import Qt, QThreadPool, Signal, QTimer
 from PySide6.QtWidgets import (
     QComboBox,
     QFrame,
@@ -28,6 +28,7 @@ from ankiistudio.services.project_service import ProjectService
 from ankiistudio.ui.design_system import responsive_columns
 from ankiistudio.ui.design_system.components import ASButton, ASCard, ASComboBox, ASContextMenu, ASLineEdit, ASTabWidget
 from ankiistudio.ui.widgets import PageHeader
+from ankiistudio.ui.workers import Worker
 
 
 class ProjectCard(ASCard):
@@ -135,6 +136,9 @@ class ProjectsHubPage(QWidget):
         self.database = database
         self.paths = paths
         self.project_service = ProjectService(database)
+        self.thread_pool = QThreadPool.globalInstance()
+        self._workers: list[Worker] = []
+        self._duplicate_in_progress = False
         self._current_project_id: int | None = None
         self._grid_columns = 0
         self._cards: list[ProjectCard] = []
@@ -401,17 +405,32 @@ class ProjectsHubPage(QWidget):
             self.filters_layout.setColumnStretch(0, 1)
 
     def duplicate_project(self, project_id: int) -> None:
+        if self._duplicate_in_progress:
+            return
         project = self.database.get_project(project_id)
         if project is None:
             return
-        try:
-            new_id = self.project_service.duplicate_project(project_id)
-        except Exception as exc:
-            QMessageBox.critical(self, "Não foi possível duplicar", str(exc))
-            return
-        self.refresh_library()
-        self.changed.emit()
-        self.open_project(new_id)
+
+        self._duplicate_in_progress = True
+        self.library_page.setEnabled(False)
+        worker = Worker(self.project_service.duplicate_project, project_id)
+
+        def duplicated(result: object) -> None:
+            new_id = int(result)
+            self.refresh_library()
+            self.changed.emit()
+            self.open_project(new_id)
+
+        def finished() -> None:
+            self._duplicate_in_progress = False
+            self.library_page.setEnabled(True)
+
+        worker.signals.result.connect(duplicated)
+        worker.signals.error.connect(lambda message: QMessageBox.critical(self, "Não foi possível duplicar", message))
+        worker.signals.finished.connect(finished)
+        worker.signals.finished.connect(lambda: self._workers.remove(worker) if worker in self._workers else None)
+        self._workers.append(worker)
+        self.thread_pool.start(worker)
 
     def delete_project(self, project_id: int) -> None:
         project = self.database.get_project(project_id)
