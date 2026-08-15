@@ -8,21 +8,24 @@ if (-not (Test-Path $FilePath)) {
     throw "Arquivo para assinatura não encontrado: $FilePath"
 }
 
-$pfxPath = $env:ANKIISTUDIO_SIGN_PFX
-$pfxPassword = $env:ANKIISTUDIO_SIGN_PASSWORD
-$signtool = $env:ANKIISTUDIO_SIGNTOOL
+$pfxPath = $env:BENKYOUSTUDIO_SIGN_PFX
+if (-not $pfxPath) { $pfxPath = $env:ANKIISTUDIO_SIGN_PFX }
+$pfxPassword = $env:BENKYOUSTUDIO_SIGN_PASSWORD
+if (-not $pfxPassword) { $pfxPassword = $env:ANKIISTUDIO_SIGN_PASSWORD }
+$signtool = $env:BENKYOUSTUDIO_SIGNTOOL
+if (-not $signtool) { $signtool = $env:ANKIISTUDIO_SIGNTOOL }
 if (-not $signtool) { $signtool = "signtool.exe" }
 
 if (-not $pfxPath) {
     Write-Host "Assinatura Authenticode não configurada; build continuará sem assinatura." -ForegroundColor Yellow
-    Write-Host "Para distribuição pública, configure SignPath Foundation ou ANKIISTUDIO_SIGN_PFX/ANKIISTUDIO_SIGN_PASSWORD." -ForegroundColor Yellow
+    Write-Host "Para distribuição pública, configure SignPath Foundation ou BENKYOUSTUDIO_SIGN_PFX/BENKYOUSTUDIO_SIGN_PASSWORD (ou os nomes legados ANKIISTUDIO_*)." -ForegroundColor Yellow
     exit 0
 }
 if (-not (Test-Path $pfxPath)) {
-    throw "Certificado PFX não encontrado em ANKIISTUDIO_SIGN_PFX."
+    throw "Certificado PFX não encontrado em BENKYOUSTUDIO_SIGN_PFX (ou ANKIISTUDIO_SIGN_PFX)."
 }
 if (-not $pfxPassword) {
-    throw "ANKIISTUDIO_SIGN_PASSWORD não foi definida."
+    throw "BENKYOUSTUDIO_SIGN_PASSWORD (ou ANKIISTUDIO_SIGN_PASSWORD) não foi definida."
 }
 
 & $signtool sign /fd SHA256 /f $pfxPath /p $pfxPassword /tr "http://timestamp.digicert.com" /td SHA256 $FilePath

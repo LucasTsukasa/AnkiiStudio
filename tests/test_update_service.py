@@ -16,7 +16,11 @@ if "keyring" not in sys.modules:
 import pytest
 
 from ankiistudio.config import AppPaths
-from ankiistudio.services.update_service import UpdateService
+from ankiistudio.services.update_service import GITHUB_API, UpdateService
+
+
+def test_updater_targets_benkyoustudio_repository() -> None:
+    assert GITHUB_API == "https://api.github.com/repos/LucasTsukasa/BenkyouStudio/releases"
 
 
 class FakeResponse:
@@ -47,14 +51,14 @@ class FakeClient:
 def _release(tag: str, *, prerelease: bool) -> dict:
     return {
         "tag_name": tag,
-        "name": f"AnkiiStudio {tag}",
+        "name": f"BenkyouStudio {tag}",
         "draft": False,
         "prerelease": prerelease,
-        "html_url": f"https://github.com/LucasTsukasa/AnkiiStudio/releases/tag/{tag}",
+        "html_url": f"https://github.com/LucasTsukasa/BenkyouStudio/releases/tag/{tag}",
         "body": "Notas",
         "assets": [
             {
-                "name": f"AnkiiStudio-Portable-{tag.lstrip('v')}.zip",
+                "name": f"BenkyouStudio-Portable-{tag.lstrip('v')}.zip",
                 "browser_download_url": f"https://example.invalid/{tag}.zip",
             }
         ],
@@ -117,22 +121,22 @@ def test_safe_extract_rejects_path_traversal(tmp_path: Path) -> None:
         UpdateService._safe_extract(archive, destination)
 
 
-def test_windows_updater_preserves_data_and_replaces_application_files(monkeypatch, tmp_path: Path) -> None:
+def test_windows_updater_preserves_data_and_can_rollback_failed_install(monkeypatch, tmp_path: Path) -> None:
     from ankiistudio.services.update_service import DownloadedUpdate, UpdateInfo
 
     paths = AppPaths(tmp_path / "portable")
     paths.ensure()
     staging = paths.cache_dir / "updates" / "0.11.0-beta.3" / "staging"
     staging.mkdir(parents=True)
-    (staging / "AnkiiStudio.exe").write_bytes(b"exe")
+    (staging / "BenkyouStudio.exe").write_bytes(b"exe")
     (staging / "_internal").mkdir()
-    archive = staging.parent / "AnkiiStudio-Portable-0.11.0-beta.3.zip"
+    archive = staging.parent / "BenkyouStudio-Portable-0.11.0-beta.3.zip"
     archive.write_bytes(b"zip")
     info = UpdateInfo(
         version="0.11.0-beta.3",
         tag_name="v0.11.0-beta.3",
         prerelease=True,
-        release_name="AnkiiStudio v0.11.0-beta.3",
+        release_name="BenkyouStudio v0.11.0-beta.3",
         html_url="https://example.test/release",
         notes="",
         asset_name=archive.name,
@@ -146,13 +150,29 @@ def test_windows_updater_preserves_data_and_replaces_application_files(monkeypat
     script = service.schedule_install_and_restart(downloaded)
     text = script.read_text(encoding="utf-8")
     assert "if ($_.Name -ne 'data')" in text
-    assert "Get-ChildItem -LiteralPath $appDir -Force" in text
-    assert "Remove-Item -LiteralPath $_.FullName -Recurse -Force" in text
-    assert "Start-Process -FilePath (Join-Path $appDir 'AnkiiStudio.exe')" in text
+    assert "backup-current" in text
+    backup_copy = "Copy-AppFiles -Source $appDir -Destination $backup"
+    destructive_step = "Remove-AppFiles -Root $appDir"
+    assert backup_copy in text
+    assert destructive_step in text
+    assert text.index(backup_copy) < text.index(destructive_step)
+    assert "Copy-AppFiles -Source $backup -Destination $appDir" in text
+    assert "a instalação anterior foi restaurada" in text
+    assert "Start-Process -FilePath $newExe" in text
+    assert "$targetExeName = 'BenkyouStudio.exe'" in text
+    assert "Start-Process -FilePath $oldExe -ErrorAction SilentlyContinue" in text
 
 
 def test_update_payload_accepts_executable_at_zip_root(tmp_path: Path) -> None:
     staging = tmp_path / "staging-root"
+    staging.mkdir()
+    (staging / "BenkyouStudio.exe").write_bytes(b"exe")
+    (staging / "_internal").mkdir()
+    assert UpdateService._resolve_payload_dir(staging) == staging
+
+
+def test_update_payload_accepts_legacy_executable_during_name_transition(tmp_path: Path) -> None:
+    staging = tmp_path / "staging-legacy-root"
     staging.mkdir()
     (staging / "AnkiiStudio.exe").write_bytes(b"exe")
     (staging / "_internal").mkdir()
@@ -161,18 +181,18 @@ def test_update_payload_accepts_executable_at_zip_root(tmp_path: Path) -> None:
 
 def test_update_payload_accepts_single_wrapper_directory(tmp_path: Path) -> None:
     staging = tmp_path / "staging-wrapper"
-    payload = staging / "AnkiiStudio"
+    payload = staging / "BenkyouStudio"
     payload.mkdir(parents=True)
-    (payload / "AnkiiStudio.exe").write_bytes(b"exe")
+    (payload / "BenkyouStudio.exe").write_bytes(b"exe")
     (payload / "_internal").mkdir()
     assert UpdateService._resolve_payload_dir(staging) == payload
 
 
 def test_update_payload_rejects_ambiguous_wrapper(tmp_path: Path) -> None:
     staging = tmp_path / "staging-ambiguous"
-    payload = staging / "AnkiiStudio"
+    payload = staging / "BenkyouStudio"
     payload.mkdir(parents=True)
-    (payload / "AnkiiStudio.exe").write_bytes(b"exe")
+    (payload / "BenkyouStudio.exe").write_bytes(b"exe")
     (staging / "extra").mkdir()
     with pytest.raises(RuntimeError, match="build portátil válido"):
         UpdateService._resolve_payload_dir(staging)

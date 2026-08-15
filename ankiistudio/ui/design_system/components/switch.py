@@ -8,7 +8,7 @@ from ..tokens import get_theme_tokens
 
 
 class ASSwitch(QAbstractButton):
-    """Switch compacto desenhado pelo AnkiiStudio, mantendo foco/teclado do Qt."""
+    """Switch compacto desenhado pelo BenkyouStudio, mantendo foco/teclado do Qt."""
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)

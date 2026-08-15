@@ -32,7 +32,7 @@ from ankiistudio.ui.workers import Worker
 
 
 class MainWindow(QMainWindow):
-    SIDEBAR_EXPANDED_WIDTH = 196
+    SIDEBAR_EXPANDED_WIDTH = 216
     SIDEBAR_COLLAPSED_WIDTH = 66
     DEFAULT_WIDTH = 1120
     DEFAULT_HEIGHT = 720
@@ -82,7 +82,7 @@ class MainWindow(QMainWindow):
             self.brand_mark.setPixmap(QIcon(str(logo_path)).pixmap(QSize(24, 24)))
         self.brand_mark.setFixedSize(26, 26)
         self.brand_mark.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.brand_label = QLabel("AnkiiStudio")
+        self.brand_label = QLabel(APP_NAME)
         self.brand_label.setObjectName("Brand")
         brand_layout.addWidget(self.brand_mark)
         brand_layout.addWidget(self.brand_label)
@@ -137,7 +137,7 @@ class MainWindow(QMainWindow):
         self._nav_metadata[self.settings_button] = ("Configurações", "settings")
         sidebar_layout.addWidget(self.settings_button)
 
-        self.version_label = QLabel(f"AnkiiStudio · {APP_VERSION}")
+        self.version_label = QLabel(f"{APP_NAME} · {APP_VERSION}")
         self.version_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.version_label.setObjectName("MutedLabel")
         sidebar_layout.addWidget(self.version_label)
@@ -335,7 +335,7 @@ class MainWindow(QMainWindow):
             if manual:
                 QMessageBox.information(
                     self,
-                    "AnkiiStudio atualizado",
+                    "BenkyouStudio atualizado",
                     f"Você já está usando a versão mais recente disponível para este canal: {APP_VERSION}.",
                 )
                 self.toasts.show_toast("Você já está usando a versão mais recente.", kind="success")
@@ -359,7 +359,7 @@ class MainWindow(QMainWindow):
     def _download_update(self, info: UpdateInfo) -> None:
         if self._update_download_worker is not None:
             return
-        self._settings_status(f"Baixando AnkiiStudio {info.version}...")
+        self._settings_status(f"Baixando BenkyouStudio {info.version}...")
         worker = Worker(self.update_service.download, info)
         self._update_download_worker = worker
         worker.signals.result.connect(self._handle_downloaded_update)
@@ -375,7 +375,7 @@ class MainWindow(QMainWindow):
                 self,
                 "Atualização baixada",
                 f"O pacote {result.info.version} foi baixado em:\n{result.archive_path}\n\n"
-                "A instalação automática é aplicada quando o AnkiiStudio está executando pela versão portátil do Windows.",
+                "A instalação automática é aplicada quando o BenkyouStudio está executando pela versão portátil do Windows.",
             )
             self._settings_status("Atualização baixada.")
             return
@@ -387,7 +387,7 @@ class MainWindow(QMainWindow):
         QMessageBox.information(
             self,
             "Atualização pronta",
-            "O AnkiiStudio será fechado, atualizado e aberto novamente automaticamente.",
+            "O BenkyouStudio será fechado, atualizado e aberto novamente automaticamente.",
         )
         app = QApplication.instance()
         if app is not None:

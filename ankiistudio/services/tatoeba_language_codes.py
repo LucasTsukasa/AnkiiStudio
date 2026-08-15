@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-# ISO 639-1 do AnkiiStudio -> códigos de idioma usados pela API do Tatoeba.
+# ISO 639-1 do BenkyouStudio -> códigos de idioma usados pela API do Tatoeba.
 # Tabela estática para não exigir dependência adicional em tempo de execução.
 TATOEBA_LANGUAGE_CODES: dict[str, str] = {
     'ja': 'jpn',

@@ -11,12 +11,11 @@ from typing import Iterable, Protocol
 import httpx
 
 from ankiistudio.config import SecretStore
-from ankiistudio.constants import APP_VERSION
+from ankiistudio.constants import APP_USER_AGENT
 from ankiistudio.database import Database
 from ankiistudio.models import ImageSearchResult
 from ankiistudio.services.wikimedia_service import WikimediaService
 
-USER_AGENT = f"AnkiiStudio/{APP_VERSION} (https://github.com/LucasTsukasa/AnkiiStudio)"
 logger = logging.getLogger(__name__)
 
 
@@ -42,7 +41,7 @@ class PixabayImageProvider:
             raise RuntimeError("Pixabay está habilitado, mas a API key não foi configurada.")
         client = self._external_client or httpx.Client(
             timeout=self.timeout,
-            headers={"User-Agent": USER_AGENT},
+            headers={"User-Agent": APP_USER_AGENT},
             follow_redirects=True,
         )
         owns_client = self._external_client is None
@@ -101,7 +100,7 @@ class PexelsImageProvider:
             raise RuntimeError("Pexels está habilitado, mas a API key não foi configurada.")
         client = self._external_client or httpx.Client(
             timeout=self.timeout,
-            headers={"User-Agent": USER_AGENT},
+            headers={"User-Agent": APP_USER_AGENT},
             follow_redirects=True,
         )
         owns_client = self._external_client is None
@@ -172,7 +171,7 @@ class ImageSearchService:
         """Reaproveita conexões HTTP durante uma pesquisa/operação em lote."""
         with httpx.Client(
             timeout=60,
-            headers={"User-Agent": USER_AGENT},
+            headers={"User-Agent": APP_USER_AGENT},
             follow_redirects=True,
         ) as client:
             yield client

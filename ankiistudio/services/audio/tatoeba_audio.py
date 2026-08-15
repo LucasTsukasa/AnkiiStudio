@@ -7,6 +7,7 @@ from pathlib import Path
 
 import httpx
 
+from ankiistudio.constants import APP_USER_AGENT
 from ankiistudio.services.audio.base import AudioGenerationResult, AudioProvider
 from ankiistudio.services.tatoeba_language_codes import tatoeba_language_code
 
@@ -52,7 +53,7 @@ class TatoebaAudioProvider(AudioProvider):
             httpx.Client(
                 timeout=self.timeout,
                 follow_redirects=True,
-                headers={"User-Agent": "AnkiiStudio/0.11.0-beta.9 (https://github.com/LucasTsukasa/AnkiiStudio)"},
+                headers={"User-Agent": APP_USER_AGENT},
             ),
             True,
         )

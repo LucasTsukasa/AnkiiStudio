@@ -297,7 +297,7 @@ class DeckImportService:
             return ImportedDeck.model_validate_json(parsed_text)
         except ValidationError as exc:
             raise ValueError(
-                f"O arquivo não segue o formato do AnkiiStudio:\n{exc}"
+                f"O arquivo não segue o formato do BenkyouStudio:\n{exc}"
             ) from exc
 
     @classmethod

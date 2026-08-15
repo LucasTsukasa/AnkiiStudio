@@ -14,7 +14,7 @@ _RETRY_RE = re.compile(r"(?:retry(?:\s+in)?|retryDelay[^0-9]*)\s*([0-9]+(?:\.[0-
 
 
 class GeminiTTSUsageTracker:
-    """Registra somente o uso observado pelo AnkiiStudio.
+    """Registra somente o uso observado pelo BenkyouStudio.
 
     A Gemini não expõe nesta integração um contador autoritativo de cota restante.
     Os valores exibidos são portanto locais/estimados e limites detectados em erros 429.

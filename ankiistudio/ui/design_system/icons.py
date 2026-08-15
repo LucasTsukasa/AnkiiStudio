@@ -7,7 +7,7 @@ from PySide6.QtGui import QIcon
 
 
 class IconRegistry:
-    """Ponto único para resolver ícones e estados do AnkiiStudio."""
+    """Ponto único para resolver ícones e estados do BenkyouStudio."""
 
     def __init__(self, resource_dir: Path) -> None:
         self.icons_dir = resource_dir / "icons"

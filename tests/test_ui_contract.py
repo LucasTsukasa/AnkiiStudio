@@ -19,7 +19,7 @@ def test_main_window_is_compact_and_images_tab_is_removed() -> None:
     assert "availableGeometry()" in source
     assert "saveGeometry()" in source
     assert "restoreGeometry" in source
-    assert 'SIDEBAR_EXPANDED_WIDTH = 196' in source
+    assert 'SIDEBAR_EXPANDED_WIDTH = 216' in source
     assert 'SIDEBAR_COLLAPSED_WIDTH = 66' in source
     assert 'self.sidebar.setFixedWidth(self.SIDEBAR_COLLAPSED_WIDTH if collapsed else self.SIDEBAR_EXPANDED_WIDTH)' in source
     assert '("Imagens"' not in source
@@ -57,7 +57,7 @@ def test_page_scroll_reports_real_viewport_resizes() -> None:
 def test_new_logo_is_used_and_packaged() -> None:
     main = read("ankiistudio/ui/main_window.py")
     about = read("ankiistudio/ui/pages/about_page.py")
-    spec = read("AnkiiStudio.spec")
+    spec = read("BenkyouStudio.spec")
     assert (ICONS / "app.png").is_file()
     assert (ICONS / "app.ico").is_file()
     assert 'icons" / "app.png"' in main
@@ -183,7 +183,7 @@ def test_language_options_and_standard_model_availability() -> None:
 
 def test_standard_content_json_is_packaged() -> None:
     pyproject = read("pyproject.toml")
-    spec = read("AnkiiStudio.spec")
+    spec = read("BenkyouStudio.spec")
     assert '"data/*.json"' in pyproject
     assert 'data_files' in spec
     assert (ROOT / "ankiistudio" / "data" / "japanese_standard_content.json").is_file()
@@ -271,12 +271,27 @@ def test_voice_profiles_are_managed_in_settings_and_keys_remain_there() -> None:
     assert "Speaker ID Natural A" not in settings
 
 
-def test_application_version_is_beta_everywhere() -> None:
-    assert 'APP_VERSION = "0.11.0-beta.9"' in read("ankiistudio/constants.py")
-    assert '__version__ = "0.11.0-beta.9"' in read("ankiistudio/__init__.py")
-    assert 'version = "0.11.0b9"' in read("pyproject.toml")
-    assert "AnkiiStudio/0.11.0-beta.9" in read("ankiistudio/services/wikimedia_service.py")
-    assert not (ROOT / "scripts" / "AnkiiStudio.iss").exists()
+def test_application_version_is_stable_and_user_agent_is_centralized() -> None:
+    constants = read("ankiistudio/constants.py")
+    assert 'APP_VERSION = "0.11.0"' in constants
+    assert 'APP_NAME = "BenkyouStudio"' in constants
+    assert 'LEGACY_APP_NAME = "AnkiiStudio"' in constants
+    assert 'name = "benkyoustudio"' in read("pyproject.toml")
+    assert '__version__ = "0.11.0"' in read("ankiistudio/__init__.py")
+    assert 'version = "0.11.0"' in read("pyproject.toml")
+    assert 'APP_USER_AGENT = f"{APP_NAME}/{APP_VERSION}' in constants
+    for relative_path in (
+        "ankiistudio/services/audio/tatoeba_audio.py",
+        "ankiistudio/services/audio_service.py",
+        "ankiistudio/services/image_sources.py",
+        "ankiistudio/services/roadmap_service.py",
+        "ankiistudio/services/update_service.py",
+        "ankiistudio/services/wikimedia_service.py",
+    ):
+        source = read(relative_path)
+        assert "APP_USER_AGENT" in source
+        assert "BenkyouStudio/0.11.0" not in source
+    assert not (ROOT / "scripts" / "BenkyouStudio.iss").exists()
 
 
 def test_light_theme_copy_is_professional_and_deck_theme_editor_remains() -> None:
@@ -285,7 +300,7 @@ def test_light_theme_copy_is_professional_and_deck_theme_editor_remains() -> Non
     models = read("ankiistudio/ui/pages/models_page.py")
     assert 'self.appearance_combo.addItem("Escuro", "dark")' in settings
     assert 'self.appearance_combo.addItem("Claro", "light")' in settings
-    assert "O tema escuro é o padrão do AnkiiStudio" not in settings
+    assert "O tema escuro é o padrão do BenkyouStudio" not in settings
     assert 'get_theme_tokens(theme)' in theme
     tokens = read("ankiistudio/ui/design_system/tokens.py")
     assert '"light": ThemeTokens(' in tokens
@@ -454,9 +469,9 @@ def test_portable_only_storage_and_build_are_configured() -> None:
     assert 'self.base_dir = self.app_dir / "data"' in config
     assert "platformdirs" not in config
     assert "user_data_dir" not in config
-    assert "AnkiiStudio-Portable-0.11.0-beta.9.zip" in build
-    assert "AnkiiStudio.iss" not in build
-    assert not (ROOT / "scripts" / "AnkiiStudio.iss").exists()
+    assert "BenkyouStudio-Portable-0.11.0.zip" in build
+    assert "BenkyouStudio.iss" not in build
+    assert not (ROOT / "scripts" / "BenkyouStudio.iss").exists()
 
 
 def test_user_supplied_png_and_ico_are_adopted() -> None:
@@ -551,7 +566,7 @@ def test_beta4_uses_external_language_packs_and_live_ui_switching() -> None:
     models = read("ankiistudio/models.py")
     database = read("ankiistudio/database.py")
     i18n = read("ankiistudio/i18n.py")
-    spec = read("AnkiiStudio.spec")
+    spec = read("BenkyouStudio.spec")
     assert (ROOT / "ankiistudio/languages/pt_BR.json").is_file()
     assert (ROOT / "ankiistudio/languages/en_US.json").is_file()
     assert 'LANGUAGES_DIR = Path(__file__).resolve().parent / "languages"' in i18n
@@ -612,7 +627,7 @@ def test_beta6_adds_modern_roadmap_page_and_external_data_file() -> None:
     main = read("ankiistudio/ui/main_window.py")
     page = read("ankiistudio/ui/pages/roadmap_page.py")
     service = read("ankiistudio/services/roadmap_service.py")
-    spec = read("AnkiiStudio.spec")
+    spec = read("BenkyouStudio.spec")
     roadmap = ROOT / "ankiistudio/resources/roadmap.json"
     assert roadmap.is_file()
     assert 'RoadmapPage(paths, resource_dir)' in main
@@ -650,8 +665,9 @@ def test_beta6_updater_accepts_wrapped_portable_build_and_build_keeps_root_exe()
     updater = read("ankiistudio/services/update_service.py")
     build = read("scripts/build_windows.ps1")
     assert "_resolve_payload_dir" in updater
-    assert '(path / "AnkiiStudio.exe").is_file()' in updater
-    assert 'AnkiiStudio.exe não está na raiz do ZIP' in build
+    assert 'executable_names = (f"{APP_NAME}.exe", f"{LEGACY_APP_NAME}.exe")' in updater
+    assert 'BenkyouStudio.exe não está na raiz do ZIP' in build
+    assert 'alias de compatibilidade AnkiiStudio.exe ausente' in build
 
 
 def test_beta6_projects_has_field_ai_only_for_example_explanation_and_mnemonic() -> None:

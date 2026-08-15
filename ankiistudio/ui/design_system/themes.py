@@ -6,7 +6,7 @@ from PySide6.QtGui import QColor, QPalette
 from PySide6.QtWidgets import QApplication
 
 from .tokens import ThemeTokens, get_theme_tokens
-from .style import AnkiiStudioProxyStyle
+from .style import BenkyouStudioProxyStyle
 
 
 class ThemeManager:
@@ -22,8 +22,8 @@ class ThemeManager:
 
         tokens = get_theme_tokens(theme)
         self.current_theme = tokens.name
-        if not isinstance(app.style(), AnkiiStudioProxyStyle):
-            app.setStyle(AnkiiStudioProxyStyle(app.style()))
+        if not isinstance(app.style(), BenkyouStudioProxyStyle):
+            app.setStyle(BenkyouStudioProxyStyle(app.style()))
         palette = QPalette()
         palette.setColor(QPalette.ColorRole.Window, QColor(tokens.background))
         palette.setColor(QPalette.ColorRole.WindowText, QColor(tokens.text))

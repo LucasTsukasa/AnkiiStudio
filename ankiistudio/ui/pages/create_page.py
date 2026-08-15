@@ -73,7 +73,7 @@ class CreatePage(QWidget):
     MODES = {
         "builtin": (
             "Conteúdo padrão",
-            "Usa a base revisada incluída no AnkiiStudio.",
+            "Usa a base revisada incluída no BenkyouStudio.",
         ),
         "gemini": (
             "Gemini API",
@@ -307,7 +307,7 @@ class CreatePage(QWidget):
         self.preferred_profile_combos: dict[str, QComboBox] = {}
         self.preferred_profile_preview_buttons: dict[str, QPushButton] = {}
         for provider, title in (("gemini", "Gemini TTS"), ("elevenlabs", "ElevenLabs")):
-            profile_card = SectionCard(title, "Opcional: escolha uma voz preferida para este provedor. Sem seleção, o AnkiiStudio usa os perfis habilitados do idioma.")
+            profile_card = SectionCard(title, "Opcional: escolha uma voz preferida para este provedor. Sem seleção, o BenkyouStudio usa os perfis habilitados do idioma.")
             combo = ASComboBox()
             preview_button = ASButton("▶ Ouvir selecionada")
             preview_button.setObjectName("SubtleButton")

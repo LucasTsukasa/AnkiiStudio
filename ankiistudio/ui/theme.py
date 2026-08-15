@@ -187,7 +187,7 @@ QToolTip {{ background: {c['tooltip']}; color: {c['text']}; border: 1px solid {c
 QSplitter::handle {{ background: transparent; width: 8px; }}
 QMessageBox {{ background: {c['card']}; }}
 
-/* AnkiiStudio Design System v1 ------------------------------------------------ */
+/* BenkyouStudio Design System v1 ------------------------------------------------ */
 QFrame#ASSidebar {{ background: {c['sidebar']}; border-right: 1px solid {c['border']}; }}
 QPushButton#ASSidebarItem {{
     background: transparent; border: 0; border-radius: 9px; padding: 10px 12px;

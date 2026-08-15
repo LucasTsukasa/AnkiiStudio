@@ -342,7 +342,7 @@ class GeminiContentService:
             ),
         }[field]
 
-        return f"""Você é o mecanismo de IA por campo do AnkiiStudio.
+        return f"""Você é o mecanismo de IA por campo do BenkyouStudio.
 
 TAREFA
 {action.capitalize()} SOMENTE para o componente `{target_label}` do cartão abaixo.

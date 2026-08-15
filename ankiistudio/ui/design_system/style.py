@@ -3,7 +3,7 @@ from __future__ import annotations
 from PySide6.QtWidgets import QProxyStyle, QStyle, QWidget
 
 
-class AnkiiStudioProxyStyle(QProxyStyle):
+class BenkyouStudioProxyStyle(QProxyStyle):
     """Ajustes pequenos e centralizados sobre o estilo nativo/Fusion do Qt.
 
     Mantém acessibilidade e comportamento de plataforma do Qt, evitando reimplementar

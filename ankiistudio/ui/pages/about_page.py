@@ -91,7 +91,7 @@ class AboutPage(QWidget):
 
         purpose = SectionCard("Sobre o aplicativo")
         purpose_text = QLabel(
-            "O AnkiiStudio permite criar projetos em um amplo catálogo de idiomas. "
+            "O BenkyouStudio permite criar projetos em um amplo catálogo de idiomas. "
             "Modelos padrão revisados estão disponíveis para japonês; os demais idiomas utilizam "
             "o modelo Personalizado nesta versão. Integrações externas são acionadas somente quando configuradas e utilizadas pelo usuário."
         )
@@ -105,7 +105,7 @@ class AboutPage(QWidget):
 
         license_card = SectionCard("Licença")
         license_text = QLabel(
-            "O código-fonte do AnkiiStudio é distribuído sob a GNU General Public License v3.0 (GPL-3.0). "
+            "O código-fonte do BenkyouStudio é distribuído sob a GNU General Public License v3.0 (GPL-3.0). "
             "Dependências e serviços de terceiros permanecem sujeitos às respectivas licenças e termos de uso."
         )
         license_text.setWordWrap(True)
@@ -117,7 +117,7 @@ class AboutPage(QWidget):
         warning = QLabel(
             "Imagens e áudios podem ser obtidos de serviços externos, como o Wikimedia Commons. "
             "Autoria, direitos e condições de reutilização permanecem vinculados à fonte e à licença de cada mídia. "
-            "Os metadados disponíveis são preservados internamente pelo AnkiiStudio."
+            "Os metadados disponíveis são preservados internamente pelo BenkyouStudio."
         )
         warning.setWordWrap(True)
         warning.setObjectName("SectionSubtitle")

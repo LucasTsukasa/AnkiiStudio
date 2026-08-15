@@ -4,7 +4,7 @@ from PySide6.QtWidgets import QPushButton, QWidget
 
 
 class ASButton(QPushButton):
-    """Botão oficial do AnkiiStudio com variantes semânticas."""
+    """Botão oficial do BenkyouStudio com variantes semânticas."""
 
     VALID_VARIANTS = {"default", "primary", "secondary", "ghost", "danger", "icon"}
 

@@ -158,7 +158,7 @@ class AnkiExportService:
                     "model",
                     f"{project.id}:{project.name}:{variation.key}",
                 ),
-                f"AnkiiStudio - {project.name} - {variation.name}",
+                f"BenkyouStudio - {project.name} - {variation.name}",
                 fields=[{"name": field} for field in _FIELD_ORDER],
                 templates=[
                     {

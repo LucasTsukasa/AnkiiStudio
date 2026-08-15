@@ -8,11 +8,11 @@ from typing import Any, Literal
 
 import httpx
 
+from ankiistudio.constants import APP_USER_AGENT
 from ankiistudio.models import WikimediaMediaResult
 
 
 COMMONS_API = "https://commons.wikimedia.org/w/api.php"
-USER_AGENT = "AnkiiStudio/0.11.0-beta.9 (https://github.com/LucasTsukasa)"
 
 
 def _clean_metadata(value: object) -> str:
@@ -38,7 +38,7 @@ class WikimediaService:
             return
         with httpx.Client(
             timeout=self.timeout if timeout is None else timeout,
-            headers={"User-Agent": USER_AGENT},
+            headers={"User-Agent": APP_USER_AGENT},
             follow_redirects=True,
         ) as client:
             yield client

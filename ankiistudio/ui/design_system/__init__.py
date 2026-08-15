@@ -1,4 +1,4 @@
-"""AnkiiStudio Design System.
+"""BenkyouStudio Design System.
 
 Camada visual própria sobre Qt/PySide6. O módulo-base permanece importável sem
 PySide6 para que tokens/contratos possam ser usados em ferramentas e testes.

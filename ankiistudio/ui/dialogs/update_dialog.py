@@ -46,7 +46,7 @@ class UpdateDialog(ASDialog):
         root.addWidget(notes_title)
         notes = QTextBrowser()
         notes.setOpenExternalLinks(True)
-        notes.setPlainText(info.notes.strip() or "Esta versão inclui melhorias e correções do AnkiiStudio.")
+        notes.setPlainText(info.notes.strip() or "Esta versão inclui melhorias e correções do BenkyouStudio.")
         root.addWidget(notes, 1)
 
         buttons = QDialogButtonBox()

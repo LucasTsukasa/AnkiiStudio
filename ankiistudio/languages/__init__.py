@@ -1,1 +1,1 @@
-"""Pacotes de tradução da interface do AnkiiStudio."""
+"""Pacotes de tradução da interface do BenkyouStudio."""

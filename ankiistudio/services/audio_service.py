@@ -10,7 +10,7 @@ from typing import Iterator
 import httpx
 
 from ankiistudio.config import AppPaths, SecretStore
-from ankiistudio.constants import APP_VERSION, DEFAULT_VOICEVOX_URL, language_label
+from ankiistudio.constants import APP_USER_AGENT, DEFAULT_VOICEVOX_URL, language_label
 from ankiistudio.database import Database
 from ankiistudio.models import FlashcardData, MediaAsset, ProjectData
 from ankiistudio.services.audio.elevenlabs import ElevenLabsProvider
@@ -164,9 +164,7 @@ class ProjectAudioService:
         with httpx.Client(
             timeout=120,
             follow_redirects=True,
-            headers={
-                "User-Agent": f"AnkiiStudio/{APP_VERSION} (https://github.com/LucasTsukasa/AnkiiStudio)"
-            },
+            headers={"User-Agent": APP_USER_AGENT},
         ) as client:
             yield self._build_router(project, http_client=client)
 

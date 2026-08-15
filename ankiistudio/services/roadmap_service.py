@@ -6,14 +6,11 @@ from typing import Any
 
 import httpx
 
-from ankiistudio.constants import APP_VERSION
+from ankiistudio.constants import APP_USER_AGENT
 
 ROADMAP_REMOTE_URL = (
-    "https://api.github.com/repos/LucasTsukasa/AnkiiStudio/contents/"
+    "https://api.github.com/repos/LucasTsukasa/BenkyouStudio/contents/"
     "ankiistudio/resources/roadmap.json"
-)
-ROADMAP_USER_AGENT = (
-    f"AnkiiStudio/{APP_VERSION} (https://github.com/LucasTsukasa/AnkiiStudio)"
 )
 
 
@@ -44,7 +41,7 @@ class RoadmapService:
         headers = {
             "Accept": "application/vnd.github.raw+json",
             "X-GitHub-Api-Version": "2026-03-10",
-            "User-Agent": ROADMAP_USER_AGENT,
+            "User-Agent": APP_USER_AGENT,
         }
         with httpx.Client(timeout=self.timeout, headers=headers, follow_redirects=True) as client:
             response = client.get(ROADMAP_REMOTE_URL)

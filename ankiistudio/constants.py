@@ -3,10 +3,13 @@ from __future__ import annotations
 import re
 import unicodedata
 
-APP_NAME = "AnkiiStudio"
-APP_VERSION = "0.11.0-beta.9"
+APP_NAME = "BenkyouStudio"
+LEGACY_APP_NAME = "AnkiiStudio"
+APP_VERSION = "0.11.0"
 ORGANIZATION_NAME = "LucasTsukasa"
 GITHUB_URL = "https://github.com/LucasTsukasa"
+APP_REPOSITORY_URL = "https://github.com/LucasTsukasa/BenkyouStudio"
+APP_USER_AGENT = f"{APP_NAME}/{APP_VERSION} ({APP_REPOSITORY_URL})"
 DATABASE_FILENAME = "ankiistudio.db"
 
 DEFAULT_GEMINI_TEXT_MODEL = "gemini-3.6-flash"

@@ -331,7 +331,7 @@ class ProjectAudioSettingsPanel(QWidget):
             self.preview_player.stop()
             self.preview_player.setSource(QUrl.fromLocalFile(str(path)))
             self.preview_player.play()
-            self.status.show_message("Reproduzindo o exemplo do VOICEVOX dentro do AnkiiStudio.")
+            self.status.show_message("Reproduzindo o exemplo do VOICEVOX dentro do BenkyouStudio.")
 
         worker.signals.result.connect(open_audio)
         worker.signals.error.connect(lambda message: self.status.show_message(message, error=True))

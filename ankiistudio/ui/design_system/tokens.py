@@ -90,7 +90,7 @@ class ThemeTokens:
     tooltip: str
 
     def legacy_mapping(self) -> dict[str, str]:
-        """Mapeamento compatível com o stylesheet histórico do AnkiiStudio."""
+        """Mapeamento compatível com o stylesheet histórico do BenkyouStudio."""
         return {
             "bg": self.background,
             "sidebar": self.sidebar,

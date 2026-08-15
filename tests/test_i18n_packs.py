@@ -34,7 +34,7 @@ def test_english_pack_contains_core_navigation_and_new_search_labels() -> None:
 
 def test_obsolete_restart_requirement_is_not_present_in_active_translation_pack() -> None:
     translations = load("en_US.json")["translations"]
-    assert "A alteração do idioma da interface será aplicada após reiniciar o AnkiiStudio." not in translations
+    assert "A alteração do idioma da interface será aplicada após reiniciar o BenkyouStudio." not in translations
 
 
 def test_english_pack_contains_beta7_correction_ui_labels() -> None:

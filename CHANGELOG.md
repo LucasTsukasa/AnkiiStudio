@@ -1,8 +1,25 @@
 # Changelog
 
-Todas as alterações relevantes do AnkiiStudio são registradas neste arquivo.
+Todas as alterações relevantes do BenkyouStudio são registradas neste arquivo.
 
 O formato segue os princípios de [Keep a Changelog](https://keepachangelog.com/) e o projeto utiliza versionamento semântico durante o desenvolvimento.
+
+## [0.11.0] - 2026-08-15
+
+### Corrigido
+- Ajustada a largura expandida da barra lateral para acomodar integralmente o novo nome **BenkyouStudio** no cabeçalho, sem corte do texto.
+- O atualizador portátil agora cria um backup completo da instalação atual antes de remover qualquer arquivo da aplicação. Se a cópia da nova versão ou sua inicialização falhar, o updater restaura automaticamente a instalação anterior e tenta reabri-la, preservando `data/`.
+- O carregamento de perfis Gemini TTS/ElevenLabs deixou de sobrescrever a configuração persistida quando o JSON salvo estiver inválido. Perfis válidos de uma coleção parcialmente inválida continuam utilizáveis, enquanto os itens inválidos são ignorados sem regravar o valor original.
+
+### Alterado
+- O aplicativo foi renomeado de **AnkiiStudio** para **BenkyouStudio** antes da primeira release estável. O pacote Python interno e identificadores legados necessários à compatibilidade permanecem preservados.
+- Os `User-Agent` HTTP do BenkyouStudio passam a utilizar uma única constante derivada de `APP_VERSION`, eliminando strings de versão duplicadas em serviços de áudio, imagens, Roadmap, Wikimedia e atualização.
+- Updater, Roadmap e links públicos do README agora apontam para o repositório oficial renomeado `LucasTsukasa/BenkyouStudio`.
+
+### Distribuição
+- Executável principal: `BenkyouStudio.exe`. O build 0.11.0 mantém um alias `AnkiiStudio.exe` apenas para permitir atualização in-place a partir da beta.9.
+- Versão promovida de `0.11.0-beta.9` para `0.11.0` estável.
+- Pacote portátil esperado: `BenkyouStudio-Portable-0.11.0.zip`.
 
 ## [0.11.0-beta.9] - 2026-08-14
 

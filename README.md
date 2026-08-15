@@ -1,16 +1,16 @@
 <p align="center">
-  <img src="ankiistudio/resources/icons/app.png" alt="AnkiiStudio" width="150">
+  <img src="ankiistudio/resources/icons/app.png" alt="BenkyouStudio" width="150">
 </p>
 
-<h1 align="center">AnkiiStudio</h1>
+<h1 align="center">BenkyouStudio</h1>
 
 <p align="center">
   Transforme conteúdos em materiais de estudo, organize seus flashcards e prepare baralhos para o Anki.
 </p>
 
 <p align="center">
-  <a href="https://github.com/LucasTsukasa/AnkiiStudio/releases">
-    <img alt="Latest Release" src="https://img.shields.io/github/v/release/LucasTsukasa/AnkiiStudio?display_name=tag&sort=semver">
+  <a href="https://github.com/LucasTsukasa/BenkyouStudio/releases">
+    <img alt="Latest Release" src="https://img.shields.io/github/v/release/LucasTsukasa/BenkyouStudio?display_name=tag&sort=semver">
   </a>
   <img alt="Python" src="https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white">
   <img alt="Windows" src="https://img.shields.io/badge/Windows-Portable-0078D4?logo=windows&logoColor=white">
@@ -20,11 +20,11 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/LucasTsukasa/AnkiiStudio/releases"><strong>Download</strong></a>
+  <a href="https://github.com/LucasTsukasa/BenkyouStudio/releases"><strong>Download</strong></a>
   ·
   <a href="CHANGELOG.md">Changelog</a>
   ·
-  <a href="https://github.com/LucasTsukasa/AnkiiStudio/issues">Issues</a>
+  <a href="https://github.com/LucasTsukasa/BenkyouStudio/issues">Issues</a>
   ·
   <a href="LICENSE">Licença</a>
 </p>
@@ -33,7 +33,7 @@
 
 ## Sobre
 
-**AnkiiStudio** é um aplicativo desktop para criação, organização e exportação de flashcards para o [Anki](https://apps.ankiweb.net/).
+**BenkyouStudio** é um aplicativo desktop para criação, organização e exportação de flashcards para o [Anki](https://apps.ankiweb.net/).
 
 O projeto reúne em uma única interface as principais etapas de criação de um baralho: definição da estrutura dos cartões, geração ou importação de conteúdo, obtenção de imagens, geração de áudio, revisão e exportação.
 
@@ -73,17 +73,17 @@ Os projetos são exportados diretamente em `.apkg`, sem depender do AnkiConnect.
 - Roadmap integrado em linha do tempo, com planejamento carregado de arquivo separado e atualização pública pelo GitHub.
 - Armazenamento seguro de credenciais pelo sistema operacional.
 - Distribuição portátil para Windows.
-- **AnkiiStudio Design System v1** sobre Qt/PySide6, com tokens, temas, componentes próprios e regras responsivas compartilhadas para manter a interface consistente conforme o aplicativo cresce.
+- **BenkyouStudio Design System v1** sobre Qt/PySide6, com tokens, temas, componentes próprios e regras responsivas compartilhadas para manter a interface consistente conforme o aplicativo cresce.
 - Arquitetura otimizada para projetos maiores, com carregamento sob demanda, consultas SQLite específicas, processamento em segundo plano e reutilização de conexões durante operações em lote.
 
 ## Design system da interface
 
-A interface utiliza Qt/PySide6 como motor de janela e integração com o sistema operacional, mas a identidade visual é organizada pelo **AnkiiStudio Design System**. A camada própria centraliza tokens de cor/tipografia/espaçamento, temas, ícones, componentes reutilizáveis e breakpoints responsivos. Isso permite evoluir telas como Criar, Projetos, Configurações e futuros módulos de estudo sem depender da aparência padrão do Qt nem reimplementar recursos fundamentais de acessibilidade, foco, teclado e eventos.
+A interface utiliza Qt/PySide6 como motor de janela e integração com o sistema operacional, mas a identidade visual é organizada pelo **BenkyouStudio Design System**. A camada própria centraliza tokens de cor/tipografia/espaçamento, temas, ícones, componentes reutilizáveis e breakpoints responsivos. Isso permite evoluir telas como Criar, Projetos, Configurações e futuros módulos de estudo sem depender da aparência padrão do Qt nem reimplementar recursos fundamentais de acessibilidade, foco, teclado e eventos.
 
 
 ## Desempenho
 
-O AnkiiStudio utiliza carregamento sob demanda para reduzir o trabalho realizado durante a inicialização e evita carregar dados desnecessários de projetos grandes. Consultas de contagem, seções e amostras para pré-visualização são realizadas diretamente pelo SQLite sempre que possível, reduzindo a criação desnecessária de objetos em memória.
+O BenkyouStudio utiliza carregamento sob demanda para reduzir o trabalho realizado durante a inicialização e evita carregar dados desnecessários de projetos grandes. Consultas de contagem, seções e amostras para pré-visualização são realizadas diretamente pelo SQLite sempre que possível, reduzindo a criação desnecessária de objetos em memória.
 
 Operações em lote de imagem e áudio reutilizam conexões HTTP e recursos compartilhados durante o processamento. Atualizações de mídia relacionadas ao mesmo cartão são agrupadas em transações SQLite, e o cálculo de hashes de arquivos utiliza leitura em streaming para manter o consumo de memória previsível.
 
@@ -111,7 +111,7 @@ Importar no Anki
 
 ## Idiomas e modelos
 
-O AnkiiStudio foi desenvolvido para trabalhar com um amplo catálogo de idiomas.
+O BenkyouStudio foi desenvolvido para trabalhar com um amplo catálogo de idiomas.
 
 Dependendo do idioma selecionado, o aplicativo pode disponibilizar **modelos de flashcards prontos**, com estrutura e conteúdo previamente definidos para determinados objetivos de estudo.
 
@@ -172,15 +172,15 @@ Os presets **Compacto**, **Normal** e **Espaçoso** aplicam combinações pronta
 
 Um mesmo projeto pode conter mais de uma variação de cartão. Cada variação possui sua própria composição de frente e verso.
 
-Quando duas ou mais variações são configuradas, o AnkiiStudio distribui os conteúdos de forma **aleatória e equilibrada** entre elas. Isso permite combinar diferentes formas de estudo — por exemplo, reconhecimento, compreensão auditiva, produção e associação visual — dentro do mesmo baralho, sem duplicar automaticamente todos os conteúdos.
+Quando duas ou mais variações são configuradas, o BenkyouStudio distribui os conteúdos de forma **aleatória e equilibrada** entre elas. Isso permite combinar diferentes formas de estudo — por exemplo, reconhecimento, compreensão auditiva, produção e associação visual — dentro do mesmo baralho, sem duplicar automaticamente todos os conteúdos.
 
 ## Criação de conteúdo
 
-O AnkiiStudio oferece diferentes formas de adicionar conteúdo aos projetos.
+O BenkyouStudio oferece diferentes formas de adicionar conteúdo aos projetos.
 
 ### Conteúdo com IA
 
-A integração com **Google Gemini** permite gerar conteúdo estruturado de acordo com o idioma, modelo e configuração definidos no projeto. Na geração interna, o AnkiiStudio valida explicitamente o idioma-alvo/idioma de tradução retornados e, quando a quantidade é fixa, exige exatamente o número solicitado antes de criar o projeto. O schema enviado à Gemini também acompanha a estrutura escolhida: campos pedagógicos selecionados, como Exemplo, Explicação e Mnemônico, são exigidos na própria resposta estruturada e validados novamente antes da criação.
+A integração com **Google Gemini** permite gerar conteúdo estruturado de acordo com o idioma, modelo e configuração definidos no projeto. Na geração interna, o BenkyouStudio valida explicitamente o idioma-alvo/idioma de tradução retornados e, quando a quantidade é fixa, exige exatamente o número solicitado antes de criar o projeto. O schema enviado à Gemini também acompanha a estrutura escolhida: campos pedagógicos selecionados, como Exemplo, Explicação e Mnemônico, são exigidos na própria resposta estruturada e validados novamente antes da criação.
 
 Na criação personalizada, a quantidade pode ser definida manualmente ou deixada em **Automática**. Nesse modo, a IA escolhe uma quantidade adequada para cobrir o conteúdo solicitado, respeitando um limite máximo de segurança e evitando completar artificialmente a saída apenas para atingir um número fixo. Modelos internos com quantidade própria continuam utilizando a contagem determinada pelo conteúdo do modelo.
 
@@ -194,7 +194,7 @@ Também é possível importar conteúdo previamente preparado em formatos estrut
 
 ### Conteúdo interno
 
-Alguns modelos podem utilizar conteúdo fornecido diretamente pelo AnkiiStudio, sem necessidade de geração por IA.
+Alguns modelos podem utilizar conteúdo fornecido diretamente pelo BenkyouStudio, sem necessidade de geração por IA.
 
 ## Imagens
 
@@ -207,7 +207,7 @@ Pixabay e Pexels utilizam as API keys configuradas pelo próprio usuário. As fo
 
 Na pesquisa manual, um filtro ao lado do campo de busca permite restringir temporariamente a consulta às fontes que já estão habilitadas nas Configurações. Fontes desativadas continuam visíveis no filtro, mas não podem ser selecionadas até serem habilitadas globalmente.
 
-O aplicativo pesquisa, seleciona, baixa e otimiza as mídias antes de vinculá-las aos cartões. Na busca automática/em lote, termos visuais explícitos (`image_search_terms`) continuam tendo prioridade quando existem. Quando o cartão não possui esses termos, o **Conteúdo principal original** é pesquisado primeiro e a tradução é usada apenas como fallback. Assim, caracteres como `お` são consultados como `お`, em vez de começar pela tradução latina `O`. O AnkiiStudio também reduz a aceitação de resultados do Wikimedia sem relação clara com consultas não latinas.
+O aplicativo pesquisa, seleciona, baixa e otimiza as mídias antes de vinculá-las aos cartões. Na busca automática/em lote, termos visuais explícitos (`image_search_terms`) continuam tendo prioridade quando existem. Quando o cartão não possui esses termos, o **Conteúdo principal original** é pesquisado primeiro e a tradução é usada apenas como fallback. Assim, caracteres como `お` são consultados como `お`, em vez de começar pela tradução latina `O`. O BenkyouStudio também reduz a aceitação de resultados do Wikimedia sem relação clara com consultas não latinas.
 
 Na pesquisa manual de um único cartão, o **conteúdo principal original** é mantido como consulta principal. Tradução, leitura, romanização e termos visuais disponíveis no cartão aparecem como buscas auxiliares em miniaturas menores, permitindo comparar alternativas sem substituir o termo original. A janela apresenta os resultados em miniaturas visuais, com pré-visualização compacta, metadados organizados e sugestões auxiliares em seções menores.
 
@@ -215,13 +215,13 @@ Também é possível **importar uma imagem local** diretamente para um cartão o
 
 ## Áudio
 
-O AnkiiStudio pode utilizar gravações humanas, síntese de voz e arquivos fornecidos pelo próprio usuário.
+O BenkyouStudio pode utilizar gravações humanas, síntese de voz e arquivos fornecidos pelo próprio usuário.
 
 As configurações **globais** de provedores e perfis de voz ficam na janela **Configurações → Áudio**. Nela também é possível carregar, escolher, ajustar e ouvir a voz padrão do VOICEVOX, além de ouvir perfis Gemini TTS e ElevenLabs. As decisões específicas de cada projeto — modo de seleção, provedores permitidos, voz fixa/preferida e ajustes do VOICEVOX — ficam dentro do próprio projeto, em **Projetos → Áudio do projeto**, e também podem participar dos presets de criação. Na tela **Criar → Mídias e áudio → Avançado**, essas vozes podem ser escolhidas/testadas antes da criação e salvas no preset.
 
 ### Tatoeba
 
-O AnkiiStudio pode procurar uma gravação humana correspondente ao conteúdo do cartão no Tatoeba. Quando uma correspondência reutilizável está disponível, a gravação pode ser associada ao cartão com os metadados de origem, autoria e licença preservados.
+O BenkyouStudio pode procurar uma gravação humana correspondente ao conteúdo do cartão no Tatoeba. Quando uma correspondência reutilizável está disponível, a gravação pode ser associada ao cartão com os metadados de origem, autoria e licença preservados.
 
 ### Wikimedia Commons
 
@@ -265,7 +265,7 @@ Exemplo:
 う.wav  →  cartão com conteúdo “う”
 ```
 
-Antes da aplicação, o AnkiiStudio apresenta as correspondências encontradas e identifica arquivos sem cartão correspondente, casos ambíguos e cartões que já possuem áudio.
+Antes da aplicação, o BenkyouStudio apresenta as correspondências encontradas e identifica arquivos sem cartão correspondente, casos ambíguos e cartões que já possuem áudio.
 
 ## Projetos e edição
 
@@ -277,7 +277,7 @@ Ao abrir um projeto, as ferramentas ficam reunidas em abas de **Cartões**, **Es
 
 Alterações feitas em cartões podem permanecer pendentes enquanto o usuário navega entre diferentes itens do mesmo projeto. O botão **Salvar alterações** grava todas as modificações pendentes em conjunto.
 
-Ao tentar fechar o aplicativo, trocar de projeto, exportar ou executar uma operação que dependa dos dados persistidos, o AnkiiStudio avisa quando existem alterações não salvas e permite salvar, continuar sem salvar ou cancelar a ação.
+Ao tentar fechar o aplicativo, trocar de projeto, exportar ou executar uma operação que dependa dos dados persistidos, o BenkyouStudio avisa quando existem alterações não salvas e permite salvar, continuar sem salvar ou cancelar a ação.
 
 A tabela de cartões também suporta seleção múltipla para exclusão de vários cartões em uma única confirmação.
 
@@ -307,19 +307,19 @@ Quando uma mídia opcional estiver ausente, a exportação ainda pode ser realiz
 
 A versão portátil para Windows está disponível na página de:
 
-**[GitHub Releases](https://github.com/LucasTsukasa/AnkiiStudio/releases)**
+**[GitHub Releases](https://github.com/LucasTsukasa/BenkyouStudio/releases)**
 
 ### Como executar
 
 1. Baixe o arquivo `.zip` da versão desejada.
 2. Extraia todo o conteúdo.
-3. Execute `AnkiiStudio.exe`.
+3. Execute `BenkyouStudio.exe`.
 
 Estrutura típica da distribuição:
 
 ```text
-AnkiiStudio/
-├── AnkiiStudio.exe
+BenkyouStudio/
+├── BenkyouStudio.exe
 ├── _internal/
 └── data/
 ```
@@ -332,7 +332,7 @@ A versão portátil não exige uma instalação local do Python.
 
 Em **Configurações**, a opção **Procurar atualizações automaticamente** controla a verificação de novas versões publicadas no GitHub. Quando habilitada, a consulta é feita na inicialização. Também existe uma ação para verificar manualmente a qualquer momento.
 
-Quando uma versão mais recente compatível com o canal atual é encontrada, o AnkiiStudio apresenta uma janela própria com versão instalada, versão disponível, canal e notas da atualização antes do download. Na distribuição portátil para Windows, o pacote é preparado para substituir os arquivos do aplicativo preservando a pasta `data/` e reiniciar o AnkiiStudio após a atualização. O atualizador aceita tanto o executável na raiz do ZIP quanto dentro de uma única pasta contêiner do build portátil.
+Quando uma versão mais recente compatível com o canal atual é encontrada, o BenkyouStudio apresenta uma janela própria com versão instalada, versão disponível, canal e notas da atualização antes do download. Na distribuição portátil para Windows, o pacote é preparado para substituir os arquivos do aplicativo preservando a pasta `data/` e reiniciar o BenkyouStudio após a atualização. Na versão 0.11.0, o pacote também inclui temporariamente um alias `AnkiiStudio.exe` para que instalações da beta.9 consigam concluir a transição de nome pelo atualizador existente; o executável principal é `BenkyouStudio.exe`. O atualizador aceita tanto o executável na raiz do ZIP quanto dentro de uma única pasta contêiner do build portátil.
 
 ## Interface e configurações
 
@@ -346,7 +346,7 @@ A pré-visualização de cartões dentro de **Estrutura e aparência** utiliza o
 
 A página **Roadmap** apresenta o planejamento do projeto como uma linha do tempo. O conteúdo distribuído com o aplicativo fica em `ankiistudio/resources/roadmap.json`, separado do código da interface. Títulos, descrições e listas definidos nesse arquivo são exibidos exatamente no idioma em que forem escritos; somente os elementos fixos da página e os status são traduzidos pela interface.
 
-Na primeira abertura da página durante a sessão, se houver conexão disponível, o AnkiiStudio tenta obter a versão pública mais recente desse arquivo no repositório GitHub. Se a consulta falhar, utiliza a última cópia em cache ou o arquivo incluído na versão instalada. Assim, alterações de planejamento podem ser publicadas por commit sem exigir uma nova versão apenas para atualizar o texto do Roadmap.
+Na primeira abertura da página durante a sessão, se houver conexão disponível, o BenkyouStudio tenta obter a versão pública mais recente desse arquivo no repositório GitHub. Se a consulta falhar, utiliza a última cópia em cache ou o arquivo incluído na versão instalada. Assim, alterações de planejamento podem ser publicadas por commit sem exigir uma nova versão apenas para atualizar o texto do Roadmap.
 
 Os estados públicos utilizados são:
 
@@ -381,7 +381,7 @@ Essa estrutura mantém projetos, mídias e arquivos de execução separados dos 
 
 As API keys configuradas pelo usuário não são armazenadas em texto simples dentro da pasta portátil.
 
-O AnkiiStudio utiliza `keyring` para integrar-se ao gerenciador seguro de credenciais do sistema operacional.
+O BenkyouStudio utiliza `keyring` para integrar-se ao gerenciador seguro de credenciais do sistema operacional.
 
 Serviços externos podem exigir credenciais próprias, como:
 
@@ -446,7 +446,7 @@ O processo utiliza PyInstaller e gera o pacote de distribuição na pasta `relea
 ## Estrutura do repositório
 
 ```text
-AnkiiStudio/
+BenkyouStudio/
 ├── ankiistudio/
 │   ├── data/
 │   ├── languages/
@@ -456,7 +456,7 @@ AnkiiStudio/
 │       └── design_system/
 ├── scripts/
 ├── tests/
-├── AnkiiStudio.spec
+├── BenkyouStudio.spec
 ├── CHANGELOG.md
 ├── LICENSE
 ├── pyproject.toml
@@ -483,7 +483,7 @@ O histórico de alterações está disponível em [CHANGELOG.md](CHANGELOG.md).
 
 ## Licença
 
-O AnkiiStudio é distribuído sob a **GNU General Public License v3.0 (GPL-3.0)**.
+O BenkyouStudio é distribuído sob a **GNU General Public License v3.0 (GPL-3.0)**.
 
 Consulte [LICENSE](LICENSE) para os termos completos.
 

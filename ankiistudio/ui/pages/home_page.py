@@ -30,7 +30,7 @@ class HomePage(QWidget):
         self.content_layout = layout
         layout.addWidget(
             PageHeader(
-                "Bem-vindo ao AnkiiStudio",
+                "Bem-vindo ao BenkyouStudio",
                 "Transforme conteúdos em materiais de estudo, organize seus flashcards e prepare seus baralhos para o Anki.",
             )
         )
@@ -47,7 +47,7 @@ class HomePage(QWidget):
         )
         import_card = ActionCard(
             "Importar de uma IA",
-            "Use o prompt estruturado do AnkiiStudio e importe o conteúdo produzido por uma IA.",
+            "Use o prompt estruturado do BenkyouStudio e importe o conteúdo produzido por uma IA.",
             "Abrir importação",
             icon_dir / "import_active.svg",
         )

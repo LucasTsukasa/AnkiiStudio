@@ -42,6 +42,38 @@ def test_unlimited_profiles_are_grouped_by_provider_and_language(tmp_path: Path)
     assert len(service.list_for("elevenlabs", "ja")) == 1
 
 
+def test_invalid_profile_json_is_not_overwritten_by_legacy_defaults(tmp_path: Path) -> None:
+    database = Database(tmp_path / "profiles-invalid-json.sqlite")
+    service = AudioProfileService(database)
+    raw = '{"provider": "gemini"'
+    database.set_setting(service.SETTING_KEY, raw)
+
+    service.load()
+
+    assert database.get_setting(service.SETTING_KEY, "") == raw
+
+
+def test_valid_profiles_survive_invalid_items_without_rewriting_original_json(tmp_path: Path) -> None:
+    import json
+
+    database = Database(tmp_path / "profiles-partial-invalid.sqlite")
+    service = AudioProfileService(database)
+    valid = AudioVoiceProfile(
+        provider="gemini",
+        language="en",
+        name="English",
+        model="gemini-model",
+        voice="Kore",
+    ).model_dump()
+    raw = json.dumps([valid, {"provider": "unknown"}], ensure_ascii=False)
+    database.set_setting(service.SETTING_KEY, raw)
+
+    loaded = service.load()
+
+    assert [profile.name for profile in loaded] == ["English"]
+    assert database.get_setting(service.SETTING_KEY, "") == raw
+
+
 def test_voice_profiles_accept_languages_beyond_original_four(tmp_path: Path) -> None:
     database = Database(tmp_path / "profiles-many.sqlite")
     service = AudioProfileService(database)

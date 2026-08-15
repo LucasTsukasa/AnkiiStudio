@@ -3,7 +3,13 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from ankiistudio.services.roadmap_service import RoadmapService
+from ankiistudio.services.roadmap_service import ROADMAP_REMOTE_URL, RoadmapService
+
+
+def test_roadmap_targets_benkyoustudio_repository() -> None:
+    assert ROADMAP_REMOTE_URL.startswith(
+        "https://api.github.com/repos/LucasTsukasa/BenkyouStudio/contents/"
+    )
 
 
 def _payload(title: str = "Teste") -> dict:

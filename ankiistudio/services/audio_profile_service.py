@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from typing import Literal
 from uuid import uuid4
 
@@ -14,6 +15,9 @@ from ankiistudio.constants import (
     normalize_language_code,
 )
 from ankiistudio.database import Database
+
+
+logger = logging.getLogger(__name__)
 
 
 class AudioVoiceProfile(BaseModel):
@@ -66,9 +70,44 @@ class AudioProfileService:
         if raw:
             try:
                 data = json.loads(raw)
-                return [AudioVoiceProfile.model_validate(item) for item in data]
-            except Exception:
-                pass
+            except (json.JSONDecodeError, TypeError) as exc:
+                logger.warning(
+                    "Não foi possível interpretar os perfis de áudio salvos; "
+                    "a configuração original será preservada.",
+                    exc_info=True,
+                )
+                return self._legacy_profiles()
+
+            if not isinstance(data, list):
+                logger.warning(
+                    "Os perfis de áudio salvos não formam uma lista; "
+                    "a configuração original será preservada."
+                )
+                return self._legacy_profiles()
+
+            profiles: list[AudioVoiceProfile] = []
+            invalid_count = 0
+            for item in data:
+                try:
+                    profiles.append(AudioVoiceProfile.model_validate(item))
+                except Exception:
+                    invalid_count += 1
+                    logger.warning(
+                        "Perfil de áudio inválido ignorado durante o carregamento.",
+                        exc_info=True,
+                    )
+
+            if invalid_count:
+                logger.warning(
+                    "%s perfil(is) de áudio inválido(s) foram ignorados sem sobrescrever "
+                    "a configuração persistida.",
+                    invalid_count,
+                )
+
+            if profiles or not data:
+                return profiles
+
+            return self._legacy_profiles()
         profiles = self._legacy_profiles()
         self.save(profiles)
         return profiles

@@ -12,11 +12,10 @@ from pathlib import Path
 import httpx
 
 from ankiistudio.config import AppPaths
-from ankiistudio.constants import APP_VERSION
+from ankiistudio.constants import APP_NAME, APP_USER_AGENT, APP_VERSION, LEGACY_APP_NAME
 
-GITHUB_REPOSITORY = "LucasTsukasa/AnkiiStudio"
+GITHUB_REPOSITORY = "LucasTsukasa/BenkyouStudio"
 GITHUB_API = f"https://api.github.com/repos/{GITHUB_REPOSITORY}/releases"
-USER_AGENT = f"AnkiiStudio/{APP_VERSION} (https://github.com/{GITHUB_REPOSITORY})"
 
 
 @dataclass(frozen=True)
@@ -70,7 +69,7 @@ class UpdateService:
         headers = {
             "Accept": "application/vnd.github+json",
             "X-GitHub-Api-Version": "2026-03-10",
-            "User-Agent": USER_AGENT,
+            "User-Agent": APP_USER_AGENT,
         }
         with httpx.Client(timeout=self.timeout, headers=headers, follow_redirects=True) as client:
             response = client.get(GITHUB_API, params={"per_page": 30})
@@ -137,7 +136,7 @@ class UpdateService:
             "GET",
             info.asset_url,
             timeout=120,
-            headers={"User-Agent": USER_AGENT},
+            headers={"User-Agent": APP_USER_AGENT},
             follow_redirects=True,
         ) as response:
             response.raise_for_status()
@@ -161,12 +160,12 @@ class UpdateService:
     def _resolve_payload_dir(staging: Path) -> Path:
         """Localiza a raiz real do build portátil após a extração.
 
-        Releases antigas esperavam ``AnkiiStudio.exe`` diretamente na raiz do ZIP.
-        Alguns pacotes foram publicados com uma única pasta ``AnkiiStudio/`` envolvendo
-        o build. Ambos os formatos são válidos; estruturas ambíguas continuam sendo
-        rejeitadas para não instalar conteúdo inesperado.
+        Releases atuais usam ``BenkyouStudio.exe``. Durante a transição de nome,
+        ``AnkiiStudio.exe`` também é aceito como formato legado para que pacotes
+        anteriores continuem reconhecíveis. Estruturas ambíguas permanecem rejeitadas.
         """
-        if (staging / "AnkiiStudio.exe").is_file():
+        executable_names = (f"{APP_NAME}.exe", f"{LEGACY_APP_NAME}.exe")
+        if any((staging / name).is_file() for name in executable_names):
             return staging
 
         ignored_names = {"__MACOSX", ".DS_Store", "Thumbs.db"}
@@ -176,13 +175,15 @@ class UpdateService:
         directories = [path for path in visible_entries if path.is_dir()]
         files = [path for path in visible_entries if path.is_file()]
         candidates = [
-            path for path in directories if (path / "AnkiiStudio.exe").is_file()
+            path
+            for path in directories
+            if any((path / name).is_file() for name in executable_names)
         ]
         if len(candidates) == 1 and len(directories) == 1 and not files:
             return candidates[0]
 
         raise RuntimeError(
-            "O pacote de atualização não contém um build portátil válido do AnkiiStudio "
+            f"O pacote de atualização não contém um build portátil válido do {APP_NAME} "
             "na raiz nem em uma única pasta contêiner."
         )
 
@@ -207,10 +208,13 @@ class UpdateService:
 
         app_dir = self.paths.app_dir.resolve()
         staging = downloaded.staging_dir.resolve()
-        script_dir = Path(tempfile.gettempdir()) / "AnkiiStudioUpdater"
+        backup = (downloaded.archive_path.parent / "backup-current").resolve()
+        script_dir = Path(tempfile.gettempdir()) / f"{APP_NAME}Updater"
         script_dir.mkdir(parents=True, exist_ok=True)
         script = script_dir / f"update-{downloaded.info.version}.ps1"
         pid = os.getpid()
+        current_executable_name = Path(sys.executable).name
+        target_executable_name = f"{APP_NAME}.exe"
 
         def ps_quote(path: Path) -> str:
             return str(path).replace("'", "''")
@@ -220,18 +224,74 @@ class UpdateService:
             f'''$pidToWait = {pid}\n'''
             f'''$appDir = '{ps_quote(app_dir)}'\n'''
             f'''$staging = '{ps_quote(staging)}'\n'''
-            '''while (Get-Process -Id $pidToWait -ErrorAction SilentlyContinue) { Start-Sleep -Milliseconds 400 }\n'''
-            '''Get-ChildItem -LiteralPath $appDir -Force | ForEach-Object {\n'''
-            '''    if ($_.Name -ne 'data') { Remove-Item -LiteralPath $_.FullName -Recurse -Force }\n'''
-            '''}\n'''
-            '''Get-ChildItem -LiteralPath $staging -Force | ForEach-Object {\n'''
-            '''    if ($_.Name -ne 'data') {\n'''
-            '''        $target = Join-Path $appDir $_.Name\n'''
-            '''        Copy-Item -LiteralPath $_.FullName -Destination $target -Recurse -Force\n'''
+            f'''$backup = '{ps_quote(backup)}'\n'''
+            f'''$oldExe = Join-Path $appDir '{current_executable_name}'\n'''
+            f'''$targetExeName = '{target_executable_name}'\n'''
+            '''$updateLog = Join-Path $appDir 'data\\logs\\update-error.log'\n'''
+            '''function Remove-AppFiles {\n'''
+            '''    param([string]$Root)\n'''
+            '''    Get-ChildItem -LiteralPath $Root -Force | ForEach-Object {\n'''
+            '''        if ($_.Name -ne 'data') { Remove-Item -LiteralPath $_.FullName -Recurse -Force }\n'''
             '''    }\n'''
             '''}\n'''
-            '''Start-Process -FilePath (Join-Path $appDir 'AnkiiStudio.exe')\n'''
-            '''Remove-Item -LiteralPath $staging -Recurse -Force -ErrorAction SilentlyContinue\n''',
+            '''function Copy-AppFiles {\n'''
+            '''    param([string]$Source, [string]$Destination)\n'''
+            '''    Get-ChildItem -LiteralPath $Source -Force | ForEach-Object {\n'''
+            '''        if ($_.Name -ne 'data') {\n'''
+            '''            $target = Join-Path $Destination $_.Name\n'''
+            '''            Copy-Item -LiteralPath $_.FullName -Destination $target -Recurse -Force\n'''
+            '''        }\n'''
+            '''    }\n'''
+            '''}\n'''
+            '''while (Get-Process -Id $pidToWait -ErrorAction SilentlyContinue) { Start-Sleep -Milliseconds 400 }\n'''
+            '''if (Test-Path -LiteralPath $backup) { Remove-Item -LiteralPath $backup -Recurse -Force }\n'''
+            '''New-Item -ItemType Directory -Force -Path $backup | Out-Null\n'''
+            '''try {\n'''
+            '''    Copy-AppFiles -Source $appDir -Destination $backup\n'''
+            '''}\n'''
+            '''catch {\n'''
+            '''    $backupError = $_\n'''
+            '''    Remove-Item -LiteralPath $backup -Recurse -Force -ErrorAction SilentlyContinue\n'''
+            '''    if (Test-Path -LiteralPath $oldExe -PathType Leaf) {\n'''
+            '''        Start-Process -FilePath $oldExe -ErrorAction SilentlyContinue\n'''
+            '''    }\n'''
+            '''    New-Item -ItemType Directory -Force -Path (Split-Path -Parent $updateLog) | Out-Null\n'''
+            '''    Set-Content -LiteralPath $updateLog -Value ("Falha ao criar backup antes da atualização: " + $backupError) -Encoding UTF8\n'''
+            '''    throw $backupError\n'''
+            '''}\n'''
+            '''try {\n'''
+            '''    Remove-AppFiles -Root $appDir\n'''
+            '''    Copy-AppFiles -Source $staging -Destination $appDir\n'''
+            '''    $newExe = Join-Path $appDir $targetExeName\n'''
+            '''    if (-not (Test-Path -LiteralPath $newExe -PathType Leaf)) {\n'''
+            '''        throw ("A nova instalação não contém " + $targetExeName + " após a cópia.")\n'''
+            '''    }\n'''
+            '''    Start-Process -FilePath $newExe\n'''
+            '''    Remove-Item -LiteralPath $staging -Recurse -Force -ErrorAction SilentlyContinue\n'''
+            '''    Remove-Item -LiteralPath $backup -Recurse -Force -ErrorAction SilentlyContinue\n'''
+            '''    Remove-Item -LiteralPath $updateLog -Force -ErrorAction SilentlyContinue\n'''
+            '''}\n'''
+            '''catch {\n'''
+            '''    $installError = $_\n'''
+            '''    $restoreError = $null\n'''
+            '''    try {\n'''
+            '''        Remove-AppFiles -Root $appDir\n'''
+            '''        Copy-AppFiles -Source $backup -Destination $appDir\n'''
+            '''    }\n'''
+            '''    catch {\n'''
+            '''        $restoreError = $_\n'''
+            '''    }\n'''
+            '''    if (Test-Path -LiteralPath $oldExe -PathType Leaf) {\n'''
+            '''        Start-Process -FilePath $oldExe -ErrorAction SilentlyContinue\n'''
+            '''    }\n'''
+            '''    New-Item -ItemType Directory -Force -Path (Split-Path -Parent $updateLog) | Out-Null\n'''
+            '''    if ($null -ne $restoreError) {\n'''
+            '''        Set-Content -LiteralPath $updateLog -Value ("Falha na atualização: " + $installError + "`nFalha também ao restaurar o backup: " + $restoreError) -Encoding UTF8\n'''
+            '''        throw $restoreError\n'''
+            '''    }\n'''
+            '''    Set-Content -LiteralPath $updateLog -Value ("Falha na atualização; a instalação anterior foi restaurada: " + $installError) -Encoding UTF8\n'''
+            '''    throw $installError\n'''
+            '''}\n''',
             encoding="utf-8",
         )
         subprocess.Popen(

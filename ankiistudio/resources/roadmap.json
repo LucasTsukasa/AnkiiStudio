@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "updated_at": "2026-08-14",
+  "updated_at": "2026-08-15",
   "items": [
     {
       "id": "0.11.0-beta.5",
@@ -58,7 +58,7 @@
     {
       "id": "0.11.0-beta.9",
       "status": "completed",
-      "current": true,
+      "current": false,
       "title": "AnkiiStudio 0.11.0-beta.9",
       "description": "Correções finais de geração, seleção automática de imagens e responsividade do preview antes da versão 0.11.0 estável.",
       "details": [
@@ -66,6 +66,19 @@
         "Seleção automática de imagens com preservação de termos visuais, prioridade para o conteúdo original e classificação de relevância dos candidatos",
         "Preview Desktop responsivo, mantendo o limite visual sem ultrapassar a largura disponível da janela",
         "Limpeza de referências e testes ligados à pasta docs, removida intencionalmente do repositório"
+      ]
+    },
+    {
+      "id": "0.11.0",
+      "status": "completed",
+      "current": true,
+      "title": "BenkyouStudio 0.11.0",
+      "description": "Primeira versão estável sob o nome BenkyouStudio, promovida a partir da beta.9 validada do AnkiiStudio com correções finais de recuperação e manutenção.",
+      "details": [
+        "Aplicativo renomeado de AnkiiStudio para BenkyouStudio, preservando compatibilidade com dados, credenciais e atualização da beta.9",
+        "Atualizador portátil recuperável com backup antes da substituição e rollback automático em caso de falha",
+        "Perfis de áudio preservados quando a configuração JSON persistida estiver inválida ou parcialmente inválida",
+        "User-Agent HTTP centralizado e derivado automaticamente da versão do aplicativo"
       ]
     },
     {
@@ -98,7 +111,7 @@
       "title": "Dicionário integrado",
       "description": "Projeto futuro para consultar palavras e levá-las diretamente para os baralhos.",
       "details": [
-        "Em Breve: Sem data definida"
+        "Planejamento detalhado será definido futuramente"
       ]
     }
   ]

@@ -147,7 +147,7 @@ class VoicevoxProvider(AudioProvider):
                 )
                 query_response.raise_for_status()
                 query = query_response.json()
-                # Ajustes definidos no AnkiiStudio são aplicados sobre o AudioQuery do engine.
+                # Ajustes definidos no BenkyouStudio são aplicados sobre o AudioQuery do engine.
                 query["speedScale"] = self.speed_scale
                 query["pitchScale"] = self.pitch_scale
                 query["intonationScale"] = self.intonation_scale

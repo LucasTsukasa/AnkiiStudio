@@ -136,7 +136,7 @@ class SettingsPage(QWidget):
 
     def _build_category(self, key: str) -> QWidget:
         if key == "general":
-            content, layout = self._page("Geral", "Preferências básicas de funcionamento do AnkiiStudio.")
+            content, layout = self._page("Geral", "Preferências básicas de funcionamento do BenkyouStudio.")
             card = SectionCard("Idioma")
             self.ui_language_combo = ASComboBox()
             for label, code in UI_LANGUAGES:
@@ -258,7 +258,7 @@ class SettingsPage(QWidget):
                     card.root.addWidget(self.gemini_usage_label)
                 layout.addWidget(card)
         else:
-            content, layout = self._page("Atualizações", "Controle como novas versões do AnkiiStudio são verificadas.")
+            content, layout = self._page("Atualizações", "Controle como novas versões do BenkyouStudio são verificadas.")
             updates = SectionCard("Atualizações")
             self.check_updates = QCheckBox("Procurar atualizações automaticamente")
             self.check_updates_now_button = ASButton("Procurar atualizações agora")

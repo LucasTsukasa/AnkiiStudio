@@ -205,7 +205,7 @@ class RoadmapPage(QWidget):
         layout.addWidget(
             PageHeader(
                 "Roadmap",
-                "Acompanhe a evolução do AnkiiStudio e os próximos recursos planejados.",
+                "Acompanhe a evolução do BenkyouStudio e os próximos recursos planejados.",
             )
         )
 

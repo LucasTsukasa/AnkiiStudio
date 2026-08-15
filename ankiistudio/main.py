@@ -20,7 +20,7 @@ def configure_logging(paths: AppPaths) -> None:
         level=logging.INFO,
         format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
         handlers=[
-            logging.FileHandler(paths.logs_dir / "ankiistudio.log", encoding="utf-8"),
+            logging.FileHandler(paths.logs_dir / "benkyoustudio.log", encoding="utf-8"),
             logging.StreamHandler(),
         ],
     )
@@ -52,7 +52,7 @@ def main() -> int:
     except Exception as exc:
         QMessageBox.critical(
             None,
-            tr("Falha ao iniciar o AnkiiStudio"),
+            tr("Falha ao iniciar o BenkyouStudio"),
             tr("O aplicativo não pôde ser iniciado:") + f"\n\n{exc}",
         )
         logging.exception("Falha fatal durante a inicialização")
