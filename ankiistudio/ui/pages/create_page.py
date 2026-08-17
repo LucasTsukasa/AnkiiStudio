@@ -1126,7 +1126,7 @@ class CreatePage(QWidget):
             ),
         )
 
-    def _build_prompt(self, project: ProjectData) -> str:
+    def _build_prompt(self, project: ProjectData, *, include_schema: bool = True) -> str:
         return PromptService.build(
             language=project.language,
             translation_language=project.translation_language,
@@ -1139,6 +1139,7 @@ class CreatePage(QWidget):
             front_components=project.prompt_front_components(),
             back_components=project.prompt_back_components(),
             custom_content=project.custom_content,
+            include_schema=include_schema,
         )
 
     def show_prompt(self) -> None:
@@ -1196,7 +1197,7 @@ class CreatePage(QWidget):
             return
         self.create_button.setEnabled(False)
         self.status.show_message("Gerando conteúdo com a Gemini API...")
-        prompt = self._build_prompt(project)
+        prompt = self._build_prompt(project, include_schema=False)
         requested_quantity = self._requested_quantity()
         worker = Worker(
             service.generate_deck,

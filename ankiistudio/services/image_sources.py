@@ -161,10 +161,14 @@ class ImageSearchService:
         "pexels": "Pexels",
     }
     PROVIDER_KEYS = ("wikimedia", "pixabay", "pexels")
+    PIXABAY_CACHE_PREFIX = "image_api_cache_pixabay_"
+    PIXABAY_CACHE_TTL_SECONDS = 24 * 60 * 60
+    PIXABAY_CACHE_MAX_ENTRIES = 256
 
     def __init__(self, database: Database, timeout: float = 30.0) -> None:
         self.database = database
         self.timeout = timeout
+        self._pixabay_cache_entry_count: int | None = None
 
     @contextmanager
     def client_session(self):
@@ -228,23 +232,60 @@ class ImageSearchService:
                 )
         return providers
 
+    def _cleanup_pixabay_cache(self, *, now: float | None = None) -> int:
+        """Remove entradas inválidas/expiradas e limita o cache persistente."""
+        current_time = float(time.time() if now is None else now)
+        entries = self.database.list_settings_with_prefix(self.PIXABAY_CACHE_PREFIX)
+        valid: list[tuple[str, float]] = []
+        remove: list[str] = []
+
+        for key, raw in entries.items():
+            try:
+                payload = json.loads(raw)
+                created_at = float(payload.get("created_at", 0))
+                results = payload.get("results", [])
+                if not isinstance(results, list):
+                    raise ValueError("cache results inválido")
+                if current_time - created_at >= self.PIXABAY_CACHE_TTL_SECONDS:
+                    remove.append(key)
+                    continue
+                valid.append((key, created_at))
+            except (TypeError, ValueError, json.JSONDecodeError):
+                remove.append(key)
+
+        valid.sort(key=lambda item: item[1], reverse=True)
+        if len(valid) > self.PIXABAY_CACHE_MAX_ENTRIES:
+            remove.extend(key for key, _created_at in valid[self.PIXABAY_CACHE_MAX_ENTRIES :])
+            valid = valid[: self.PIXABAY_CACHE_MAX_ENTRIES]
+
+        if remove:
+            self.database.delete_settings(remove)
+        self._pixabay_cache_entry_count = len(valid)
+        return len(valid)
+
     def _provider_search(self, provider: ImageProvider, term: str, *, limit: int) -> list[ImageSearchResult]:
         # A Pixabay exige cache de 24 horas para as consultas da API. O cache é
-        # persistido no banco para continuar válido entre reinicializações.
+        # persistido no banco para continuar válido entre reinicializações e é
+        # podado para não crescer indefinidamente.
         if getattr(provider, "key", "") != "pixabay":
             return provider.search(term, limit=limit)
 
+        if self._pixabay_cache_entry_count is None:
+            self._cleanup_pixabay_cache()
+
         normalized_term = " ".join(term.casefold().split())
         digest = hashlib.sha256(f"{normalized_term}|{limit}".encode("utf-8")).hexdigest()[:32]
-        cache_key = f"image_api_cache_pixabay_{digest}"
+        cache_key = f"{self.PIXABAY_CACHE_PREFIX}{digest}"
         raw = self.database.get_setting(cache_key, "")
         if raw:
             try:
                 payload = json.loads(raw)
-                if time.time() - float(payload.get("created_at", 0)) < 24 * 60 * 60:
+                if time.time() - float(payload.get("created_at", 0)) < self.PIXABAY_CACHE_TTL_SECONDS:
                     return [ImageSearchResult.model_validate(item) for item in payload.get("results", [])]
             except (TypeError, ValueError, json.JSONDecodeError):
-                pass
+                self.database.delete_settings([cache_key])
+                if self._pixabay_cache_entry_count:
+                    self._pixabay_cache_entry_count -= 1
 
         results = provider.search(term, limit=limit)
         self.database.set_setting(
@@ -257,6 +298,9 @@ class ImageSearchService:
                 ensure_ascii=False,
             ),
         )
+        self._pixabay_cache_entry_count = (self._pixabay_cache_entry_count or 0) + 1
+        if self._pixabay_cache_entry_count > self.PIXABAY_CACHE_MAX_ENTRIES:
+            self._cleanup_pixabay_cache()
         return results
 
     def search_with_warnings(

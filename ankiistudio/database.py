@@ -7,11 +7,14 @@ from pathlib import Path
 from typing import Iterator
 
 from ankiistudio.models import (
+    CardSummary,
+    CreationPreset,
     DeckThemeSettings,
     FlashcardData,
     MediaAsset,
+    ProjectChoice,
     ProjectData,
-    CreationPreset,
+    ProjectSummary,
     utc_now_iso,
 )
 
@@ -134,6 +137,7 @@ class Database:
 
                 CREATE INDEX IF NOT EXISTS idx_cards_project_id ON cards(project_id);
                 CREATE INDEX IF NOT EXISTS idx_media_project_id ON media_assets(project_id);
+                CREATE INDEX IF NOT EXISTS idx_media_card_kind ON media_assets(card_id, kind);
                 """
             )
             self._migrate(connection)
@@ -222,52 +226,61 @@ class Database:
             )
             return int(cursor.lastrowid)
 
-    def update_project(self, project: ProjectData) -> None:
+    def _update_project_on_connection(
+        self,
+        connection: sqlite3.Connection,
+        project: ProjectData,
+        *,
+        updated_at: str | None = None,
+    ) -> None:
         if project.id is None:
             raise ValueError("Projeto sem identificador.")
-        project.updated_at = utc_now_iso()
+        project.updated_at = updated_at or utc_now_iso()
+        connection.execute(
+            """
+            UPDATE projects SET
+                name=?, language=?, translation_language=?, template_key=?, topic=?, custom_content=?, creation_mode=?,
+                front_components=?, back_components=?, card_structures=?, structure_distribution=?, deck_sections=?, card_theme=?,
+                audio_mode=?, audio_providers=?, fixed_audio_provider=?, fixed_audio_profile_id=?, audio_profile_preferences=?, voicevox_style_id=?, voicevox_style_label=?,
+                voicevox_speed_scale=?, voicevox_pitch_scale=?, voicevox_intonation_scale=?, voicevox_volume_scale=?, voicevox_pause_length_scale=?,
+                voice_variant=?, updated_at=?
+            WHERE id=?
+            """,
+            (
+                project.name,
+                project.language,
+                project.translation_language,
+                project.template_key,
+                project.topic,
+                json.dumps(project.custom_content, ensure_ascii=False),
+                project.creation_mode,
+                json.dumps(project.front_components, ensure_ascii=False),
+                json.dumps(project.back_components, ensure_ascii=False),
+                json.dumps([item.model_dump() for item in project.card_structures], ensure_ascii=False),
+                project.structure_distribution,
+                json.dumps(project.deck_sections, ensure_ascii=False),
+                project.card_theme.model_dump_json(),
+                project.audio_mode,
+                json.dumps(project.audio_providers, ensure_ascii=False),
+                project.fixed_audio_provider,
+                project.fixed_audio_profile_id,
+                json.dumps(project.audio_profile_preferences, ensure_ascii=False),
+                project.voicevox_style_id,
+                project.voicevox_style_label,
+                project.voicevox_speed_scale,
+                project.voicevox_pitch_scale,
+                project.voicevox_intonation_scale,
+                project.voicevox_volume_scale,
+                project.voicevox_pause_length_scale,
+                project.voice_variant,
+                project.updated_at,
+                project.id,
+            ),
+        )
+
+    def update_project(self, project: ProjectData) -> None:
         with self.connection() as connection:
-            connection.execute(
-                """
-                UPDATE projects SET
-                    name=?, language=?, translation_language=?, template_key=?, topic=?, custom_content=?, creation_mode=?,
-                    front_components=?, back_components=?, card_structures=?, structure_distribution=?, deck_sections=?, card_theme=?,
-                    audio_mode=?, audio_providers=?, fixed_audio_provider=?, fixed_audio_profile_id=?, audio_profile_preferences=?, voicevox_style_id=?, voicevox_style_label=?,
-                    voicevox_speed_scale=?, voicevox_pitch_scale=?, voicevox_intonation_scale=?, voicevox_volume_scale=?, voicevox_pause_length_scale=?,
-                    voice_variant=?, updated_at=?
-                WHERE id=?
-                """,
-                (
-                    project.name,
-                    project.language,
-                    project.translation_language,
-                    project.template_key,
-                    project.topic,
-                    json.dumps(project.custom_content, ensure_ascii=False),
-                    project.creation_mode,
-                    json.dumps(project.front_components, ensure_ascii=False),
-                    json.dumps(project.back_components, ensure_ascii=False),
-                    json.dumps([item.model_dump() for item in project.card_structures], ensure_ascii=False),
-                    project.structure_distribution,
-                    json.dumps(project.deck_sections, ensure_ascii=False),
-                    project.card_theme.model_dump_json(),
-                    project.audio_mode,
-                    json.dumps(project.audio_providers, ensure_ascii=False),
-                    project.fixed_audio_provider,
-                    project.fixed_audio_profile_id,
-                    json.dumps(project.audio_profile_preferences, ensure_ascii=False),
-                    project.voicevox_style_id,
-                    project.voicevox_style_label,
-                    project.voicevox_speed_scale,
-                    project.voicevox_pitch_scale,
-                    project.voicevox_intonation_scale,
-                    project.voicevox_volume_scale,
-                    project.voicevox_pause_length_scale,
-                    project.voice_variant,
-                    project.updated_at,
-                    project.id,
-                ),
-            )
+            self._update_project_on_connection(connection, project)
 
     def list_projects(self) -> list[ProjectData]:
         with self.connection() as connection:
@@ -275,6 +288,72 @@ class Database:
                 "SELECT * FROM projects ORDER BY updated_at DESC, id DESC"
             ).fetchall()
         return [self._row_to_project(row) for row in rows]
+
+    def list_project_choices(self) -> list[ProjectChoice]:
+        """Retorna somente os dados necessários para combos e seletores."""
+        with self.connection() as connection:
+            rows = connection.execute(
+                """
+                SELECT id, name, language
+                FROM projects
+                ORDER BY updated_at DESC, id DESC
+                """
+            ).fetchall()
+        return [
+            ProjectChoice(
+                id=int(row["id"]),
+                name=str(row["name"]),
+                language=str(row["language"] or "ja"),
+            )
+            for row in rows
+        ]
+
+    def list_project_summaries(self, *, limit: int | None = None) -> list[ProjectSummary]:
+        """Retorna dados leves de projetos com contagem de cartões.
+
+        A contagem usa o índice de ``cards(project_id)`` e, quando ``limit`` é
+        informado, o SQLite limita primeiro o conjunto de projetos relevantes.
+        """
+        parameters: tuple[object, ...] = ()
+        limit_sql = ""
+        if limit is not None:
+            resolved_limit = max(0, int(limit))
+            if resolved_limit == 0:
+                return []
+            limit_sql = " LIMIT ?"
+            parameters = (resolved_limit,)
+        with self.connection() as connection:
+            rows = connection.execute(
+                """
+                SELECT
+                    p.id,
+                    p.name,
+                    p.language,
+                    p.template_key,
+                    p.topic,
+                    p.updated_at,
+                    (
+                        SELECT COUNT(*)
+                        FROM cards AS c
+                        WHERE c.project_id = p.id
+                    ) AS card_count
+                FROM projects AS p
+                ORDER BY p.updated_at DESC, p.id DESC
+                """ + limit_sql,
+                parameters,
+            ).fetchall()
+        return [
+            ProjectSummary(
+                id=int(row["id"]),
+                name=str(row["name"]),
+                language=str(row["language"] or "ja"),
+                template_key=str(row["template_key"]),
+                topic=str(row["topic"] or ""),
+                card_count=int(row["card_count"] or 0),
+                updated_at=str(row["updated_at"] or ""),
+            )
+            for row in rows
+        ]
 
     def get_project(self, project_id: int) -> ProjectData | None:
         with self.connection() as connection:
@@ -337,6 +416,57 @@ class Database:
                 "SELECT * FROM cards WHERE project_id=? ORDER BY id", (project_id,)
             ).fetchall()
         return [self._row_to_card(row) for row in rows]
+
+    def list_card_summaries(self, project_id: int) -> list[CardSummary]:
+        """Retorna somente os campos usados pela tabela de cartões."""
+        with self.connection() as connection:
+            rows = connection.execute(
+                """
+                SELECT
+                    id, project_id, section, word, translation, image_path,
+                    word_audio_path, sentence_audio_path, structure_key
+                FROM cards
+                WHERE project_id=?
+                ORDER BY id
+                """,
+                (project_id,),
+            ).fetchall()
+        return [self._row_to_card_summary(row) for row in rows]
+
+    def list_card_summaries_by_ids(
+        self, project_id: int, card_ids: list[int]
+    ) -> list[CardSummary]:
+        ids = sorted({int(card_id) for card_id in card_ids if int(card_id) > 0})
+        if not ids:
+            return []
+        placeholders = ",".join("?" for _ in ids)
+        with self.connection() as connection:
+            rows = connection.execute(
+                f"""
+                SELECT
+                    id, project_id, section, word, translation, image_path,
+                    word_audio_path, sentence_audio_path, structure_key
+                FROM cards
+                WHERE project_id=? AND id IN ({placeholders})
+                ORDER BY id
+                """,
+                [project_id, *ids],
+            ).fetchall()
+        return [self._row_to_card_summary(row) for row in rows]
+
+    def get_card_summary(self, card_id: int) -> CardSummary | None:
+        with self.connection() as connection:
+            row = connection.execute(
+                """
+                SELECT
+                    id, project_id, section, word, translation, image_path,
+                    word_audio_path, sentence_audio_path, structure_key
+                FROM cards
+                WHERE id=?
+                """,
+                (card_id,),
+            ).fetchone()
+        return self._row_to_card_summary(row) if row else None
 
     def get_first_card(self, project_id: int) -> FlashcardData | None:
         """Retorna somente o primeiro cartão do projeto.
@@ -657,39 +787,115 @@ class Database:
         with self.connection() as connection:
             connection.execute(f"DELETE FROM cards WHERE id IN ({placeholders})", ids)
 
+    def _update_card_on_connection(
+        self,
+        connection: sqlite3.Connection,
+        card: FlashcardData,
+        *,
+        updated_at: str | None = None,
+    ) -> None:
+        if card.id is None:
+            raise ValueError("Cartão sem identificador.")
+        card.updated_at = updated_at or utc_now_iso()
+        connection.execute(
+            """
+            UPDATE cards SET
+                section=?, word=?, reading=?, romanization=?, translation=?, example=?,
+                example_reading=?, example_translation=?, explanation=?, mnemonic=?,
+                part_of_speech=?, level=?, tags=?, image_search_terms=?, image_path=?,
+                word_audio_path=?, sentence_audio_path=?, structure_key=?, updated_at=?
+            WHERE id=?
+            """,
+            (
+                card.section, card.word, card.reading, card.romanization, card.translation,
+                card.example, card.example_reading, card.example_translation, card.explanation,
+                card.mnemonic, card.part_of_speech, card.level,
+                json.dumps(card.tags, ensure_ascii=False),
+                json.dumps(card.image_search_terms, ensure_ascii=False),
+                card.image_path, card.word_audio_path, card.sentence_audio_path,
+                card.structure_key, card.updated_at, card.id,
+            ),
+        )
+
     def update_cards(self, cards: list[FlashcardData]) -> None:
         if not cards:
             return
         project_ids: set[int] = set()
         with self.connection() as connection:
             for card in cards:
-                if card.id is None:
-                    raise ValueError("Cartão sem identificador.")
-                card.updated_at = utc_now_iso()
-                connection.execute(
-                    """
-                    UPDATE cards SET
-                        section=?, word=?, reading=?, romanization=?, translation=?, example=?,
-                        example_reading=?, example_translation=?, explanation=?, mnemonic=?,
-                        part_of_speech=?, level=?, tags=?, image_search_terms=?, image_path=?,
-                        word_audio_path=?, sentence_audio_path=?, structure_key=?, updated_at=?
-                    WHERE id=?
-                    """,
-                    (
-                        card.section, card.word, card.reading, card.romanization, card.translation,
-                        card.example, card.example_reading, card.example_translation, card.explanation,
-                        card.mnemonic, card.part_of_speech, card.level,
-                        json.dumps(card.tags, ensure_ascii=False),
-                        json.dumps(card.image_search_terms, ensure_ascii=False),
-                        card.image_path, card.word_audio_path, card.sentence_audio_path,
-                        card.structure_key, card.updated_at, card.id,
-                    ),
-                )
+                self._update_card_on_connection(connection, card)
                 if card.project_id is not None:
                     project_ids.add(int(card.project_id))
             now = utc_now_iso()
             for project_id in project_ids:
                 connection.execute("UPDATE projects SET updated_at=? WHERE id=?", (now, project_id))
+
+    def save_project_changes(
+        self,
+        project: ProjectData,
+        cards: list[FlashcardData] | None = None,
+        *,
+        section_renames: list[tuple[str, str]] | None = None,
+        cleared_sections: list[str] | None = None,
+    ) -> None:
+        """Persiste o rascunho do projeto e dos cartões em uma única transação.
+
+        As alterações de seção são aplicadas depois dos rascunhos dos cartões para
+        que um cartão ainda aberto com o nome antigo não possa desfazer uma
+        renomeação/remoção salva na mesma operação.
+        """
+        if project.id is None:
+            raise ValueError("Projeto sem identificador.")
+        project_id = int(project.id)
+        cards = list(cards or [])
+        renames = list(section_renames or [])
+        cleared = list(cleared_sections or [])
+        for card in cards:
+            if card.id is None:
+                raise ValueError("Cartão sem identificador.")
+            if card.project_id is not None and int(card.project_id) != project_id:
+                raise ValueError("O cartão não pertence ao projeto que está sendo salvo.")
+
+        now = utc_now_iso()
+        with self.connection() as connection:
+            self._update_project_on_connection(connection, project, updated_at=now)
+            for card in cards:
+                self._update_card_on_connection(connection, card, updated_at=now)
+            valid_renames = [
+                (str(old_name).strip(), str(new_name).strip())
+                for old_name, new_name in renames
+                if str(old_name).strip()
+                and str(new_name).strip()
+                and str(old_name).strip() != str(new_name).strip()
+            ]
+            if valid_renames:
+                # Aplica todas as renomeações simultaneamente. Fazer UPDATEs
+                # sequenciais faria uma cadeia A→B, B→C transformar também A em C.
+                case_sql = " ".join("WHEN ? THEN ?" for _ in valid_renames)
+                old_placeholders = ",".join("?" for _ in valid_renames)
+                case_params = [
+                    value
+                    for old_name, new_name in valid_renames
+                    for value in (old_name, new_name)
+                ]
+                old_names = [old_name for old_name, _new_name in valid_renames]
+                connection.execute(
+                    f"""
+                    UPDATE cards
+                    SET section=CASE section {case_sql} ELSE section END,
+                        updated_at=?
+                    WHERE project_id=? AND section IN ({old_placeholders})
+                    """,
+                    [*case_params, now, project_id, *old_names],
+                )
+            for section in cleared:
+                section = str(section).strip()
+                if not section:
+                    continue
+                connection.execute(
+                    "UPDATE cards SET section='', updated_at=? WHERE project_id=? AND section=?",
+                    (now, project_id, section),
+                )
 
     def delete_media_assets_for_card(self, card_id: int, kind: str | None = None) -> None:
         with self.connection() as connection:
@@ -716,6 +922,36 @@ class Database:
             else:
                 raise ValueError("Tipo de mídia inválido.")
         return int(row["total"] if row else 0)
+
+    def image_paths_for_cards(self, card_ids: list[int]) -> list[str]:
+        """Retorna caminhos de imagem antes de uma exclusão de cartões."""
+        ids = sorted({int(card_id) for card_id in card_ids if int(card_id) > 0})
+        if not ids:
+            return []
+        placeholders = ",".join("?" for _ in ids)
+        with self.connection() as connection:
+            rows = connection.execute(
+                f"""
+                SELECT DISTINCT image_path
+                FROM cards
+                WHERE id IN ({placeholders}) AND TRIM(image_path) <> ''
+                """,
+                ids,
+            ).fetchall()
+        return [str(row["image_path"]) for row in rows if str(row["image_path"] or "").strip()]
+
+    def image_paths_for_project(self, project_id: int) -> list[str]:
+        """Retorna caminhos de imagem antes de excluir um projeto."""
+        with self.connection() as connection:
+            rows = connection.execute(
+                """
+                SELECT DISTINCT image_path
+                FROM cards
+                WHERE project_id=? AND TRIM(image_path) <> ''
+                """,
+                (project_id,),
+            ).fetchall()
+        return [str(row["image_path"]) for row in rows if str(row["image_path"] or "").strip()]
 
     def add_media_asset(self, asset: MediaAsset) -> int:
         with self.connection() as connection:
@@ -793,6 +1029,33 @@ class Database:
                 list(values.items()),
             )
 
+    def list_settings_with_prefix(self, prefix: str) -> dict[str, str]:
+        """Retorna configurações cujo identificador começa com ``prefix``."""
+        escaped = prefix.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        with self.connection() as connection:
+            rows = connection.execute(
+                """
+                SELECT key, value
+                FROM settings
+                WHERE key LIKE ? ESCAPE '\\'
+                ORDER BY key
+                """,
+                (f"{escaped}%",),
+            ).fetchall()
+        return {str(row["key"]): str(row["value"]) for row in rows}
+
+    def delete_settings(self, keys: list[str]) -> None:
+        """Remove várias configurações em uma única transação."""
+        normalized = sorted({str(key) for key in keys if str(key)})
+        if not normalized:
+            return
+        placeholders = ",".join("?" for _ in normalized)
+        with self.connection() as connection:
+            connection.execute(
+                f"DELETE FROM settings WHERE key IN ({placeholders})",
+                normalized,
+            )
+
     @staticmethod
     def _row_to_project(row: sqlite3.Row) -> ProjectData:
         theme_raw = row["card_theme"] if "card_theme" in row.keys() else "{}"
@@ -830,6 +1093,20 @@ class Database:
             voice_variant=row["voice_variant"],
             created_at=row["created_at"],
             updated_at=row["updated_at"],
+        )
+
+    @staticmethod
+    def _row_to_card_summary(row: sqlite3.Row) -> CardSummary:
+        return CardSummary(
+            id=int(row["id"]),
+            project_id=int(row["project_id"]),
+            section=str(row["section"] or ""),
+            word=str(row["word"]),
+            translation=str(row["translation"] or ""),
+            image_path=str(row["image_path"] or ""),
+            word_audio_path=str(row["word_audio_path"] or ""),
+            sentence_audio_path=str(row["sentence_audio_path"] or ""),
+            structure_key=str(row["structure_key"] or ""),
         )
 
     @staticmethod

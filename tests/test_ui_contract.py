@@ -293,12 +293,12 @@ def test_voice_profiles_are_managed_in_settings_and_keys_remain_there() -> None:
 
 def test_application_version_is_stable_and_user_agent_is_centralized() -> None:
     constants = read("ankiistudio/constants.py")
-    assert 'APP_VERSION = "0.11.1"' in constants
+    assert 'APP_VERSION = "0.12.0"' in constants
     assert 'APP_NAME = "BenkyouStudio"' in constants
     assert 'LEGACY_APP_NAME = "AnkiiStudio"' in constants
     assert 'name = "benkyoustudio"' in read("pyproject.toml")
-    assert '__version__ = "0.11.1"' in read("ankiistudio/__init__.py")
-    assert 'version = "0.11.1"' in read("pyproject.toml")
+    assert '__version__ = "0.12.0"' in read("ankiistudio/__init__.py")
+    assert 'version = "0.12.0"' in read("pyproject.toml")
     assert 'APP_USER_AGENT = f"{APP_NAME}/{APP_VERSION}' in constants
     for relative_path in (
         "ankiistudio/services/audio/tatoeba_audio.py",
@@ -489,7 +489,7 @@ def test_portable_only_storage_and_build_are_configured() -> None:
     assert 'self.base_dir = self.app_dir / "data"' in config
     assert "platformdirs" not in config
     assert "user_data_dir" not in config
-    assert "BenkyouStudio-Portable-0.11.1.zip" in build
+    assert "BenkyouStudio-Portable-0.12.0.zip" in build
     assert "BenkyouStudio.iss" not in build
     assert not (ROOT / "scripts" / "BenkyouStudio.iss").exists()
 
@@ -887,3 +887,81 @@ def test_settings_refreshes_audio_profiles_in_open_project_without_reloading_pro
     assert "self.audio_panel.refresh_audio_profiles()" in hub
     assert "def refresh_audio_profiles(self) -> None:" in panel
     assert "selected_profiles" in panel
+
+
+
+def test_0_12_0_structural_performance_contract() -> None:
+    models = read("ankiistudio/models.py")
+    database = read("ankiistudio/database.py")
+    home = read("ankiistudio/ui/pages/home_page.py")
+    projects = read("ankiistudio/ui/pages/projects_page.py")
+    hub = read("ankiistudio/ui/pages/projects_hub_page.py")
+    media = read("ankiistudio/services/media_service.py")
+    image_sources = read("ankiistudio/services/image_sources.py")
+    main = read("ankiistudio/ui/main_window.py")
+
+    assert "class CardSummary(BaseModel):" in models
+    assert "class ProjectSummary(ProjectChoice):" in models
+    assert "class ProjectChoice(BaseModel):" in models
+    assert "def list_card_summaries(" in database
+    assert "def list_project_summaries(" in database
+    assert "CREATE INDEX IF NOT EXISTS idx_media_card_kind ON media_assets(card_id, kind)" in database
+    assert "self.database.list_project_summaries(limit=10)" in home
+    assert "self.database.list_project_choices()" in projects
+    assert "self._card_row_by_id: dict[int, int] = {}" in projects
+    assert "return self._card_row_by_id.get(int(card_id), -1)" in projects
+    assert "self.database.list_card_summaries(self.current_project.id)" in projects
+    assert "self.database.list_project_summaries()" in hub
+    child_start = hub.index("    def _child_changed")
+    child_end = hub.find("\n    def ", child_start + 5)
+    child_changed = hub[child_start : child_end if child_end >= 0 else None]
+    assert "self.refresh_library()" not in child_changed
+    assert "self.models_page.load_projects()" not in child_changed
+    assert "self._audio_panel.refresh_projects()" not in child_changed
+    assert "cleanup_unreferenced_image_files" in media
+    assert "PIXABAY_CACHE_MAX_ENTRIES = 256" in image_sources
+    related_start = main.index("    def refresh_related_pages")
+    related_end = main.find("\n    def ", related_start + 5)
+    related = main[related_start : related_end if related_end >= 0 else None]
+    assert "for index in (2, 4)" not in related
+    assert "self._page_widgets.get(2)" not in related
+
+
+def test_project_detail_uses_one_shared_save_flow_and_unsaved_guard() -> None:
+    hub = read("ankiistudio/ui/pages/projects_hub_page.py")
+    projects = read("ankiistudio/ui/pages/projects_page.py")
+    models_page = read("ankiistudio/ui/pages/models_page.py")
+    audio_panel = read("ankiistudio/ui/panels.py")
+    main = read("ankiistudio/ui/main_window.py")
+    database = read("ankiistudio/database.py")
+
+    assert 'self.save_project_button = ASButton("Salvar alterações")' in hub
+    assert "self.cards_page.set_project_data(project)" in hub
+    assert "self.models_page.set_project_data(project)" in hub
+    assert "self.audio_panel.set_project_data(project)" in hub
+    assert "self.database.save_project_changes(" in hub
+    assert "def resolve_pending_changes(self, action: str) -> bool:" in hub
+    assert "QMessageBox.StandardButton.Save" in hub
+    assert "QMessageBox.StandardButton.Discard" in hub
+    assert "QMessageBox.StandardButton.Cancel" in hub
+    assert "self.save_button.setVisible(not embedded)" in projects
+    assert "def apply_to_project(self, *, show_errors: bool = True) -> bool:" in models_page
+    assert "def apply_to_project(self, *, show_errors: bool = True) -> bool:" in audio_panel
+    assert 'ASButton("Salvar áudio do projeto")' not in audio_panel
+    assert "self.database.update_project(project)" not in audio_panel[audio_panel.index("    def adjust_voicevox"):audio_panel.index("    def apply_to_project")]
+    assert "def save_project_changes(" in database
+    assert 'resolver("sair da área de projetos")' in main
+
+
+def test_gemini_native_generation_does_not_duplicate_json_schema_in_prompt() -> None:
+    create = read("ankiistudio/ui/pages/create_page.py")
+    prompt = read("ankiistudio/services/prompt_service.py")
+    gemini = read("ankiistudio/services/gemini_service.py")
+    schema = read("ankiistudio/services/deck_schema.py")
+
+    assert "prompt = self._build_prompt(project, include_schema=False)" in create
+    assert "include_schema: bool = True" in prompt
+    assert "build_generated_field_schema()" in gemini
+    assert '"additionalProperties": False' in schema
+    assert '"image_path"' not in schema
+    assert '"word_audio_path"' not in schema

@@ -16,6 +16,33 @@ from ankiistudio.services.image_sources import ImageSearchService
 SUPPORTED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp", ".tif", ".tiff"}
 
 
+def cleanup_unreferenced_image_files(
+    database: Database,
+    images_dir: Path,
+    raw_paths: list[str] | tuple[str, ...] | set[str],
+) -> None:
+    """Remove somente imagens gerenciadas pelo BenkyouStudio que ficaram órfãs.
+
+    Arquivos fora de ``images_dir`` nunca são apagados. Um arquivo compartilhado
+    por outro cartão também é preservado.
+    """
+    try:
+        image_root = images_dir.resolve()
+    except OSError:
+        image_root = images_dir
+
+    for raw_path in {str(path) for path in raw_paths if str(path).strip()}:
+        if database.count_card_media_path_references(raw_path, "image") > 0:
+            continue
+        path = Path(raw_path)
+        try:
+            resolved = path.resolve()
+            if path.is_file() and resolved.parent == image_root:
+                path.unlink()
+        except OSError:
+            continue
+
+
 class CardImageService:
     def __init__(
         self,
@@ -28,6 +55,14 @@ class CardImageService:
         self.search_service = search_service
         self.wikimedia = search_service
         self.image_service = image_service
+
+    def _managed_images_dir(self) -> Path:
+        root = getattr(self.image_service, "images_dir", None)
+        if root is None:
+            root = getattr(self.image_service, "directory", None)
+        if root is None:
+            raise RuntimeError("O serviço de imagem não informou o diretório gerenciado.")
+        return Path(root)
 
     @staticmethod
     @lru_cache(maxsize=2048)
@@ -255,13 +290,14 @@ class CardImageService:
         if not local_path.is_file() or local_path.stat().st_size <= 0:
             raise RuntimeError("A imagem foi baixada, mas o arquivo final não pôde ser validado.")
 
-        card.image_path = str(local_path)
+        previous_path = card.image_path
+        new_path = str(local_path)
         asset = MediaAsset(
             project_id=project.id,
             card_id=card.id,
             kind="image",
             provider=result.provider or "unknown",
-            local_path=str(local_path),
+            local_path=new_path,
             source_title=result.title,
             source_url=result.description_url,
             author=result.author,
@@ -274,13 +310,23 @@ class CardImageService:
             ),
             metadata_json=json.dumps(result.model_dump(), ensure_ascii=False),
         )
-        self.database.replace_card_media_asset(
-            card.id,
-            asset,
-            project_id=card.project_id,
-            image_path=card.image_path,
-            update_image=True,
-        )
+        try:
+            self.database.replace_card_media_asset(
+                card.id,
+                asset,
+                project_id=card.project_id,
+                image_path=new_path,
+                update_image=True,
+            )
+        except Exception:
+            cleanup_unreferenced_image_files(
+                self.database,
+                self._managed_images_dir(),
+                [new_path],
+            )
+            raise
+        card.image_path = new_path
+        self._delete_unreferenced_file(previous_path, "image")
         return card
 
     # Compatibilidade com chamadas existentes.
@@ -334,8 +380,16 @@ class CardImageService:
             return card
 
         if card.image_path:
+            previous_path = card.image_path
+            self.database.clear_card_media_asset(
+                card.id,
+                "image",
+                project_id=card.project_id,
+                image_path="",
+                update_image=True,
+            )
             card.image_path = ""
-            self.database.update_card_media(card.id, project_id=card.project_id, image_path=card.image_path, update_image=True)
+            self._delete_unreferenced_file(previous_path, "image")
 
         errors: list[str] = []
         for term in self.preferred_search_terms(card):
@@ -389,13 +443,14 @@ class CardImageService:
         if not raw:
             raise ValueError("O arquivo de imagem está vazio.")
         local_path = self.image_service.optimize(raw, source.name, flatten_transparency=True)
-        card.image_path = str(local_path)
+        previous_path = card.image_path
+        new_path = str(local_path)
         asset = MediaAsset(
             project_id=project.id,
             card_id=card.id,
             kind="image",
             provider="user_import",
-            local_path=str(local_path),
+            local_path=new_path,
             source_title=source.name,
             modifications="Imagem importada pelo usuário, redimensionada e convertida para WebP.",
             metadata_json=json.dumps(
@@ -403,36 +458,52 @@ class CardImageService:
                 ensure_ascii=False,
             ),
         )
-        self.database.replace_card_media_asset(
-            card.id,
-            asset,
-            project_id=card.project_id,
-            image_path=card.image_path,
-            update_image=True,
-        )
+        try:
+            self.database.replace_card_media_asset(
+                card.id,
+                asset,
+                project_id=card.project_id,
+                image_path=new_path,
+                update_image=True,
+            )
+        except Exception:
+            cleanup_unreferenced_image_files(
+                self.database,
+                self._managed_images_dir(),
+                [new_path],
+            )
+            raise
+        card.image_path = new_path
+        self._delete_unreferenced_file(previous_path, "image")
         return card
 
     def remove_image(self, card: FlashcardData) -> FlashcardData:
         if card.id is None:
             raise ValueError("Cartão sem identificador.")
         previous = card.image_path
-        card.image_path = ""
         self.database.clear_card_media_asset(
             card.id,
             "image",
             project_id=card.project_id,
-            image_path=card.image_path,
+            image_path="",
             update_image=True,
         )
+        card.image_path = ""
         self._delete_unreferenced_file(previous, "image")
         return card
 
+    def cleanup_unreferenced_paths(self, raw_paths: list[str]) -> None:
+        cleanup_unreferenced_image_files(
+            self.database,
+            self._managed_images_dir(),
+            raw_paths,
+        )
+
     def _delete_unreferenced_file(self, raw_path: str, kind: str) -> None:
-        if not raw_path or self.database.count_card_media_path_references(raw_path, kind) > 0:
+        if kind != "image":
             return
-        path = Path(raw_path)
-        try:
-            if path.is_file() and path.resolve().parent == self.image_service.images_dir.resolve():
-                path.unlink()
-        except OSError:
-            pass
+        cleanup_unreferenced_image_files(
+            self.database,
+            self._managed_images_dir(),
+            [raw_path],
+        )

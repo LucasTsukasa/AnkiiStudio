@@ -276,7 +276,7 @@ class AudioPage(QWidget):
         current_id = self.current_project.id if self.current_project else None
         self.project_combo.blockSignals(True)
         self.project_combo.clear()
-        for project in self.database.list_projects():
+        for project in self.database.list_project_choices():
             language = language_label(project.language)
             self.project_combo.addItem(f"{project.name} · {language}", project.id)
         self.project_combo.blockSignals(False)

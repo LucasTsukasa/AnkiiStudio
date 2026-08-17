@@ -243,11 +243,9 @@ def test_structured_output_schema_requires_selected_components(monkeypatch) -> N
         required_components=["word", "translation", "example", "explanation", "mnemonic"],
     )
     schema = client.interactions.calls[0]["response_format"]["schema"]
-    card_schema = schema["$defs"]["FlashcardData"]
+    card_schema = schema["properties"]["cards"]["items"]
     required = set(card_schema["required"])
     assert {"word", "translation", "example", "example_translation", "explanation", "mnemonic"} <= required
-    for field in ("word", "translation", "example", "example_translation", "explanation", "mnemonic"):
-        assert "Obrigatório nesta geração" in card_schema["properties"][field]["description"]
     assert schema["properties"]["cards"]["minItems"] == 1
     assert schema["properties"]["cards"]["maxItems"] == 1
 
@@ -261,9 +259,39 @@ def test_structured_output_schema_does_not_require_unselected_text_fields(monkey
         expected_translation_language="pt",
         required_components=["word", "translation"],
     )
-    card_schema = client.interactions.calls[0]["response_format"]["schema"]["$defs"]["FlashcardData"]
+    card_schema = client.interactions.calls[0]["response_format"]["schema"]["properties"]["cards"]["items"]
     required = set(card_schema["required"])
     assert {"word", "translation"} <= required
     assert "example" not in required
     assert "explanation" not in required
     assert "mnemonic" not in required
+
+
+def test_structured_output_schema_excludes_persistence_only_and_unsupported_pydantic_keywords(monkeypatch) -> None:
+    service, client = _service(monkeypatch, [_payload(count=1)])
+    service.generate_deck(
+        "prompt",
+        expected_cards=1,
+        expected_language="en",
+        expected_translation_language="pt",
+        required_components=["word", "translation"],
+    )
+    response_format = client.interactions.calls[0]["response_format"]
+    assert response_format["type"] == "text"
+    assert response_format["mime_type"] == "application/json"
+    schema = response_format["schema"]
+    serialized = json.dumps(schema, ensure_ascii=False)
+    for keyword in ("$defs", "$ref", '"default"', "minLength", "maxLength"):
+        assert keyword not in serialized
+    card_properties = schema["properties"]["cards"]["items"]["properties"]
+    for internal_field in (
+        "id",
+        "project_id",
+        "image_path",
+        "word_audio_path",
+        "sentence_audio_path",
+        "created_at",
+        "updated_at",
+        "structure_key",
+    ):
+        assert internal_field not in card_properties

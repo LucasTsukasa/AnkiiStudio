@@ -6,7 +6,7 @@ from ankiistudio.constants import DEFAULT_AUDIO_PROVIDERS, TEMPLATE_SECTIONS
 from ankiistudio.data.japanese_seed import create_builtin_cards
 from ankiistudio.data.japanese_localization_en import localize_section
 from ankiistudio.database import Database
-from ankiistudio.models import FlashcardData, ImportedDeck, MediaAsset, ProjectData, utc_now_iso
+from ankiistudio.models import CardSummary, FlashcardData, ImportedDeck, MediaAsset, ProjectData, utc_now_iso
 
 
 class ProjectService:
@@ -71,7 +71,7 @@ class ProjectService:
         ]
 
     @staticmethod
-    def next_structure_key(project: ProjectData, existing_cards: list[FlashcardData]) -> str:
+    def next_structure_key(project: ProjectData, existing_cards: list[FlashcardData | CardSummary]) -> str:
         """Escolhe uma das variações menos utilizadas para um cartão criado manualmente."""
         variations = project.structure_variations()
         if len(variations) == 1:

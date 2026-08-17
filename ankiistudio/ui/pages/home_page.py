@@ -104,7 +104,7 @@ class HomePage(QWidget):
 
     def refresh(self) -> None:
         self.recent_list.clear()
-        projects = self.database.list_projects()
+        projects = self.database.list_project_summaries(limit=10)
         if not projects:
             self.recent_list.setMinimumHeight(124)
             self.recent_list.setMaximumHeight(124)
@@ -118,9 +118,8 @@ class HomePage(QWidget):
             return
         self.recent_list.setMinimumHeight(220)
         self.recent_list.setMaximumHeight(16777215)
-        counts = self.database.project_card_counts()
-        for project in projects[:10]:
-            count = counts.get(int(project.id or 0), 0)
+        for project in projects:
+            count = project.card_count
             label = TEMPLATE_LABELS.get(project.template_key, project.template_key)
             language = language_label(project.language)
             item = QListWidgetItem(f"{project.name}\n{language} · {label} · {count} cartões")

@@ -67,7 +67,9 @@ def test_prompt_forces_unselected_fields_empty() -> None:
     assert "Como `translation` não foi selecionado" in prompt
     assert "Como `explanation` não foi selecionado" in prompt
     assert '`image_search_terms: []`' in prompt
-    assert '`word_audio_path: ""` e `sentence_audio_path: ""`' in prompt
+    assert "caminhos de mídia" in prompt
+    assert "word_audio_path" not in prompt
+    assert "sentence_audio_path" not in prompt
 
 
 def test_comma_topic_items_are_mandatory_sections() -> None:
@@ -210,8 +212,26 @@ def test_prompt_requires_strict_json_escaping_and_dynamic_selected_fields() -> N
     assert "sem Markdown" in prompt
     schema_text = prompt.split("JSON SCHEMA OBRIGATÓRIO\n", 1)[1]
     schema = json.loads(schema_text)
-    card_schema = schema["$defs"]["FlashcardData"]
+    card_schema = schema["properties"]["cards"]["items"]
     required = set(card_schema["required"])
     assert {"word", "translation", "example", "example_translation", "explanation", "mnemonic", "image_search_terms"} <= required
     assert schema["properties"]["cards"]["minItems"] == 3
     assert schema["properties"]["cards"]["maxItems"] == 3
+
+
+def test_prompt_can_omit_schema_for_native_gemini_structured_output() -> None:
+    prompt = PromptService.build(
+        language="en",
+        translation_language="pt",
+        template_key="custom",
+        topic="frutas",
+        quantity=3,
+        deck_name="Basic English",
+        front_components=["word"],
+        back_components=["translation"],
+        custom_content=["Frutas"],
+        include_schema=False,
+    )
+    assert "JSON SCHEMA OBRIGATÓRIO" not in prompt
+    assert "Crie exatamente 3 cartões" in prompt
+    assert 'O campo `language` deve ser exatamente "en"' in prompt

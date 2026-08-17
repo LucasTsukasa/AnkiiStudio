@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field, ValidationError, field_validator
 
 from ankiistudio.constants import COMPONENT_LABELS, language_label, normalize_language_code
 from ankiistudio.models import FlashcardData, ImportedDeck, ProjectData
-from ankiistudio.services.deck_schema import build_generation_schema
+from ankiistudio.services.deck_schema import build_generated_field_schema, build_generation_schema
 
 
 FieldAiTarget = Literal["example", "explanation", "mnemonic"]
@@ -55,6 +55,8 @@ class GeminiContentService:
             raise ValueError("Informe a chave da Gemini API nas Configurações.")
         self.client = genai.Client(api_key=api_key.strip())
         self.model = model.strip()
+        if not self.model:
+            raise ValueError("Informe o modelo de texto da Gemini nas Configurações.")
 
     def generate_deck(
         self,
@@ -291,7 +293,7 @@ class GeminiContentService:
             response_format={
                 "type": "text",
                 "mime_type": "application/json",
-                "schema": GeneratedCardField.model_json_schema(),
+                "schema": build_generated_field_schema(),
             },
         )
         if not interaction.output_text:

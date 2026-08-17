@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from copy import deepcopy
 from typing import Iterable
 
 
@@ -12,9 +11,8 @@ _COMPONENT_FIELDS: dict[str, tuple[str, ...]] = {
     "example": ("example", "example_translation"),
     "explanation": ("explanation",),
     "mnemonic": ("mnemonic",),
-    # Imagem é obtida posteriormente, mas a IA deve sempre devolver o campo de
-    # termos visuais quando o componente faz parte da estrutura. Ele pode ser []
-    # para kana/símbolos isolados, conforme as regras do prompt.
+    # Imagem é obtida posteriormente, mas a IA deve sempre devolver termos
+    # visuais quando o componente faz parte da estrutura.
     "image": ("image_search_terms",),
 }
 
@@ -29,6 +27,55 @@ _TOP_LEVEL_REQUIRED = (
 )
 
 
+_GENERATED_CARD_PROPERTIES: dict[str, dict] = {
+    "section": {
+        "type": "string",
+        "description": "Grupo ou subbaralho curto e consistente ao qual o cartão pertence.",
+    },
+    "word": {
+        "type": "string",
+        "description": "Conteúdo principal real estudado pelo cartão.",
+    },
+    "reading": {
+        "type": "string",
+        "description": "Leitura auxiliar do conteúdo principal, quando solicitada; caso contrário, string vazia.",
+    },
+    "romanization": {
+        "type": "string",
+        "description": "Romanização do conteúdo principal, quando solicitada; caso contrário, string vazia.",
+    },
+    "translation": {
+        "type": "string",
+        "description": "Tradução direta do conteúdo principal, quando solicitada; caso contrário, string vazia.",
+    },
+    "example": {
+        "type": "string",
+        "description": "Exemplo curto e natural relacionado ao conteúdo principal, quando solicitado.",
+    },
+    "example_reading": {
+        "type": "string",
+        "description": "Leitura auxiliar do exemplo, somente quando pedagogicamente necessária.",
+    },
+    "example_translation": {
+        "type": "string",
+        "description": "Tradução do exemplo, quando o componente Exemplo for solicitado.",
+    },
+    "explanation": {
+        "type": "string",
+        "description": "Explicação pedagógica objetiva, quando solicitada; caso contrário, string vazia.",
+    },
+    "mnemonic": {
+        "type": "string",
+        "description": "Mnemônico curto e útil, quando solicitado; caso contrário, string vazia.",
+    },
+    "image_search_terms": {
+        "type": "array",
+        "items": {"type": "string"},
+        "description": "De uma a três buscas visuais concretas quando Imagem for solicitada; pode ser vazio para símbolos isolados.",
+    },
+}
+
+
 def required_fields_for_components(components: Iterable[str]) -> tuple[str, ...]:
     result: list[str] = []
     for component in components:
@@ -39,47 +86,94 @@ def required_fields_for_components(components: Iterable[str]) -> tuple[str, ...]
 
 
 def build_generation_schema(
-    base_schema: dict,
+    _base_schema: dict | None = None,
     *,
     required_components: Iterable[str] = (),
     expected_cards: int | None = None,
     maximum_cards: int | None = None,
 ) -> dict:
-    """Torna o schema de baralho coerente com a estrutura pedida pelo usuário.
+    """Cria o schema enxuto enviado para a geração de conteúdo.
 
-    O modelo persistente continua permissivo para manter compatibilidade com
-    edição manual e importações antigas. Somente os schemas usados para pedir
-    conteúdo a uma IA são endurecidos dinamicamente.
+    O modelo persistente ``FlashcardData`` possui IDs, timestamps, caminhos de
+    mídia, defaults e limites de validação que são úteis internamente, mas não
+    pertencem à resposta da IA. A Interactions API aceita apenas um subconjunto
+    de JSON Schema e também pode rejeitar schemas excessivamente complexos.
+    Por isso, a geração usa deliberadamente um contrato pequeno e independente
+    do schema de persistência. O ``_base_schema`` é mantido apenas por
+    compatibilidade com chamadas antigas do serviço de prompt.
     """
 
-    schema = deepcopy(base_schema)
-    top_required = list(schema.get("required", []))
-    for field in _TOP_LEVEL_REQUIRED:
-        if field not in top_required:
-            top_required.append(field)
-    schema["required"] = top_required
-
-    cards_schema = schema.get("properties", {}).get("cards", {})
-    if expected_cards is not None:
-        cards_schema["minItems"] = int(expected_cards)
-        cards_schema["maxItems"] = int(expected_cards)
-    else:
-        cards_schema["minItems"] = 1
-        if maximum_cards is not None:
-            cards_schema["maxItems"] = int(maximum_cards)
-
-    card_schema = schema.get("$defs", {}).get("FlashcardData")
-    if not isinstance(card_schema, dict):
-        return schema
-
-    required = list(card_schema.get("required", []))
-    properties = card_schema.get("properties", {})
+    card_required = ["section", "word"]
     for field in required_fields_for_components(required_components):
-        if field not in required:
-            required.append(field)
-        if isinstance(properties.get(field), dict):
-            current = str(properties[field].get("description") or "").strip()
-            note = "Obrigatório nesta geração; forneça o conteúdo correspondente em vez de omitir o campo."
-            properties[field]["description"] = f"{current} {note}".strip()
-    card_schema["required"] = required
-    return schema
+        if field not in card_required:
+            card_required.append(field)
+
+    cards_schema: dict = {
+        "type": "array",
+        "items": {
+            "type": "object",
+            "properties": {key: dict(value) for key, value in _GENERATED_CARD_PROPERTIES.items()},
+            "required": card_required,
+            "additionalProperties": False,
+        },
+        "minItems": 1,
+    }
+    if expected_cards is not None:
+        quantity = max(1, int(expected_cards))
+        cards_schema["minItems"] = quantity
+        cards_schema["maxItems"] = quantity
+    elif maximum_cards is not None:
+        cards_schema["maxItems"] = max(1, int(maximum_cards))
+
+    return {
+        "type": "object",
+        "properties": {
+            "format_version": {
+                "type": "string",
+                "description": "Versão do formato do BenkyouStudio; use exatamente 1.0.",
+            },
+            "language": {
+                "type": "string",
+                "description": "Código normalizado do idioma-alvo solicitado.",
+            },
+            "translation_language": {
+                "type": "string",
+                "description": "Código normalizado do idioma da tradução solicitado.",
+            },
+            "category": {
+                "type": "string",
+                "description": "Categoria interna/modelo solicitado para o baralho.",
+            },
+            "deck_name": {
+                "type": "string",
+                "description": "Nome do baralho solicitado.",
+            },
+            "cards": cards_schema,
+        },
+        "required": list(_TOP_LEVEL_REQUIRED),
+        "additionalProperties": False,
+    }
+
+
+def build_generated_field_schema() -> dict:
+    """Schema compacto para a geração individual de Exemplo/Explicação/Mnemônico."""
+
+    return {
+        "type": "object",
+        "properties": {
+            "value": {
+                "type": "string",
+                "description": "Conteúdo solicitado para o campo do cartão.",
+            },
+            "example_reading": {
+                "type": "string",
+                "description": "Leitura auxiliar do exemplo; use string vazia quando não se aplicar.",
+            },
+            "example_translation": {
+                "type": "string",
+                "description": "Tradução do exemplo; use string vazia quando não se aplicar.",
+            },
+        },
+        "required": ["value", "example_reading", "example_translation"],
+        "additionalProperties": False,
+    }

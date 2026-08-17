@@ -118,6 +118,45 @@ class FlashcardData(BaseModel):
         return self.word_audio_path or self.sentence_audio_path
 
 
+class CardSummary(BaseModel):
+    """Representação leve de um cartão para listas e tabelas.
+
+    Mantém apenas os campos necessários para identificação, status de mídia e
+    estrutura, evitando desserializar o conteúdo completo do cartão em listagens.
+    """
+
+    id: int
+    project_id: int
+    section: str = ""
+    word: str
+    translation: str = ""
+    image_path: str = ""
+    word_audio_path: str = ""
+    sentence_audio_path: str = ""
+    structure_key: str = ""
+
+    @property
+    def audio_path(self) -> str:
+        return self.word_audio_path or self.sentence_audio_path
+
+
+class ProjectChoice(BaseModel):
+    """Dados mínimos usados em seletores de projeto."""
+
+    id: int
+    name: str
+    language: str = "ja"
+
+
+class ProjectSummary(ProjectChoice):
+    """Resumo de projeto para Home e biblioteca visual."""
+
+    template_key: str
+    topic: str = ""
+    card_count: int = 0
+    updated_at: str = ""
+
+
 class ProjectData(BaseModel):
     id: int | None = None
     name: str = Field(min_length=1, max_length=160)
@@ -195,10 +234,10 @@ class ProjectData(BaseModel):
                     return variation
         return variations[0]
 
-    def structure_for_card(self, card: "FlashcardData") -> CardStructureVariation:
+    def structure_for_card(self, card: "FlashcardData | CardSummary") -> CardStructureVariation:
         return self.structure_for_key(card.structure_key)
 
-    def card_uses_component(self, card: "FlashcardData", component: str) -> bool:
+    def card_uses_component(self, card: "FlashcardData | CardSummary", component: str) -> bool:
         variation = self.structure_for_card(card)
         return component in (variation.front_components + variation.back_components)
 

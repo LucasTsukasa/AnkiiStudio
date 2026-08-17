@@ -83,11 +83,13 @@ A interface utiliza Qt/PySide6 como motor de janela e integração com o sistema
 
 ## Desempenho
 
-O BenkyouStudio utiliza carregamento sob demanda para reduzir o trabalho realizado durante a inicialização e evita carregar dados desnecessários de projetos grandes. Consultas de contagem, seções e amostras para pré-visualização são realizadas diretamente pelo SQLite sempre que possível, reduzindo a criação desnecessária de objetos em memória.
+O BenkyouStudio utiliza carregamento sob demanda para reduzir o trabalho realizado durante a inicialização e evita carregar dados desnecessários de projetos grandes. A partir da 0.12.0, tabelas e bibliotecas utilizam representações leves (`CardSummary`, `ProjectSummary` e seletores mínimos) quando não precisam do conteúdo completo. A Home consulta somente os 10 projetos recentes diretamente no SQLite.
 
-Operações em lote de imagem e áudio reutilizam conexões HTTP e recursos compartilhados durante o processamento. Atualizações de mídia relacionadas ao mesmo cartão são agrupadas em transações SQLite, e o cálculo de hashes de arquivos utiliza leitura em streaming para manter o consumo de memória previsível.
+Na tabela de cartões, alterações pontuais atualizam apenas as linhas afetadas e um mapa `card_id → row` evita percorrer a tabela para localizar cada cartão. O banco também mantém um índice específico para mídia por cartão/tipo, e cascatas redundantes de refresh entre páginas foram reduzidas.
 
-A interface também aplica debounce em operações que podem ser disparadas rapidamente, como pesquisa de projetos e atualização de pré-visualização. Etapas mais pesadas de importação e exportação são executadas fora da thread principal da interface quando aplicável, preservando a responsividade da janela durante operações demoradas.
+Operações em lote de imagem e áudio reutilizam conexões HTTP e recursos compartilhados durante o processamento. Atualizações de mídia relacionadas ao mesmo cartão são agrupadas em transações SQLite, e o cálculo de hashes de arquivos utiliza leitura em streaming para manter o consumo de memória previsível. Imagens internas que deixam de ser referenciadas são removidas com segurança, enquanto arquivos compartilhados permanecem preservados; o cache persistente do Pixabay também possui expiração e limite de tamanho.
+
+A interface aplica debounce em operações que podem ser disparadas rapidamente, como pesquisa de projetos e atualização de pré-visualização. Etapas mais pesadas de importação e exportação são executadas fora da thread principal da interface quando aplicável, preservando a responsividade da janela durante operações demoradas.
 
 ## Fluxo de criação
 
@@ -271,7 +273,7 @@ Antes da aplicação, o BenkyouStudio apresenta as correspondências encontradas
 
 A página **Projetos** funciona como uma biblioteca visual. É possível pesquisar por nome ou tema, filtrar por idioma e ordenar por atividade recente, nome ou quantidade de cartões. Cada projeto possui um menu visível `⋯` e um menu de contexto com ações como abrir, duplicar e excluir.
 
-Ao abrir um projeto, as ferramentas ficam reunidas em abas de **Cartões**, **Estrutura e aparência** e **Áudio do projeto**. Assim, a antiga separação de Modelos e Áudios na navegação principal deixa de exigir que o usuário escolha o mesmo projeto novamente em telas diferentes.
+Ao abrir um projeto, as ferramentas ficam reunidas em abas de **Cartões**, **Estrutura e aparência** e **Áudio do projeto**. Assim, a antiga separação de Modelos e Áudios na navegação principal deixa de exigir que o usuário escolha o mesmo projeto novamente em telas diferentes. Na 0.12.0, essas abas compartilham o mesmo rascunho do projeto e utilizam um único botão **Salvar alterações**; ao sair com mudanças pendentes, o BenkyouStudio oferece salvar, descartar ou cancelar.
 
 ## Edição de cartões
 

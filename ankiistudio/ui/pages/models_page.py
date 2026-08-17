@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from PySide6.QtCore import Qt, QTimer
+from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtWidgets import (
     QFrame,
     QGridLayout,
@@ -94,11 +94,16 @@ class CardPreviewStage(QFrame):
 
 
 class ModelsPage(QWidget):
+    changed = Signal()
+    ORIGINAL_SECTION_ROLE = int(Qt.ItemDataRole.UserRole) + 1
+
     def __init__(self, database: Database, *, embedded: bool = False) -> None:
         super().__init__()
         self.database = database
         self.embedded = embedded
         self.current_project: ProjectData | None = None
+        self._loading_project = False
+        self._removed_sections: set[str] = set()
         self._preview_showing_answer = False
         self._preview_sample_project_id: int | None = None
         self._preview_sample: FlashcardData | None = None
@@ -249,7 +254,7 @@ class ModelsPage(QWidget):
         self.apply_global_theme_button = ASButton("Aplicar tema padrão global")
         self.apply_global_theme_button.setObjectName("SubtleButton")
         self.apply_global_theme_button.setToolTip(
-            "Carrega o tema padrão definido em Configurações. A alteração só é gravada neste projeto ao clicar em Salvar modelo."
+            "Carrega o tema padrão definido em Configurações. A alteração fica pendente até salvar o projeto."
         )
         self.apply_global_theme_button.clicked.connect(self.apply_global_theme)
         theme_actions.addWidget(self.apply_global_theme_button)
@@ -292,7 +297,9 @@ class ModelsPage(QWidget):
         layout.addWidget(preview_card)
 
         self.front_editor.changed.connect(self._schedule_preview_update)
+        self.front_editor.changed.connect(self._mark_changed)
         self.back_editor.changed.connect(self._schedule_preview_update)
+        self.back_editor.changed.connect(self._mark_changed)
         for widget in (
             self.theme_background,
             self.theme_card_background,
@@ -303,10 +310,13 @@ class ModelsPage(QWidget):
             self.theme_font,
         ):
             widget.textChanged.connect(self._schedule_preview_update)
+            widget.textChanged.connect(self._mark_changed)
         self.theme_density.currentIndexChanged.connect(self._apply_density_preset)
+        self.theme_density.currentIndexChanged.connect(self._mark_changed)
         for widget in self._theme_numeric_widgets():
             widget.valueChanged.connect(self._theme_numeric_changed)
             widget.valueChanged.connect(self._schedule_preview_update)
+            widget.valueChanged.connect(self._mark_changed)
 
         layout.addStretch(1)
         root.addWidget(PageScrollArea(content))
@@ -315,11 +325,15 @@ class ModelsPage(QWidget):
     def _schedule_preview_update(self, *_args) -> None:
         self._preview_timer.start()
 
+    def _mark_changed(self, *_args) -> None:
+        if not self._loading_project and self.current_project is not None:
+            self.changed.emit()
+
     def refresh(self) -> None:
         current_id = self.current_project.id if self.current_project else None
         self.project_combo.blockSignals(True)
         self.project_combo.clear()
-        for project in self.database.list_projects():
+        for project in self.database.list_project_choices():
             self.project_combo.addItem(project.name, project.id)
         self.project_combo.blockSignals(False)
         has_projects = self.project_combo.count() > 0
@@ -349,20 +363,39 @@ class ModelsPage(QWidget):
             self._preview_sample = None
             self.save_button.setEnabled(False)
             return
-        self.current_project = self.database.get_project(int(project_id))
-        self._preview_sample_project_id = None
-        self._preview_sample = None
-        self.save_button.setEnabled(self.current_project is not None)
-        if not self.current_project:
-            return
-        self.front_editor.set_components(self.current_project.front_components)
-        self.back_editor.set_components(self.current_project.back_components)
-        sections = list(self.current_project.deck_sections)
-        if not sections and self.current_project.id is not None:
-            sections = self.database.list_card_sections(self.current_project.id)
-        self._set_sections(sections)
-        self._load_theme(self.current_project.card_theme)
-        self.update_preview()
+        self.set_project_data(self.database.get_project(int(project_id)))
+
+    def set_project_data(self, project: ProjectData | None) -> None:
+        """Carrega um projeto já resolvido pelo coordenador da tela.
+
+        No hub de projetos, a mesma instância de ``ProjectData`` é compartilhada
+        entre Cartões, Estrutura/Aparência e Áudio. Assim nenhuma aba mantém um
+        snapshot antigo capaz de sobrescrever alterações de outra aba.
+        """
+        self._loading_project = True
+        try:
+            self.current_project = project
+            self._preview_sample_project_id = None
+            self._preview_sample = None
+            self._removed_sections.clear()
+            self.save_button.setEnabled(self.current_project is not None)
+            if not self.current_project:
+                self.front_editor.set_components([])
+                self.back_editor.set_components([])
+                self.section_list.clear()
+                self._load_theme(DeckThemeSettings())
+                self.update_preview()
+                return
+            self.front_editor.set_components(self.current_project.front_components)
+            self.back_editor.set_components(self.current_project.back_components)
+            sections = list(self.current_project.deck_sections)
+            if not sections and self.current_project.id is not None:
+                sections = self.database.list_card_sections(self.current_project.id)
+            self._set_sections(sections)
+            self._load_theme(self.current_project.card_theme)
+            self.update_preview()
+        finally:
+            self._loading_project = False
 
     def _set_sections(self, sections: list[str]) -> None:
         self.section_list.clear()
@@ -370,11 +403,40 @@ class ModelsPage(QWidget):
         if self.current_project and self.current_project.id is not None:
             counts = self.database.project_section_counts(self.current_project.id)
         for section in sections:
-            item = QListWidgetItem(tr(f"{section}   ·   {counts.get(section, 0)} cartões"))
+            item = QListWidgetItem()
             item.setData(Qt.ItemDataRole.UserRole, section)
+            item.setData(self.ORIGINAL_SECTION_ROLE, section)
+            self._update_section_item_label(item, counts.get(section, 0))
             self.section_list.addItem(item)
         if self.section_list.count():
             self.section_list.setCurrentRow(0)
+
+    def _update_section_item_label(self, item: QListWidgetItem, count: int | None = None) -> None:
+        name = str(item.data(Qt.ItemDataRole.UserRole) or "")
+        if count is None and self.current_project is not None and self.current_project.id is not None:
+            original = str(item.data(self.ORIGINAL_SECTION_ROLE) or name)
+            count = self.database.project_section_counts(self.current_project.id).get(original, 0)
+        item.setText(tr(f"{name}   ·   {int(count or 0)} cartões"))
+
+    def section_database_changes(self) -> tuple[list[tuple[str, str]], list[str]]:
+        """Retorna alterações de grupos que ainda não foram persistidas."""
+        renames: list[tuple[str, str]] = []
+        for index in range(self.section_list.count()):
+            item = self.section_list.item(index)
+            current = str(item.data(Qt.ItemDataRole.UserRole) or "").strip()
+            original = str(item.data(self.ORIGINAL_SECTION_ROLE) or "").strip()
+            if original and current and current != original:
+                renames.append((original, current))
+        return renames, sorted(self._removed_sections)
+
+    def accept_section_changes_saved(self) -> None:
+        """Transforma os nomes atuais na nova base após uma gravação bem-sucedida."""
+        self._removed_sections.clear()
+        for index in range(self.section_list.count()):
+            item = self.section_list.item(index)
+            current = str(item.data(Qt.ItemDataRole.UserRole) or "")
+            item.setData(self.ORIGINAL_SECTION_ROLE, current)
+            self._update_section_item_label(item)
 
     def sections(self) -> list[str]:
         return [
@@ -390,10 +452,13 @@ class ModelsPage(QWidget):
         if name.casefold() in {section.casefold() for section in self.sections()}:
             QMessageBox.warning(self, "Nome repetido", "Já existe um subbaralho com esse nome.")
             return
-        item = QListWidgetItem(tr(f"{name}   ·   0 cartões"))
+        item = QListWidgetItem()
         item.setData(Qt.ItemDataRole.UserRole, name)
+        item.setData(self.ORIGINAL_SECTION_ROLE, "")
+        self._update_section_item_label(item, 0)
         self.section_list.addItem(item)
         self.section_list.setCurrentItem(item)
+        self._mark_changed()
 
     def rename_section(self) -> None:
         item = self.section_list.currentItem()
@@ -407,9 +472,9 @@ class ModelsPage(QWidget):
         if name.casefold() in {section.casefold() for section in self.sections() if section != old}:
             QMessageBox.warning(self, "Nome repetido", "Já existe um subbaralho com esse nome.")
             return
-        self.database.rename_card_section(self.current_project.id, old, name)
         item.setData(Qt.ItemDataRole.UserRole, name)
-        self._set_sections([name if section == old else section for section in self.sections()])
+        self._update_section_item_label(item)
+        self._mark_changed()
 
     def delete_section(self) -> None:
         item = self.section_list.currentItem()
@@ -419,11 +484,14 @@ class ModelsPage(QWidget):
         if QMessageBox.question(
             self,
             "Excluir subbaralho",
-            f"Excluir “{name}”? Os cartões desse grupo voltarão para o baralho principal.",
+            f"Excluir “{name}”? Os cartões desse grupo voltarão para o baralho principal ao salvar.",
         ) != QMessageBox.StandardButton.Yes:
             return
-        self.database.clear_card_section(self.current_project.id, name)
+        original = str(item.data(self.ORIGINAL_SECTION_ROLE) or "").strip()
+        if original:
+            self._removed_sections.add(original)
         self.section_list.takeItem(self.section_list.row(item))
+        self._mark_changed()
 
     def move_section(self, direction: int) -> None:
         row = self.section_list.currentRow()
@@ -433,6 +501,7 @@ class ModelsPage(QWidget):
         item = self.section_list.takeItem(row)
         self.section_list.insertItem(target, item)
         self.section_list.setCurrentRow(target)
+        self._mark_changed()
 
     @staticmethod
     def _pixel_spin(minimum: int, maximum: int) -> QSpinBox:
@@ -550,20 +619,25 @@ class ModelsPage(QWidget):
             layout_density=str(self.theme_density.currentData() or "custom"),
         )
 
-    def save_model(self) -> None:
+    def apply_to_project(self, *, show_errors: bool = True) -> bool:
+        """Valida a interface e aplica seus valores ao rascunho compartilhado."""
         if self.current_project is None:
-            QMessageBox.warning(self, "Sem projeto", "Selecione ou crie um projeto antes de salvar um modelo.")
-            return
+            if show_errors:
+                QMessageBox.warning(self, "Sem projeto", "Selecione ou crie um projeto antes de salvar um modelo.")
+            return False
         front = self.front_editor.components()
         back = self.back_editor.components()
         if not front or not back:
-            QMessageBox.warning(self, "Modelo inválido", "Frente e verso precisam ter conteúdo.")
-            return
+            if show_errors:
+                QMessageBox.warning(self, "Modelo inválido", "Frente e verso precisam ter conteúdo.")
+            return False
         try:
             theme = self._collect_theme()
         except Exception as exc:
-            QMessageBox.warning(self, "Tema inválido", str(exc))
-            return
+            if show_errors:
+                QMessageBox.warning(self, "Tema inválido", str(exc))
+            return False
+
         self.current_project.front_components = front
         self.current_project.back_components = back
         if self.current_project.card_structures:
@@ -573,7 +647,24 @@ class ModelsPage(QWidget):
             )
         self.current_project.deck_sections = self.sections()
         self.current_project.card_theme = theme
-        self.database.update_project(self.current_project)
+        return True
+
+    def save_model(self) -> None:
+        """Compatibilidade da página independente; no Hub o salvamento é centralizado."""
+        if not self.apply_to_project():
+            return
+        assert self.current_project is not None
+        renames, cleared = self.section_database_changes()
+        try:
+            self.database.save_project_changes(
+                self.current_project,
+                section_renames=renames,
+                cleared_sections=cleared,
+            )
+        except Exception as exc:
+            QMessageBox.critical(self, "Não foi possível salvar", str(exc))
+            return
+        self.accept_section_changes_saved()
         QMessageBox.information(self, "Modelo salvo", "Estrutura, ordem dos subbaralhos e tema foram atualizados.")
         self.update_preview()
 

@@ -483,6 +483,16 @@ class MainWindow(QMainWindow):
         self._position_toasts()
 
     def navigate(self, index: int, *, refresh: bool = True) -> None:
+        projects_page = self._loaded_page(2)
+        if (
+            index != 2
+            and projects_page is not None
+            and self.stack.currentWidget() is projects_page
+        ):
+            resolver = getattr(projects_page, "resolve_pending_changes", None)
+            if callable(resolver) and not resolver("sair da área de projetos"):
+                self.nav_buttons[2].setChecked(True)
+                return
         page = self._ensure_page(index)
         self.stack.setCurrentWidget(page)
         self.nav_buttons[index].setChecked(True)
@@ -499,17 +509,17 @@ class MainWindow(QMainWindow):
         self.navigate(1)
 
     def open_created_project(self, project_id: int) -> None:
-        self.projects_page.refresh(project_id)
+        projects_page = self.projects_page
+        self.navigate(2, refresh=False)
+        projects_page.refresh(project_id)
         self.refresh_related_pages()
-        self.navigate(2)
-        self.projects_page.open_project(project_id)
 
     def refresh_related_pages(self) -> None:
+        # A página de projetos emite este sinal após atualizar o próprio estado.
+        # Recarregá-la aqui causava uma segunda cascata completa de refresh.
         self.home_page.refresh()
-        for index in (2, 4):
-            page = self._loaded_page(index)
-            if page is None:
-                continue
-            refresh = getattr(page, "refresh", None)
+        about_page = self._loaded_page(4)
+        if about_page is not None:
+            refresh = getattr(about_page, "refresh", None)
             if callable(refresh):
                 refresh()

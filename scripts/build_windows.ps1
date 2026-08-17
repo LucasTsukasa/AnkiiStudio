@@ -19,7 +19,7 @@ New-Item -ItemType Directory -Force -Path $dataDir | Out-Null
 
 $releaseDir = Join-Path (Get-Location) "release"
 New-Item -ItemType Directory -Force -Path $releaseDir | Out-Null
-$zipPath = Join-Path $releaseDir "BenkyouStudio-Portable-0.11.1.zip"
+$zipPath = Join-Path $releaseDir "BenkyouStudio-Portable-0.12.0.zip"
 if (Test-Path $zipPath) { Remove-Item $zipPath -Force }
 Compress-Archive -Path "$portableDir\*" -DestinationPath $zipPath -CompressionLevel Optimal
 
@@ -38,5 +38,5 @@ finally {
 
 Write-Host "Build portátil concluído:" -ForegroundColor Green
 Write-Host "  Executável: dist\BenkyouStudio\BenkyouStudio.exe"
-Write-Host "  Pacote: release\BenkyouStudio-Portable-0.11.1.zip"
+Write-Host "  Pacote: release\BenkyouStudio-Portable-0.12.0.zip"
 Write-Host "  Dados locais: dist\BenkyouStudio\data\"

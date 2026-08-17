@@ -111,3 +111,17 @@ def test_field_ai_rejects_component_not_used_by_card_structure(monkeypatch) -> N
     project = _project().model_copy(update={"back_components": ["translation"]})
     with pytest.raises(ValueError, match="não faz parte"):
         service.generate_card_field(project, _card(), "mnemonic")
+
+
+def test_field_ai_uses_compact_supported_response_schema(monkeypatch) -> None:
+    service, client = _service(
+        monkeypatch,
+        {"value": "Explicação nova.", "example_reading": "", "example_translation": ""},
+    )
+    service.generate_card_field(_project(), _card(), "explanation")
+    schema = client.interactions.calls[0]["response_format"]["schema"]
+    assert schema["type"] == "object"
+    assert schema["required"] == ["value", "example_reading", "example_translation"]
+    serialized = json.dumps(schema, ensure_ascii=False)
+    for keyword in ("$defs", "$ref", '"default"', "minLength", "maxLength"):
+        assert keyword not in serialized

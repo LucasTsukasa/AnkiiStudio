@@ -354,3 +354,141 @@ def test_manual_image_search_for_kana_does_not_replace_original_with_translation
     primary, auxiliary = CardImageService.manual_search_terms(card)
     assert primary == "あ"
     assert auxiliary == ["A"]
+
+
+
+def test_replacing_managed_image_removes_previous_orphan(tmp_path: Path) -> None:
+    from PIL import Image
+    from ankiistudio.services.image_service import ImageService
+
+    database = Database(tmp_path / "replace-image.db")
+    project_id = database.create_project(
+        ProjectData(
+            name="Lifecycle",
+            template_key="custom",
+            front_components=["image", "word"],
+            back_components=["translation"],
+        )
+    )
+    project = database.get_project(project_id)
+    card_id = database.add_cards(project_id, [FlashcardData(word="gato")])[0]
+    card = database.get_card(card_id)
+    assert project is not None and card is not None
+
+    first_source = tmp_path / "first.png"
+    second_source = tmp_path / "second.png"
+    Image.new("RGB", (32, 32), "white").save(first_source)
+    Image.new("RGB", (32, 32), "black").save(second_source)
+
+    service = CardImageService(database, FakeWikimedia(), ImageService(tmp_path / "images"))
+    card = service.import_image_file(project, card, first_source)
+    first_managed = Path(card.image_path)
+    assert first_managed.is_file()
+
+    card = service.import_image_file(project, card, second_source)
+    second_managed = Path(card.image_path)
+    assert second_managed.is_file()
+    assert second_managed != first_managed
+    assert not first_managed.exists()
+
+
+def test_replacing_shared_managed_image_preserves_file_still_in_use(tmp_path: Path) -> None:
+    from PIL import Image
+    from ankiistudio.services.image_service import ImageService
+
+    database = Database(tmp_path / "shared-image.db")
+    project_id = database.create_project(
+        ProjectData(
+            name="Compartilhada",
+            template_key="custom",
+            front_components=["image", "word"],
+            back_components=["translation"],
+        )
+    )
+    project = database.get_project(project_id)
+    card_ids = database.add_cards(
+        project_id,
+        [FlashcardData(word="gato"), FlashcardData(word="felino")],
+    )
+    first_card = database.get_card(card_ids[0])
+    second_card = database.get_card(card_ids[1])
+    assert project is not None and first_card is not None and second_card is not None
+
+    shared_source = tmp_path / "shared.png"
+    replacement_source = tmp_path / "replacement.png"
+    Image.new("RGB", (32, 32), "white").save(shared_source)
+    Image.new("RGB", (32, 32), "black").save(replacement_source)
+
+    service = CardImageService(database, FakeWikimedia(), ImageService(tmp_path / "images"))
+    first_card = service.import_image_file(project, first_card, shared_source)
+    second_card = service.import_image_file(project, second_card, shared_source)
+    shared_managed = Path(first_card.image_path)
+    assert second_card.image_path == first_card.image_path
+
+    service.import_image_file(project, first_card, replacement_source)
+    assert shared_managed.exists()
+
+
+def test_cleanup_after_card_deletion_only_removes_unreferenced_managed_image(tmp_path: Path) -> None:
+    from PIL import Image
+    from ankiistudio.services.image_service import ImageService
+
+    database = Database(tmp_path / "delete-lifecycle.db")
+    project_id = database.create_project(
+        ProjectData(
+            name="Excluir",
+            template_key="custom",
+            front_components=["image", "word"],
+            back_components=["translation"],
+        )
+    )
+    project = database.get_project(project_id)
+    card_id = database.add_cards(project_id, [FlashcardData(word="imagem")])[0]
+    card = database.get_card(card_id)
+    assert project is not None and card is not None
+
+    source = tmp_path / "managed.png"
+    Image.new("RGB", (32, 32), "white").save(source)
+    service = CardImageService(database, FakeWikimedia(), ImageService(tmp_path / "images"))
+    card = service.import_image_file(project, card, source)
+    managed = Path(card.image_path)
+
+    paths = database.image_paths_for_cards([card_id])
+    database.delete_cards([card_id])
+    service.cleanup_unreferenced_paths(paths)
+
+    assert not managed.exists()
+
+def test_image_cleanup_never_deletes_external_user_file(tmp_path: Path) -> None:
+    from PIL import Image
+    from ankiistudio.services.image_service import ImageService
+
+    database = Database(tmp_path / "external-image.db")
+    project_id = database.create_project(
+        ProjectData(
+            name="Imagem externa",
+            template_key="custom",
+            front_components=["word", "image"],
+            back_components=["translation"],
+        )
+    )
+    external_dir = tmp_path / "user-photos"
+    external_dir.mkdir()
+    external = external_dir / "original.png"
+    Image.new("RGB", (32, 32), "white").save(external)
+    card_id = database.add_cards(
+        project_id,
+        [FlashcardData(word="externa", image_path=str(external))],
+    )[0]
+    service = CardImageService(
+        database,
+        FakeWikimedia(),
+        ImageService(tmp_path / "managed-images"),
+    )
+
+    paths = database.image_paths_for_cards([card_id])
+    database.delete_cards([card_id])
+    service.cleanup_unreferenced_paths(paths)
+
+    assert external.exists()
+

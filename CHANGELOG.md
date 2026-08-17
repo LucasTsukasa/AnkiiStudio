@@ -4,6 +4,30 @@ Todas as alterações relevantes do BenkyouStudio são registradas neste arquivo
 
 O formato segue os princípios de [Keep a Changelog](https://keepachangelog.com/) e o projeto utiliza versionamento semântico durante o desenvolvimento.
 
+## [0.12.0] - 2026-08-16
+
+### Desempenho e escalabilidade
+- A tabela de cartões passa a carregar `CardSummary` em vez de desserializar `FlashcardData` completo para cada linha, mantendo o objeto completo somente nos fluxos que realmente precisam editar, processar ou exportar o cartão.
+- Edições, salvamentos e mudanças de mídia deixam de reconstruir toda a tabela de cartões: somente as linhas afetadas são atualizadas. A localização de linhas passa a usar um mapa `card_id → row`.
+- Home e biblioteca de projetos passam a usar `ProjectSummary`, enquanto seletores e comboboxes usam `ProjectChoice` com apenas os campos necessários.
+- A Home consulta diretamente os 10 projetos recentes no SQLite com `LIMIT`, sem carregar todos os projetos antes de recortar a lista.
+- O banco cria o índice `media_assets(card_id, kind)` para acelerar buscas, substituições e remoções de mídia associadas a cartões.
+- Cascatas redundantes de refresh foram reduzidas: alterações de cartões não recarregam novamente a página de projetos nem ferramentas ocultas sem necessidade.
+
+### Mídia
+- O lifecycle de imagens gerenciadas pelo BenkyouStudio passa a remover arquivos órfãos após substituição, remoção, exclusão de cartão ou exclusão de projeto, preservando arquivos compartilhados por outros cartões e nunca apagando arquivos fora do diretório interno de imagens.
+- O cache persistente do Pixabay passa a remover entradas inválidas ou expiradas e manter no máximo 256 consultas válidas, evitando crescimento indefinido.
+
+### Corrigido
+- A geração interna com Gemini passa a enviar à Interactions API um JSON Schema compacto e exclusivo dos dados gerados, sem IDs, timestamps, caminhos de mídia ou restrições de persistência do Pydantic que podiam fazer a API rejeitar o request com `400 invalid_request`. A geração individual de campos usa o mesmo princípio, e o prompt enviado à Gemini deixa de duplicar o schema que já é fornecido pelo structured output.
+- As abas **Cartões**, **Estrutura e aparência** e **Áudio do projeto** passam a trabalhar sobre o mesmo rascunho de projeto no Hub, eliminando snapshots antigos que podiam sobrescrever tema, estrutura ou áudio e garantindo que a exportação utilize a configuração realmente salva.
+- O projeto passa a ter um único botão **Salvar alterações** no cabeçalho. Estrutura, aparência, áudio, renomeações/remoções de subbaralhos e cartões pendentes são gravados em uma única transação lógica. Ao tentar sair, trocar de projeto ou abandonar a área com alterações pendentes, o usuário pode salvar, descartar ou cancelar.
+
+### Distribuição
+- Versão atualizada de `0.11.1` para `0.12.0`.
+- Pacote portátil esperado: `BenkyouStudio-Portable-0.12.0.zip`.
+- O executável distribuído permanece exclusivamente `BenkyouStudio.exe`.
+
 ## [0.11.1] - 2026-08-15
 
 ### Corrigido

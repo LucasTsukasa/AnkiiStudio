@@ -80,3 +80,35 @@ def test_pixabay_search_results_are_reused_from_24h_cache(tmp_path: Path) -> Non
 
     assert provider.calls == 1
     assert second == first
+
+
+
+def test_pixabay_cache_cleanup_removes_expired_invalid_and_limits_entries(tmp_path: Path) -> None:
+    import json
+    import time
+
+    database = Database(tmp_path / "pixabay-cache-cleanup.db")
+    service = ImageSearchService(database)
+    now = time.time()
+
+    values: dict[str, str] = {
+        "image_api_cache_pixabay_invalid": "{not-json",
+        "image_api_cache_pixabay_expired": json.dumps(
+            {"created_at": now - service.PIXABAY_CACHE_TTL_SECONDS - 1, "results": []}
+        ),
+    }
+    for index in range(service.PIXABAY_CACHE_MAX_ENTRIES + 8):
+        values[f"image_api_cache_pixabay_{index:04d}"] = json.dumps(
+            {"created_at": now - index, "results": []}
+        )
+    database.set_settings(values)
+
+    remaining = service._cleanup_pixabay_cache(now=now)
+    cached = database.list_settings_with_prefix(service.PIXABAY_CACHE_PREFIX)
+
+    assert remaining == service.PIXABAY_CACHE_MAX_ENTRIES
+    assert len(cached) == service.PIXABAY_CACHE_MAX_ENTRIES
+    assert "image_api_cache_pixabay_invalid" not in cached
+    assert "image_api_cache_pixabay_expired" not in cached
+    assert "image_api_cache_pixabay_0000" in cached
+    assert f"image_api_cache_pixabay_{service.PIXABAY_CACHE_MAX_ENTRIES + 7:04d}" not in cached

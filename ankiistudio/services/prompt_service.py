@@ -147,24 +147,15 @@ class PromptService:
             )
         else:
             rules.append('Use `image_search_terms: []`.')
-        rules.append('Use `image_path: ""`; a imagem será obtida posteriormente pelo BenkyouStudio.')
 
-        # Existe apenas um componente de áudio. A síntese sempre usa `word`.
-        rules.extend(
-            [
-                'Use `word_audio_path: ""` e `sentence_audio_path: ""`; os arquivos de áudio são gerados posteriormente pelo BenkyouStudio.',
-                "Quando Áudio estiver selecionado, não invente frase de exemplo para viabilizar áudio: o texto sintetizado será sempre o próprio `word`.",
-            ]
-        )
-
-        # Estes campos continuam no schema para compatibilidade/importação, mas não fazem parte da estrutura visual atual.
-        rules.extend(
-            [
-                'Use `part_of_speech: ""`.',
-                'Use `level: ""`.',
-                'Use `tags: []`.',
-            ]
-        )
+        # Existe apenas um componente de áudio. A síntese sempre usa `word`;
+        # caminhos de mídia são responsabilidade local do BenkyouStudio e não
+        # fazem parte do schema enviado à IA.
+        if "audio" in selected:
+            rules.append(
+                "Quando Áudio estiver selecionado, não invente frase de exemplo para viabilizar áudio: "
+                "o texto sintetizado será sempre o próprio `word`."
+            )
 
         if "translation" in selected:
             rules.append(
@@ -230,6 +221,7 @@ class PromptService:
         front_components: list[str],
         back_components: list[str],
         custom_content: list[str] | None = None,
+        include_schema: bool = True,
     ) -> str:
         language = normalize_language_code(language)
         translation_language = normalize_language_code(translation_language)
@@ -247,12 +239,18 @@ class PromptService:
         front = ", ".join(COMPONENT_LABELS.get(item, item) for item in front_components) or "nenhum"
         back = ", ".join(COMPONENT_LABELS.get(item, item) for item in back_components) or "nenhum"
         selected_components = list(dict.fromkeys(front_components + back_components))
-        schema = build_generation_schema(
-            ImportedDeck.model_json_schema(),
-            required_components=selected_components,
-            expected_cards=quantity,
-            maximum_cards=max_auto_quantity if quantity is None else None,
-        )
+        schema_block = ""
+        if include_schema:
+            schema = build_generation_schema(
+                ImportedDeck.model_json_schema(),
+                required_components=selected_components,
+                expected_cards=quantity,
+                maximum_cards=max_auto_quantity if quantity is None else None,
+            )
+            schema_block = (
+                "\nJSON SCHEMA OBRIGATÓRIO\n"
+                + json.dumps(schema, ensure_ascii=False, indent=2)
+            )
 
         grouping_items = custom_items if custom_items else (topic_items if len(topic_items) > 1 else [])
         grouping_rule = ""
@@ -273,8 +271,7 @@ class PromptService:
             "Não repita cartões nem crie variações triviais que ensinem essencialmente a mesma coisa.",
             "Não invente fatos linguísticos, traduções, leituras, etimologias ou classificações apenas para preencher campos.",
             "Não invente caminhos, URLs ou nomes de arquivos de mídia.",
-            "Não gere valores artificiais para `id`, `project_id`, `created_at` ou `updated_at`; omita-os quando o schema permitir.",
-            "Use `structure_key` vazio; o BenkyouStudio distribui as variações de estrutura após receber o conteúdo.",
+            "Não gere IDs, timestamps, caminhos de mídia ou outros metadados internos; eles não fazem parte do schema de geração.",
             f'O campo `language` deve ser exatamente "{language}" e `translation_language` deve ser exatamente "{translation_language}"; `format_version` deve ser "1.0" e `category` deve ser "{template_key}".',
             f'O campo `deck_name` deve ser exatamente {json.dumps(deck_name, ensure_ascii=False)}.',
             "O JSON Schema é a autoridade final sobre nomes de campos, tipos e estrutura.",
@@ -339,7 +336,5 @@ Antes de responder, confira internamente que:
 - não existem vírgulas finais, comentários, blocos Markdown ou texto fora do JSON.
 
 Se qualquer item falhar, corrija-o antes da resposta final.
-
-JSON SCHEMA OBRIGATÓRIO
-{json.dumps(schema, ensure_ascii=False, indent=2)}
+{schema_block}
 '''

@@ -1,4 +1,6 @@
 import sqlite3
+
+import pytest
 from pathlib import Path
 
 from ankiistudio.database import Database
@@ -550,3 +552,246 @@ def test_add_media_assets_inserts_batch_with_one_connection(tmp_path: Path) -> N
     assert calls == 1
     assert len(ids) == 2
     assert len(db.list_media_assets_for_project(project_id)) == 2
+
+
+
+def test_lightweight_project_summaries_and_choices(tmp_path: Path) -> None:
+    db = Database(tmp_path / "summaries.db")
+    project_ids: list[int] = []
+    for index in range(12):
+        project_ids.append(
+            db.create_project(
+                ProjectData(
+                    name=f"Projeto {index}",
+                    language="ja" if index % 2 == 0 else "en",
+                    template_key="custom",
+                    topic=f"Tópico {index}",
+                    custom_content=["conteúdo detalhado"],
+                    front_components=["word"],
+                    back_components=["translation"],
+                )
+            )
+        )
+    db.add_cards(
+        project_ids[-1],
+        [
+            FlashcardData(word="a"),
+            FlashcardData(word="b"),
+            FlashcardData(word="c"),
+        ],
+    )
+
+    summaries = db.list_project_summaries(limit=10)
+    assert len(summaries) == 10
+    assert summaries[0].id == project_ids[-1]
+    assert summaries[0].card_count == 3
+    assert summaries[0].name == "Projeto 11"
+    assert not hasattr(summaries[0], "front_components")
+
+    choices = db.list_project_choices()
+    assert len(choices) == 12
+    assert choices[0].id == project_ids[-1]
+    assert choices[0].name == "Projeto 11"
+    assert not hasattr(choices[0], "topic")
+
+
+def test_card_summaries_only_load_table_fields(tmp_path: Path) -> None:
+    db = Database(tmp_path / "card-summaries.db")
+    project_id = db.create_project(
+        ProjectData(
+            name="Resumos",
+            template_key="custom",
+            front_components=["word", "image"],
+            back_components=["translation", "audio"],
+        )
+    )
+    card_id = db.add_cards(
+        project_id,
+        [
+            FlashcardData(
+                word="猫",
+                translation="gato",
+                explanation="explicação grande",
+                mnemonic="mnemônico grande",
+                tags=["animal", "n5"],
+                image_search_terms=["domestic cat"],
+                image_path="images/cat.webp",
+                word_audio_path="audio/cat.mp3",
+                structure_key="default",
+            )
+        ],
+    )[0]
+
+    summaries = db.list_card_summaries(project_id)
+    assert len(summaries) == 1
+    summary = summaries[0]
+    assert summary.id == card_id
+    assert summary.word == "猫"
+    assert summary.translation == "gato"
+    assert summary.audio_path == "audio/cat.mp3"
+    assert not hasattr(summary, "explanation")
+    assert not hasattr(summary, "tags")
+
+    by_id = db.get_card_summary(card_id)
+    assert by_id == summary
+    assert db.list_card_summaries_by_ids(project_id, [card_id]) == [summary]
+
+
+def test_media_card_kind_index_exists(tmp_path: Path) -> None:
+    path = tmp_path / "media-index.db"
+    Database(path)
+    connection = sqlite3.connect(path)
+    try:
+        columns = [
+            row[2]
+            for row in connection.execute("PRAGMA index_info(idx_media_card_kind)").fetchall()
+        ]
+    finally:
+        connection.close()
+    assert columns == ["card_id", "kind"]
+
+
+def test_settings_prefix_listing_and_batch_delete(tmp_path: Path) -> None:
+    db = Database(tmp_path / "settings-prefix.db")
+    db.set_settings(
+        {
+            "image_api_cache_pixabay_a": "a",
+            "image_api_cache_pixabay_b": "b",
+            "image_source_pixabay": "1",
+        }
+    )
+    cached = db.list_settings_with_prefix("image_api_cache_pixabay_")
+    assert cached == {
+        "image_api_cache_pixabay_a": "a",
+        "image_api_cache_pixabay_b": "b",
+    }
+    db.delete_settings(list(cached))
+    assert db.list_settings_with_prefix("image_api_cache_pixabay_") == {}
+    assert db.get_setting("image_source_pixabay") == "1"
+
+
+def test_save_project_changes_is_atomic_for_theme_audio_cards_and_sections(tmp_path: Path) -> None:
+    db = Database(tmp_path / "project-save.db")
+    project_id = db.create_project(
+        ProjectData(
+            name="Projeto",
+            template_key="custom",
+            front_components=["word"],
+            back_components=["translation"],
+            deck_sections=["Antiga", "Remover"],
+            audio_mode="intelligent",
+            audio_providers=["voicevox"],
+        )
+    )
+    card_ids = db.add_cards(
+        project_id,
+        [
+            FlashcardData(word="猫", translation="gato", section="Antiga"),
+            FlashcardData(word="犬", translation="cachorro", section="Remover"),
+        ],
+    )
+    project = db.get_project(project_id)
+    first = db.get_card(card_ids[0])
+    assert project is not None and first is not None
+
+    project.card_theme = DeckThemeSettings(
+        background="#112233",
+        card_background="#223344",
+        primary="#33AA66",
+        text="#FFFFFF",
+        secondary_text="#CCCCCC",
+        border="#445566",
+        word_size=54,
+        layout_density="custom",
+    )
+    project.deck_sections = ["Nova"]
+    project.audio_mode = "random"
+    project.audio_providers = ["gemini", "voicevox"]
+    first = first.model_copy(update={"translation": "felino"})
+
+    db.save_project_changes(
+        project,
+        [first],
+        section_renames=[("Antiga", "Nova")],
+        cleared_sections=["Remover"],
+    )
+
+    loaded = db.get_project(project_id)
+    cards = db.list_cards(project_id)
+    assert loaded is not None
+    assert loaded.card_theme.background == "#112233"
+    assert loaded.card_theme.word_size == 54
+    assert loaded.audio_mode == "random"
+    assert loaded.audio_providers == ["gemini", "voicevox"]
+    assert loaded.deck_sections == ["Nova"]
+    by_word = {card.word: card for card in cards}
+    assert by_word["猫"].translation == "felino"
+    assert by_word["猫"].section == "Nova"
+    assert by_word["犬"].section == ""
+
+
+
+def test_save_project_changes_applies_section_rename_chains_simultaneously(tmp_path: Path) -> None:
+    db = Database(tmp_path / "project-save-section-chain.db")
+    project_id = db.create_project(
+        ProjectData(
+            name="Projeto",
+            template_key="custom",
+            front_components=["word"],
+            back_components=["translation"],
+            deck_sections=["A", "B"],
+        )
+    )
+    db.add_cards(
+        project_id,
+        [
+            FlashcardData(word="um", translation="1", section="A"),
+            FlashcardData(word="dois", translation="2", section="B"),
+        ],
+    )
+    project = db.get_project(project_id)
+    assert project is not None
+    project.deck_sections = ["B", "C"]
+
+    db.save_project_changes(
+        project,
+        section_renames=[("A", "B"), ("B", "C")],
+    )
+
+    by_word = {card.word: card for card in db.list_cards(project_id)}
+    assert by_word["um"].section == "B"
+    assert by_word["dois"].section == "C"
+
+def test_save_project_changes_rolls_back_everything_on_failure(tmp_path: Path) -> None:
+    db = Database(tmp_path / "project-save-rollback.db")
+    project_id = db.create_project(
+        ProjectData(
+            name="Original",
+            template_key="custom",
+            front_components=["word"],
+            back_components=["translation"],
+        )
+    )
+    card_id = db.add_cards(project_id, [FlashcardData(word="猫", translation="gato")])[0]
+    project = db.get_project(project_id)
+    card = db.get_card(card_id)
+    assert project is not None and card is not None
+
+    project.name = "Alterado"
+    card.translation = "não deve persistir"
+    with db.connection() as connection:
+        connection.execute(
+            """
+            CREATE TRIGGER fail_card_update
+            BEFORE UPDATE ON cards
+            BEGIN
+                SELECT RAISE(ABORT, 'falha simulada');
+            END
+            """
+        )
+
+    with pytest.raises(sqlite3.DatabaseError, match="falha simulada"):
+        db.save_project_changes(project, [card])
+
+    assert db.get_project(project_id).name == "Original"  # type: ignore[union-attr]
+    assert db.get_card(card_id).translation == "gato"  # type: ignore[union-attr]

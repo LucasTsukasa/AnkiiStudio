@@ -1,6 +1,6 @@
 {
   "schema_version": 2,
-  "updated_at": "2026-08-15",
+  "updated_at": "2026-08-16",
   "items": [
     {
       "id": "0.11.0-beta.5",
@@ -84,7 +84,7 @@
     {
       "id": "0.11.1",
       "status": "completed",
-      "current": true,
+      "current": false,
       "title": "BenkyouStudio 0.11.1",
       "description": "Patch de estabilidade e responsividade da linha 0.11.x, com foco em reduzir bloqueios da interface e consolidar a distribuição sob o nome BenkyouStudio.",
       "details": [
@@ -93,6 +93,22 @@
         "Atualização de uso do Gemini TTS limitada durante lotes e sincronizada ao final",
         "Importação individual de imagem movida para Worker após confirmação de custo perceptível",
         "Distribuição portátil e updater passam a usar exclusivamente BenkyouStudio.exe"
+      ]
+    },
+    {
+      "id": "0.12.0",
+      "status": "completed",
+      "current": true,
+      "title": "BenkyouStudio 0.12.0",
+      "description": "Atualização estrutural de performance e escalabilidade, reduzindo carregamento de dados, reconstruções de interface e acúmulo de mídia/cache.",
+      "details": [
+        "CardSummary e ProjectSummary para listagens leves, com seletores de projeto carregando apenas os campos necessários",
+        "Tabela de cartões com atualização incremental por linha e mapa card_id → row",
+        "Home limitada aos 10 projetos recentes diretamente pelo SQLite e índice de mídia por cartão/tipo",
+        "Menos cascatas de refresh entre páginas e ferramentas do projeto",
+        "Lifecycle de imagens gerenciadas com limpeza segura de órfãos e cache do Pixabay com expiração e limite",
+        "Structured output da Gemini simplificado para o contrato de geração, evitando schemas de persistência incompatíveis com a Interactions API",
+        "Salvamento único do projeto com rascunho compartilhado entre Cartões, Estrutura/Aparência e Áudio, incluindo proteção contra saída com alterações pendentes"
       ]
     },
     {

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtCore import QThreadPool, QUrl
+from PySide6.QtCore import QThreadPool, QUrl, Signal
 from PySide6.QtMultimedia import QAudioOutput, QMediaPlayer
 from PySide6.QtWidgets import (
     QCheckBox,
@@ -35,12 +35,15 @@ from ankiistudio.ui.workers import Worker
 class ProjectAudioSettingsPanel(QWidget):
     """Somente opções de áudio pertencentes ao projeto; perfis globais ficam em Configurações."""
 
+    changed = Signal()
+
     def __init__(self, database: Database, paths: AppPaths) -> None:
         super().__init__()
         self.database = database
         self.paths = paths
         self.profile_service = AudioProfileService(database)
         self.current_project: ProjectData | None = None
+        self._loading_project = False
         self.thread_pool = QThreadPool.globalInstance()
         self._workers: list[Worker] = []
         self.preview_audio_output = QAudioOutput(self)
@@ -137,10 +140,15 @@ class ProjectAudioSettingsPanel(QWidget):
         self.voicevox_card.root.addLayout(actions)
         layout.addWidget(self.voicevox_card)
 
-        save = ASButton("Salvar áudio do projeto")
-        save.setObjectName("PrimaryButton")
-        save.clicked.connect(self.save_project)
-        layout.addWidget(save)
+        self.mode_combo.currentIndexChanged.connect(self._mark_changed)
+        self.fixed_combo.currentIndexChanged.connect(self._mark_changed)
+        self.fixed_profile_combo.currentIndexChanged.connect(self._mark_changed)
+        for check in self.provider_checks.values():
+            check.toggled.connect(self._mark_changed)
+        for combo in self.preferred_profile_combos.values():
+            combo.currentIndexChanged.connect(self._mark_changed)
+        self.voicevox_combo.currentIndexChanged.connect(self._mark_changed)
+
         layout.addStretch(1)
         root.addWidget(PageScrollArea(content))
 
@@ -157,24 +165,37 @@ class ProjectAudioSettingsPanel(QWidget):
         if idx >= 0:
             combo.setCurrentIndex(idx)
 
+    def _mark_changed(self, *_args) -> None:
+        if not self._loading_project and self.current_project is not None:
+            self.changed.emit()
+
     def set_project(self, project_id: int) -> None:
-        self.current_project = self.database.get_project(project_id)
-        project = self.current_project
-        if project is None:
-            return
-        self._select_data(self.mode_combo, project.audio_mode)
-        self._select_data(self.fixed_combo, project.fixed_audio_provider)
-        for key, check in self.provider_checks.items():
-            allowed = not (key == "voicevox" and project.language != "ja")
-            check.setEnabled(allowed)
-            check.setChecked(allowed and key in project.audio_providers)
-        self.voicevox_card.setVisible(project.language == "ja")
-        if project.language == "ja":
-            label = project.voicevox_style_label or f"Estilo ID {project.voicevox_style_id} — carregue para atualizar"
-            self.voicevox_combo.set_items([(label, project.voicevox_style_id)], project.voicevox_style_id)
-        self._refresh_preferred_profiles()
-        self._refresh_fixed_profiles()
-        self._update_mode()
+        self.set_project_data(self.database.get_project(project_id))
+
+    def set_project_data(self, project: ProjectData | None) -> None:
+        """Usa o mesmo rascunho de ``ProjectData`` compartilhado pelas abas do Hub."""
+        self._loading_project = True
+        try:
+            self.current_project = project
+            if project is None:
+                self.status.hide()
+                return
+            self._select_data(self.mode_combo, project.audio_mode)
+            self._select_data(self.fixed_combo, project.fixed_audio_provider)
+            for key, check in self.provider_checks.items():
+                allowed = not (key == "voicevox" and project.language != "ja")
+                check.setEnabled(allowed)
+                check.setChecked(allowed and key in project.audio_providers)
+            self.voicevox_card.setVisible(project.language == "ja")
+            if project.language == "ja":
+                label = project.voicevox_style_label or f"Estilo ID {project.voicevox_style_id} — carregue para atualizar"
+                self.voicevox_combo.set_items([(label, project.voicevox_style_id)], project.voicevox_style_id)
+            self._refresh_preferred_profiles()
+            self._refresh_fixed_profiles()
+            self._update_mode()
+            self.status.hide()
+        finally:
+            self._loading_project = False
 
     def _refresh_preferred_profiles(
         self, selected_profiles: dict[str, str] | None = None
@@ -349,10 +370,11 @@ class ProjectAudioSettingsPanel(QWidget):
         dialog = VoicevoxSettingsDialog(project, self)
         if dialog.exec():
             dialog.apply_to(project)
-            self.database.update_project(project)
-            self.status.show_message("Ajustes do VOICEVOX salvos.")
+            self._mark_changed()
+            self.status.show_message("Ajustes do VOICEVOX alterados. Salve o projeto para confirmar.")
 
-    def save_project(self) -> bool:
+    def apply_to_project(self, *, show_errors: bool = True) -> bool:
+        """Valida a aba e aplica seus valores ao rascunho compartilhado, sem gravar no DB."""
         project = self.current_project
         if project is None:
             return False
@@ -362,15 +384,22 @@ class ProjectAudioSettingsPanel(QWidget):
         if mode == "fixed" and fixed not in providers:
             providers.append(fixed)
         if not providers:
-            QMessageBox.warning(self, "Sem provedores", "Selecione ao menos um provedor de áudio.")
+            if show_errors:
+                QMessageBox.warning(self, "Sem provedores", "Selecione ao menos um provedor de áudio.")
             return False
         if mode == "fixed" and fixed in {"gemini", "elevenlabs"} and self.fixed_profile_combo.currentData() is None:
-            QMessageBox.warning(self, "Voz ausente", "Cadastre uma voz nas Configurações e selecione-a aqui.")
+            if show_errors:
+                QMessageBox.warning(self, "Voz ausente", "Cadastre uma voz nas Configurações e selecione-a aqui.")
             return False
+
         project.audio_mode = mode
         project.audio_providers = providers
         project.fixed_audio_provider = fixed
-        project.fixed_audio_profile_id = str(self.fixed_profile_combo.currentData() or "") if fixed in {"gemini", "elevenlabs"} else ""
+        project.fixed_audio_profile_id = (
+            str(self.fixed_profile_combo.currentData() or "")
+            if fixed in {"gemini", "elevenlabs"}
+            else ""
+        )
         project.audio_profile_preferences = {
             provider: str(combo.currentData() or "")
             for provider, combo in self.preferred_profile_combos.items()
@@ -379,7 +408,18 @@ class ProjectAudioSettingsPanel(QWidget):
         if project.language == "ja" and self.voicevox_combo.currentData() is not None:
             project.voicevox_style_id = int(self.voicevox_combo.currentData())
             project.voicevox_style_label = self.voicevox_combo.currentText().strip()
-        self.database.update_project(project)
+        return True
+
+    def save_project(self) -> bool:
+        """Compatibilidade para uso isolado; o Hub usa o salvamento único do projeto."""
+        if not self.apply_to_project():
+            return False
+        assert self.current_project is not None
+        try:
+            self.database.update_project(self.current_project)
+        except Exception as exc:
+            QMessageBox.critical(self, "Não foi possível salvar", str(exc))
+            return False
         self.status.show_message("Configuração de áudio do projeto salva.")
         return True
 

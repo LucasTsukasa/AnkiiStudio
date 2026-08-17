@@ -23,7 +23,8 @@ from PySide6.QtWidgets import (
 from ankiistudio.config import AppPaths
 from ankiistudio.database import Database
 from ankiistudio.i18n import current_language, language_display_name, tr
-from ankiistudio.models import ProjectData
+from ankiistudio.models import ProjectData, ProjectSummary
+from ankiistudio.services.media_service import cleanup_unreferenced_image_files
 from ankiistudio.services.project_service import ProjectService
 from ankiistudio.ui.design_system import responsive_columns
 from ankiistudio.ui.design_system.components import ASButton, ASCard, ASComboBox, ASContextMenu, ASLineEdit, ASTabWidget
@@ -39,9 +40,10 @@ class ProjectCard(ASCard):
     duplicate_requested = Signal(int)
     delete_requested = Signal(int)
 
-    def __init__(self, project: ProjectData, card_count: int) -> None:
+    def __init__(self, project: ProjectSummary) -> None:
         super().__init__(variant="interactive")
         self.project = project
+        card_count = project.card_count
         self.setObjectName("ProjectCard")
         self.setProperty("asComponent", "project-card")
         self.setFixedSize(self.CARD_WIDTH, self.CARD_HEIGHT)
@@ -140,6 +142,8 @@ class ProjectsHubPage(QWidget):
         self._workers: list[Worker] = []
         self._duplicate_in_progress = False
         self._current_project_id: int | None = None
+        self._project_draft: ProjectData | None = None
+        self._project_settings_dirty = False
         self._grid_columns = 0
         self._cards: list[ProjectCard] = []
         self._empty_label: QLabel | None = None
@@ -205,8 +209,17 @@ class ProjectsHubPage(QWidget):
         back.clicked.connect(self.show_library)
         self.detail_title = QLabel()
         self.detail_title.setObjectName("PageTitle")
+        self.dirty_label = QLabel("Alterações não salvas")
+        self.dirty_label.setObjectName("MutedLabel")
+        self.dirty_label.hide()
+        self.save_project_button = ASButton("Salvar alterações")
+        self.save_project_button.setObjectName("PrimaryButton")
+        self.save_project_button.setEnabled(False)
+        self.save_project_button.clicked.connect(self.save_all_changes)
         header.addWidget(back)
         header.addWidget(self.detail_title, 1)
+        header.addWidget(self.dirty_label)
+        header.addWidget(self.save_project_button)
         detail.addLayout(header)
         self.tabs = ASTabWidget()
         detail.addWidget(self.tabs, 1)
@@ -233,43 +246,150 @@ class ProjectsHubPage(QWidget):
         self.tabs.addTab(self.models_page, "Estrutura e aparência")
         self.tabs.addTab(self.audio_panel, "Áudio do projeto")
         self.cards_page.changed.connect(self._child_changed)
+        self.cards_page.pending_changed.connect(self._update_save_state)
+        self.cards_page.set_pending_change_resolver(self.resolve_pending_changes)
+        self.models_page.changed.connect(self._mark_project_settings_dirty)
+        self.audio_panel.changed.connect(self._mark_project_settings_dirty)
         self._detail_tools_ready = True
 
+    def _has_pending_changes(self) -> bool:
+        cards_dirty = bool(self.cards_page is not None and self.cards_page.has_pending_changes())
+        return self._project_settings_dirty or cards_dirty
+
+    def _update_save_state(self, *_args) -> None:
+        dirty = self._has_pending_changes()
+        self.save_project_button.setEnabled(dirty)
+        self.dirty_label.setVisible(dirty)
+
+    def _mark_project_settings_dirty(self, *_args) -> None:
+        if self._project_draft is None:
+            return
+        self._project_settings_dirty = True
+        self._update_save_state()
+
+    def _load_project_draft(self, project: ProjectData) -> None:
+        self._ensure_detail_tools()
+        assert self.cards_page is not None and self.models_page is not None and self.audio_panel is not None
+        self._project_draft = project
+        self._current_project_id = int(project.id) if project.id is not None else None
+        self.detail_title.setText(project.name)
+        # A mesma instância é entregue às três ferramentas. Nenhuma aba mantém
+        # um snapshot independente capaz de sobrescrever o estado de outra.
+        self.cards_page.set_project_data(project)
+        self.models_page.set_project_data(project)
+        self.audio_panel.set_project_data(project)
+        self._project_settings_dirty = False
+        self._update_save_state()
+
+    def save_all_changes(self) -> bool:
+        if self._project_draft is None:
+            return True
+        self._ensure_detail_tools()
+        assert self.cards_page is not None and self.models_page is not None and self.audio_panel is not None
+
+        if not self.models_page.apply_to_project():
+            return False
+        if not self.audio_panel.apply_to_project():
+            return False
+        drafts = self.cards_page.pending_cards_for_save()
+        if drafts is None:
+            return False
+        renames, cleared = self.models_page.section_database_changes()
+
+        try:
+            self.database.save_project_changes(
+                self._project_draft,
+                drafts,
+                section_renames=renames,
+                cleared_sections=cleared,
+            )
+        except Exception as exc:
+            QMessageBox.critical(self, "Não foi possível salvar", str(exc))
+            return False
+
+        self.models_page.accept_section_changes_saved()
+        self.cards_page.accept_pending_changes_saved(message=False)
+        self._project_settings_dirty = False
+        self.detail_title.setText(self._project_draft.name)
+        self.audio_panel.status.show_message("Alterações do projeto salvas.")
+        self._update_save_state()
+        self.changed.emit()
+        return True
+
+    def discard_all_changes(self) -> None:
+        project_id = self._current_project_id
+        if project_id is None:
+            return
+        fresh = self.database.get_project(project_id)
+        if fresh is None:
+            self._project_draft = None
+            self._project_settings_dirty = False
+            self._update_save_state()
+            return
+        self._load_project_draft(fresh)
+
+    def resolve_pending_changes(self, action: str) -> bool:
+        if not self._has_pending_changes():
+            return True
+        message = QMessageBox(self)
+        message.setIcon(QMessageBox.Icon.Warning)
+        message.setWindowTitle("Alterações não salvas")
+        message.setText(tr(f"Existem alterações não salvas antes de {action}."))
+        message.setInformativeText("Deseja salvar todas as alterações do projeto antes de continuar?")
+        message.setStandardButtons(
+            QMessageBox.StandardButton.Save
+            | QMessageBox.StandardButton.Discard
+            | QMessageBox.StandardButton.Cancel
+        )
+        save_button = message.button(QMessageBox.StandardButton.Save)
+        discard_button = message.button(QMessageBox.StandardButton.Discard)
+        cancel_button = message.button(QMessageBox.StandardButton.Cancel)
+        if save_button is not None:
+            save_button.setText(tr("Salvar alterações"))
+        if discard_button is not None:
+            discard_button.setText(tr("Continuar sem salvar"))
+        if cancel_button is not None:
+            cancel_button.setText(tr("Cancelar"))
+        result = message.exec()
+        if result == QMessageBox.StandardButton.Save:
+            return self.save_all_changes()
+        if result == QMessageBox.StandardButton.Discard:
+            self.discard_all_changes()
+            return True
+        return False
+
     def show_library(self) -> None:
-        if self.cards_page is not None and not self.cards_page.resolve_pending_changes("voltar à biblioteca de projetos"):
+        if not self.resolve_pending_changes("voltar à biblioteca de projetos"):
             return
         self._current_project_id = None
+        self._project_draft = None
+        self._project_settings_dirty = False
+        self._update_save_state()
         self.refresh_library()
         self.stack.setCurrentWidget(self.library_page)
 
     def open_project(self, project_id: int) -> None:
+        if (
+            self._current_project_id is not None
+            and self._current_project_id != project_id
+            and not self.resolve_pending_changes("abrir outro projeto")
+        ):
+            return
         project = self.database.get_project(project_id)
         if project is None:
             self.refresh_library()
             return
-        self._ensure_detail_tools()
-        assert self.cards_page is not None and self.models_page is not None and self.audio_panel is not None
-        if not self.cards_page.resolve_pending_changes("abrir outro projeto"):
-            return
-        self._current_project_id = project_id
-        self.detail_title.setText(project.name)
-        self.cards_page.select_project(project_id)
-        self.models_page.set_project(project_id)
-        self.audio_panel.set_project(project_id)
+        self._load_project_draft(project)
         self.stack.setCurrentWidget(self.detail_page)
 
     def refresh(self, select_project_id: int | None = None) -> None:
         self.refresh_library()
         if select_project_id is not None:
             self.open_project(select_project_id)
-        elif self._current_project_id is not None:
+        elif self._current_project_id is not None and not self._has_pending_changes():
             project = self.database.get_project(self._current_project_id)
-            if project is not None and self.cards_page is not None and self.models_page is not None and self.audio_panel is not None:
-                self.detail_title.setText(project.name)
-                self.cards_page.select_project(project.id)
-                self.models_page.refresh()
-                self.models_page.set_project(project.id)
-                self.audio_panel.set_project(project.id)
+            if project is not None:
+                self._load_project_draft(project)
 
     def retranslate_ui(self) -> None:
         """Atualiza textos dinâmicos dos cards sem tocar no estado do editor."""
@@ -281,7 +401,7 @@ class ProjectsHubPage(QWidget):
             self.audio_panel.refresh_audio_profiles()
 
     def refresh_library(self, *_args) -> None:
-        projects = self.database.list_projects()
+        projects = self.database.list_project_summaries()
         selected_language = self.language_filter.currentData() if self.language_filter.count() else None
         languages = sorted({p.language for p in projects}, key=language_display_name)
         current_lang = selected_language
@@ -298,7 +418,6 @@ class ProjectsHubPage(QWidget):
 
         query = self.search_input.text().strip().casefold()
         language = self.language_filter.currentData()
-        counts = self.database.project_card_counts()
         filtered = [
             p for p in projects
             if (not query or query in p.name.casefold() or query in p.topic.casefold())
@@ -308,12 +427,12 @@ class ProjectsHubPage(QWidget):
         if sort_key == "name":
             filtered.sort(key=lambda p: p.name.casefold())
         elif sort_key == "cards":
-            filtered.sort(key=lambda p: counts.get(int(p.id or 0), 0), reverse=True)
+            filtered.sort(key=lambda p: p.card_count, reverse=True)
         else:
-            filtered.sort(key=lambda p: (p.updated_at, p.id or 0), reverse=True)
-        self._rebuild_cards(filtered, counts)
+            filtered.sort(key=lambda p: (p.updated_at, p.id), reverse=True)
+        self._rebuild_cards(filtered)
 
-    def _rebuild_cards(self, projects: list[ProjectData], counts: dict[int, int]) -> None:
+    def _rebuild_cards(self, projects: list[ProjectSummary]) -> None:
         while self.cards_grid.count():
             item = self.cards_grid.takeAt(0)
             widget = item.widget()
@@ -332,7 +451,7 @@ class ProjectsHubPage(QWidget):
             self.cards_grid.setColumnStretch(column, 0)
         self.cards_grid.setColumnStretch(columns, 1)
         for index, project in enumerate(projects):
-            card = ProjectCard(project, counts.get(int(project.id or 0), 0))
+            card = ProjectCard(project)
             card.open_requested.connect(self.open_project)
             card.duplicate_requested.connect(self.duplicate_project)
             card.delete_requested.connect(self.delete_project)
@@ -442,25 +561,19 @@ class ProjectsHubPage(QWidget):
             f"Excluir o projeto “{project.name}” e todos os seus cartões?",
         ) != QMessageBox.StandardButton.Yes:
             return
+        image_paths = self.database.image_paths_for_project(project_id)
         self.database.delete_project(project_id)
+        cleanup_unreferenced_image_files(self.database, self.paths.images_dir, image_paths)
         self.refresh_library()
         self.changed.emit()
         if self._current_project_id == project_id:
             self.show_library()
 
     def confirm_close(self) -> bool:
-        return self.cards_page.confirm_close() if self.cards_page is not None else True
-
-    def resolve_pending_changes(self, action: str) -> bool:
-        return self.cards_page.resolve_pending_changes(action) if self.cards_page is not None else True
+        return self.resolve_pending_changes("sair do aplicativo")
 
     def _child_changed(self) -> None:
-        if self._current_project_id is not None and self.models_page is not None and self.audio_panel is not None:
-            project = self.database.get_project(self._current_project_id)
-            if project is not None:
-                self.detail_title.setText(project.name)
-                self.models_page.refresh()
-                self.models_page.set_project(project.id)
-                self.audio_panel.set_project(project.id)
-        self.refresh_library()
+        # Alterações de cartões não exigem reconstruir a biblioteca oculta nem
+        # recarregar as outras ferramentas do projeto. A biblioteca é atualizada
+        # ao voltar para ela, e páginas externas recebem somente o sinal necessário.
         self.changed.emit()

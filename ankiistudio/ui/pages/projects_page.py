@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Callable
 
 from PySide6.QtCore import Qt, QThreadPool, QTimer, Signal
 from PySide6.QtWidgets import (
@@ -30,7 +31,7 @@ from ankiistudio.config import AppPaths, SecretStore
 from ankiistudio.constants import DEFAULT_GEMINI_TEXT_MODEL
 from ankiistudio.database import Database
 from ankiistudio.i18n import tr
-from ankiistudio.models import FlashcardData, ProjectData
+from ankiistudio.models import CardSummary, FlashcardData, ProjectData
 from ankiistudio.services.anki_export_service import AnkiExportService
 from ankiistudio.services.audio_service import ProjectAudioService
 from ankiistudio.services.audio_import_service import AudioImportService, SUPPORTED_AUDIO_EXTENSIONS
@@ -48,15 +49,19 @@ from ankiistudio.ui.workers import Worker
 
 class ProjectsPage(QWidget):
     changed = Signal()
+    pending_changed = Signal(bool)
 
     def __init__(self, database: Database, paths: AppPaths, *, embedded: bool = False) -> None:
         super().__init__()
         self.database = database
         self.paths = paths
+        self.embedded = embedded
         self.thread_pool = QThreadPool.globalInstance()
         self.current_project: ProjectData | None = None
         self.current_card: FlashcardData | None = None
         self._pending_cards: dict[int, FlashcardData] = {}
+        self._pending_change_resolver: Callable[[str], bool] | None = None
+        self._card_row_by_id: dict[int, int] = {}
         self._loading_form = False
         self.image_search_service = ImageSearchService(database)
         self.image_service = CardImageService(database, self.image_search_service, ImageService(paths.images_dir))
@@ -300,6 +305,7 @@ class ProjectsPage(QWidget):
         media_row.addWidget(self.batch_import_audio_button, 3, 1)
         media_row.addWidget(self.remove_audio_button, 4, 0, 1, 2)
         media_row.addWidget(self.save_button, 5, 0, 1, 2)
+        self.save_button.setVisible(not embedded)
         media_card.root.addLayout(media_row)
         editor_content_layout.addWidget(media_card)
         editor_content_layout.addStretch(1)
@@ -379,6 +385,20 @@ class ProjectsPage(QWidget):
             if card_id is not None and int(card_id) not in ids:
                 ids.append(int(card_id))
         return ids
+
+    def set_pending_change_resolver(self, resolver: Callable[[str], bool] | None) -> None:
+        self._pending_change_resolver = resolver
+
+    def has_pending_changes(self) -> bool:
+        return bool(self._pending_cards)
+
+    def _emit_pending_state(self) -> None:
+        self.pending_changed.emit(bool(self._pending_cards))
+
+    def _resolve_before_action(self, action: str) -> bool:
+        if self._pending_change_resolver is not None:
+            return bool(self._pending_change_resolver(action))
+        return self.resolve_pending_changes(action)
 
     def _update_action_states(self) -> None:
         has_project = self.current_project is not None and self.current_project.id is not None
@@ -542,6 +562,7 @@ class ProjectsPage(QWidget):
             updates["example_translation"] = result.example_translation.strip()
         draft = latest.model_copy(update=updates)
         self._pending_cards[card_id] = draft
+        self._emit_pending_state()
 
         if self.current_card is not None and self.current_card.id == card_id:
             self.current_card = draft
@@ -573,7 +594,7 @@ class ProjectsPage(QWidget):
             current = self.current_project.id
         self.project_combo.blockSignals(True)
         self.project_combo.clear()
-        projects = self.database.list_projects()
+        projects = self.database.list_project_choices()
         for project in projects:
             self.project_combo.addItem(project.name, project.id)
         if not projects:
@@ -581,6 +602,7 @@ class ProjectsPage(QWidget):
             self.current_project = None
             self.current_card = None
             self._pending_cards.clear()
+            self._emit_pending_state()
             self.table.setRowCount(0)
             self.clear_form()
             self._update_action_states()
@@ -609,8 +631,20 @@ class ProjectsPage(QWidget):
                     self.project_combo.setCurrentIndex(old_index)
                     self.project_combo.blockSignals(False)
                 return
-        self.current_project = self.database.get_project(project_id)
+        self.set_project_data(self.database.get_project(project_id))
+
+    def set_project_data(self, project: ProjectData | None) -> None:
+        """Carrega o rascunho compartilhado do projeto sem buscar outro snapshot no banco."""
+        self.current_project = project
         self.current_card = None
+        self._pending_cards.clear()
+        self._emit_pending_state()
+        if project is None:
+            self._card_row_by_id.clear()
+            self.table.setRowCount(0)
+            self.clear_form()
+            self._update_action_states()
+            return
         self._populate_section_combo()
         self._apply_structure_visibility()
         self.populate_cards()
@@ -629,6 +663,161 @@ class ProjectsPage(QWidget):
         self.section_combo.setCurrentIndex(index if index >= 0 else 0)
         self.section_combo.blockSignals(False)
 
+    def _summary_with_pending(self, summary: CardSummary) -> CardSummary:
+        draft = self._pending_cards.get(int(summary.id))
+        if draft is None:
+            return summary
+        return summary.model_copy(
+            update={
+                "section": draft.section,
+                "word": draft.word,
+                "translation": draft.translation,
+                "image_path": draft.image_path,
+                "word_audio_path": draft.word_audio_path,
+                "sentence_audio_path": draft.sentence_audio_path,
+                "structure_key": draft.structure_key,
+            }
+        )
+
+    def _write_card_row(
+        self,
+        row: int,
+        summary: CardSummary,
+        *,
+        checked: bool | None = None,
+    ) -> None:
+        if self.current_project is None:
+            return
+
+        check_item = self.table.item(row, 0)
+        if check_item is None:
+            check_item = QTableWidgetItem()
+            check_item.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsUserCheckable)
+            self.table.setItem(row, 0, check_item)
+        if checked is not None:
+            check_item.setCheckState(
+                Qt.CheckState.Checked if checked else Qt.CheckState.Unchecked
+            )
+        check_item.setData(Qt.ItemDataRole.UserRole, summary.id)
+
+        needs_image = self.current_project.card_uses_component(summary, "image")
+        needs_audio = self.current_project.card_uses_component(summary, "audio")
+        image_ok = self.image_service.has_valid_image(summary) if needs_image else False
+        audio_ok, _ = self.audio_service.audio_status(self.current_project, summary)
+
+        values = [
+            summary.section or "Principal",
+            summary.word,
+            summary.translation,
+            ("Sim" if image_ok else "Não") if needs_image else "—",
+            ("Sim" if audio_ok else "Não") if needs_audio else "—",
+        ]
+        for column, value in enumerate(values, start=1):
+            item = self.table.item(row, column)
+            if item is None:
+                item = QTableWidgetItem()
+                self.table.setItem(row, column, item)
+            item.setText(value)
+
+        self._card_row_by_id[int(summary.id)] = row
+
+    def _rebuild_card_row_map(self) -> None:
+        self._card_row_by_id.clear()
+        for row in range(self.table.rowCount()):
+            item = self.table.item(row, 0)
+            if item is None:
+                continue
+            card_id = item.data(Qt.ItemDataRole.UserRole)
+            if card_id is not None:
+                self._card_row_by_id[int(card_id)] = row
+
+    def _update_card_rows(self, card_ids: list[int]) -> None:
+        if self.current_project is None or self.current_project.id is None or not card_ids:
+            return
+        summaries = self.database.list_card_summaries_by_ids(
+            self.current_project.id,
+            card_ids,
+        )
+        self.table.blockSignals(True)
+        try:
+            for summary in summaries:
+                row = self._row_for_card_id(summary.id)
+                if row < 0:
+                    continue
+                check_item = self.table.item(row, 0)
+                was_checked = bool(
+                    check_item is not None
+                    and check_item.checkState() == Qt.CheckState.Checked
+                )
+                self._write_card_row(
+                    row,
+                    self._summary_with_pending(summary),
+                    checked=was_checked,
+                )
+        finally:
+            self.table.blockSignals(False)
+
+    def _refresh_all_card_rows(self) -> None:
+        if self.current_project is None or self.current_project.id is None:
+            return
+        summaries = self.database.list_card_summaries(self.current_project.id)
+        summary_by_id = {int(summary.id): summary for summary in summaries}
+        self.table.blockSignals(True)
+        try:
+            for card_id, row in list(self._card_row_by_id.items()):
+                summary = summary_by_id.get(card_id)
+                if summary is None:
+                    continue
+                check_item = self.table.item(row, 0)
+                was_checked = bool(
+                    check_item is not None
+                    and check_item.checkState() == Qt.CheckState.Checked
+                )
+                self._write_card_row(
+                    row,
+                    self._summary_with_pending(summary),
+                    checked=was_checked,
+                )
+        finally:
+            self.table.blockSignals(False)
+
+        # Operações em lote atualizam a tabela sem reconstruí-la. Recarregamos
+        # apenas o cartão atualmente aberto para que o editor reflita mídia nova
+        # mesmo quando a seleção da linha não muda e o Qt não emite outro sinal.
+        if self.current_card is not None and self.current_card.id is not None:
+            persisted = self.database.get_card(int(self.current_card.id))
+            if persisted is not None:
+                self.current_card = self._merge_media_into_draft(persisted)
+                self.fill_form(self.current_card)
+        self._update_action_states()
+
+    def _append_card_summary(self, summary: CardSummary, *, checked: bool = True) -> int:
+        row = self.table.rowCount()
+        self.table.blockSignals(True)
+        try:
+            self.table.insertRow(row)
+            self._write_card_row(row, self._summary_with_pending(summary), checked=checked)
+        finally:
+            self.table.blockSignals(False)
+        return row
+
+    def _remove_card_rows(self, card_ids: list[int]) -> None:
+        rows = sorted(
+            {
+                self._row_for_card_id(card_id)
+                for card_id in card_ids
+                if self._row_for_card_id(card_id) >= 0
+            },
+            reverse=True,
+        )
+        self.table.blockSignals(True)
+        try:
+            for row in rows:
+                self.table.removeRow(row)
+            self._rebuild_card_row_map()
+        finally:
+            self.table.blockSignals(False)
+
     def populate_cards(self, select_card_id: int | None = None) -> None:
         checked_ids = set(self.checked_card_ids())
         had_rows = self.table.rowCount() > 0
@@ -636,42 +825,29 @@ class ProjectsPage(QWidget):
             select_card_id = self.current_card.id
         self.table.blockSignals(True)
         self.table.setRowCount(0)
+        self._card_row_by_id.clear()
         self.current_card = None
         self.clear_form()
         if self.current_project is None or self.current_project.id is None:
             self.table.blockSignals(False)
             self._update_action_states()
             return
-        cards = self.database.list_cards(self.current_project.id)
-        display_cards = [self._pending_cards.get(int(card.id or 0), card) for card in cards]
-        self.table.setRowCount(len(display_cards))
-        for row, card in enumerate(display_cards):
-            check_item = QTableWidgetItem()
-            check_item.setFlags(Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsUserCheckable)
-            check_item.setCheckState(
-                Qt.CheckState.Checked if (not had_rows or card.id in checked_ids) else Qt.CheckState.Unchecked
-            )
-            check_item.setData(Qt.ItemDataRole.UserRole, card.id)
-            self.table.setItem(row, 0, check_item)
 
-            needs_image = self.current_project.card_uses_component(card, "image")
-            needs_audio = self.current_project.card_uses_component(card, "audio")
-            image_ok = self.image_service.has_valid_image(card) if needs_image else False
-            audio_ok, _ = self.audio_service.audio_status(self.current_project, card)
-            values = [
-                card.section or "Principal",
-                card.word,
-                card.translation,
-                ("Sim" if image_ok else "Não") if needs_image else "—",
-                ("Sim" if audio_ok else "Não") if needs_audio else "—",
-            ]
-            for column, value in enumerate(values, start=1):
-                self.table.setItem(row, column, QTableWidgetItem(value))
+        summaries = self.database.list_card_summaries(self.current_project.id)
+        self.table.setRowCount(len(summaries))
+        for row, summary in enumerate(summaries):
+            display_summary = self._summary_with_pending(summary)
+            self._write_card_row(
+                row,
+                display_summary,
+                checked=(not had_rows or summary.id in checked_ids),
+            )
         self.table.blockSignals(False)
+
         target_row = -1
         if select_card_id is not None:
             target_row = self._row_for_card_id(select_card_id)
-        if target_row < 0 and display_cards:
+        if target_row < 0 and summaries:
             target_row = 0
         if target_row >= 0:
             self.table.selectRow(target_row)
@@ -770,6 +946,7 @@ class ProjectsPage(QWidget):
         card_id = int(draft.id)
         self._pending_cards[card_id] = draft
         self.current_card = draft
+        self._emit_pending_state()
         row = self._row_for_card_id(card_id)
         if row >= 0:
             for column, value in ((1, draft.section or "Principal"), (2, draft.word), (3, draft.translation)):
@@ -779,13 +956,12 @@ class ProjectsPage(QWidget):
         self.status.show_message("Há alterações não salvas.")
         self._update_action_states()
 
-    def save_pending_changes(self) -> bool:
+    def pending_cards_for_save(self) -> list[FlashcardData] | None:
+        """Retorna uma cópia consistente dos cartões pendentes ou ``None`` se inválidos."""
         if self.current_card is not None and self.current_card.id is not None and not self._loading_form:
-            # textEdited/textChanged já mantêm o rascunho atualizado; esta captura cobre alterações via teclado/combobox.
-            if int(self.current_card.id) in self._pending_cards:
-                self._pending_cards[int(self.current_card.id)] = self.collect_card()
-        if not self._pending_cards:
-            return True
+            card_id = int(self.current_card.id)
+            if card_id in self._pending_cards:
+                self._pending_cards[card_id] = self.collect_card()
         drafts = list(self._pending_cards.values())
         invalid = [card.word or f"Cartão #{card.id}" for card in drafts if not card.word.strip()]
         if invalid:
@@ -794,30 +970,67 @@ class ProjectsPage(QWidget):
                 "Conteúdo principal obrigatório",
                 "Preencha o conteúdo principal antes de salvar todas as alterações.",
             )
-            return False
+            return None
+        return drafts
+
+    def accept_pending_changes_saved(self, *, message: bool = True) -> None:
         selected_id = self.current_card.id if self.current_card is not None else None
+        count = len(self._pending_cards)
+        self._pending_cards.clear()
+        self._emit_pending_state()
+        # Renomear/remover uma seção pode alterar cartões que não estavam em edição;
+        # atualizamos os resumos sem reconstruir a tabela inteira.
+        self._refresh_all_card_rows()
+        if selected_id is not None:
+            persisted = self.database.get_card(int(selected_id))
+            self.current_card = persisted
+            if persisted is not None:
+                self.fill_form(persisted)
+            else:
+                self.clear_form()
+        if message and count:
+            self.status.show_message(f"{count} cartão(ões) salvo(s).")
+        self._update_action_states()
+
+    def save_pending_changes(self) -> bool:
+        drafts = self.pending_cards_for_save()
+        if drafts is None:
+            return False
+        if not drafts:
+            return True
         try:
             self.database.update_cards(drafts)
         except Exception as exc:
             QMessageBox.critical(self, "Não foi possível salvar", str(exc))
             return False
-        count = len(drafts)
-        self._pending_cards.clear()
-        self.status.show_message(f"{count} cartão(ões) salvo(s).")
-        self.populate_cards(select_card_id=selected_id)
+        self.accept_pending_changes_saved()
         self.changed.emit()
         return True
 
     def save_card(self) -> None:
-        self.save_pending_changes()
+        if self._pending_change_resolver is not None:
+            self._pending_change_resolver("salvar o projeto")
+        else:
+            self.save_pending_changes()
 
     def discard_pending_changes(self) -> None:
         selected_id = self.current_card.id if self.current_card is not None else None
+        discarded_ids = list(self._pending_cards)
         self._pending_cards.clear()
-        if self.current_project is not None:
-            self.populate_cards(select_card_id=selected_id)
+        self._emit_pending_state()
+        self._update_card_rows(discarded_ids)
+        if selected_id is not None:
+            persisted = self.database.get_card(int(selected_id))
+            self.current_card = persisted
+            if persisted is not None:
+                self.fill_form(persisted)
+            else:
+                self.clear_form()
+        self._update_action_states()
 
     def resolve_pending_changes(self, action: str) -> bool:
+        if self._pending_change_resolver is not None:
+            return bool(self._pending_change_resolver(action))
         if not self._pending_cards:
             return True
         message = QMessageBox(self)
@@ -854,13 +1067,16 @@ class ProjectsPage(QWidget):
         if self.current_project is None or self.current_project.id is None:
             QMessageBox.warning(self, "Sem projeto", "Selecione um projeto.")
             return
-        existing_cards = self.database.list_cards(self.current_project.id)
+        existing_cards = self.database.list_card_summaries(self.current_project.id)
         structure_key = ProjectService.next_structure_key(self.current_project, existing_cards)
         ids = self.database.add_cards(
             self.current_project.id,
             [FlashcardData(word="Novo cartão", structure_key=structure_key)],
         )
-        self.populate_cards(select_card_id=ids[0])
+        summary = self.database.get_card_summary(ids[0])
+        if summary is not None:
+            row = self._append_card_summary(summary, checked=True)
+            self.table.selectRow(row)
         self.changed.emit()
 
     def delete_card(self) -> None:
@@ -878,11 +1094,25 @@ class ProjectsPage(QWidget):
             title = "Excluir cartões"
         if QMessageBox.question(self, title, question) != QMessageBox.StandardButton.Yes:
             return
+        affected_rows = [
+            self._row_for_card_id(card_id)
+            for card_id in card_ids
+            if self._row_for_card_id(card_id) >= 0
+        ]
+        next_row = min(affected_rows) if affected_rows else 0
+        image_paths = self.database.image_paths_for_cards(card_ids)
         self.database.delete_cards(card_ids)
+        self.image_service.cleanup_unreferenced_paths(image_paths)
         for card_id in card_ids:
             self._pending_cards.pop(card_id, None)
+        self._emit_pending_state()
         self.current_card = None
-        self.populate_cards()
+        self._remove_card_rows(card_ids)
+        if self.table.rowCount() > 0:
+            self.table.selectRow(min(next_row, self.table.rowCount() - 1))
+        else:
+            self.clear_form()
+            self._update_action_states()
         self.status.show_message(f"{len(card_ids)} cartão(ões) excluído(s).")
         self.changed.emit()
 
@@ -890,7 +1120,7 @@ class ProjectsPage(QWidget):
         if self.current_project is None or self.current_project.id is None:
             QMessageBox.warning(self, "Sem projeto", "Selecione um projeto para excluir.")
             return
-        if self._pending_cards and not self.resolve_pending_changes("excluir o projeto"):
+        if not self._resolve_before_action("excluir o projeto"):
             return
         if QMessageBox.question(
             self,
@@ -899,8 +1129,12 @@ class ProjectsPage(QWidget):
         ) != QMessageBox.StandardButton.Yes:
             return
         project_id = self.current_project.id
+        image_paths = self.database.image_paths_for_project(project_id)
         self.database.delete_project(project_id)
+        self.image_service.cleanup_unreferenced_paths(image_paths)
         self._pending_cards.clear()
+        self._emit_pending_state()
+        self._card_row_by_id.clear()
         self.current_card = None
         self.current_project = None
         self.refresh()
@@ -987,7 +1221,7 @@ class ProjectsPage(QWidget):
             if self.current_card is not None and self.current_card.id == target_card_id:
                 self._image_applied(result, message="Imagem importada e associada ao cartão.")
                 return
-            self._set_media_status(target_card_id, 4, "Sim")
+            self._update_card_rows([target_card_id])
             self.status.show_message("Imagem importada e associada ao cartão.")
             self.changed.emit()
 
@@ -1028,17 +1262,14 @@ class ProjectsPage(QWidget):
         self.current_card = self._merge_media_into_draft(card)
         card_id = self.current_card.id
         self.status.show_message(message)
-        self.populate_cards(select_card_id=card_id)
+        if card_id is not None:
+            self._update_card_rows([int(card_id)])
         self.changed.emit()
 
     def _row_for_card_id(self, card_id: int | None) -> int:
         if card_id is None:
             return -1
-        for row in range(self.table.rowCount()):
-            item = self.table.item(row, 0)
-            if item is not None and item.data(Qt.ItemDataRole.UserRole) == card_id:
-                return row
-        return -1
+        return self._card_row_by_id.get(int(card_id), -1)
 
     def _set_media_status(self, card_id: int | None, column: int, text: str) -> None:
         row = self._row_for_card_id(card_id)
@@ -1085,10 +1316,10 @@ class ProjectsPage(QWidget):
         self.task_center.update_task(task_key, percent, detail)
 
     def generate_all_images(self) -> None:
+        if not self._resolve_before_action("buscar imagens em lote"):
+            return
         project = self.current_project
         if project is None or project.id is None or not project.uses_images:
-            return
-        if self._pending_cards and not self.resolve_pending_changes("buscar imagens em lote"):
             return
         cards = [
             card for card in self.database.list_cards(project.id)
@@ -1156,7 +1387,7 @@ class ProjectsPage(QWidget):
             message = f"{completed} imagens adicionadas · {existing} já existentes"
             self.task_center.finish(task_key, message)
         if self.current_project is not None and self.current_project.id == project_id:
-            self.populate_cards()
+            self._refresh_all_card_rows()
         self.changed.emit()
 
     def generate_card_audio(self) -> None:
@@ -1166,7 +1397,7 @@ class ProjectsPage(QWidget):
             or not self.current_project.card_uses_component(self.current_card, "audio")
         ):
             return
-        if self._pending_cards and not self.resolve_pending_changes("gerar áudio"):
+        if not self._resolve_before_action("gerar áudio"):
             return
         persisted = self._persisted_current_card()
         if persisted is None:
@@ -1225,10 +1456,10 @@ class ProjectsPage(QWidget):
         self._audio_generated(updated, success_message="Áudio removido do cartão.")
 
     def import_audio_batch(self) -> None:
+        if not self._resolve_before_action("importar áudios em lote"):
+            return
         project = self.current_project
         if project is None or project.id is None or not project.uses_audio:
-            return
-        if self._pending_cards and not self.resolve_pending_changes("importar áudios em lote"):
             return
         selected_id = self.current_card.id if self.current_card is not None else None
         cards = self.database.list_cards(project.id)
@@ -1242,7 +1473,11 @@ class ProjectsPage(QWidget):
                 f"{summary.skipped_existing} existente(s) ignorado(s).",
                 error=bool(summary.errors),
             )
-        self.populate_cards(select_card_id=selected_id)
+        self._refresh_all_card_rows()
+        if selected_id is not None:
+            row = self._row_for_card_id(selected_id)
+            if row >= 0:
+                self.table.selectRow(row)
         self.changed.emit()
 
     def _audio_generated(self, card: object, success_message: str = "Áudio gerado, arquivo validado e associado ao cartão.") -> None:
@@ -1257,14 +1492,15 @@ class ProjectsPage(QWidget):
             self.status.show_message(success_message)
         else:
             self.status.show_message("A geração terminou, mas ainda faltam: " + ", ".join(missing), error=True)
-        self.populate_cards(select_card_id=card_id)
+        if card_id is not None:
+            self._update_card_rows([int(card_id)])
         self.changed.emit()
 
     def generate_all_audio(self) -> None:
+        if not self._resolve_before_action("gerar áudios em lote"):
+            return
         project = self.current_project
         if project is None or project.id is None or not project.uses_audio:
-            return
-        if self._pending_cards and not self.resolve_pending_changes("gerar áudios em lote"):
             return
         cards = [
             card for card in self.database.list_cards(project.id)
@@ -1337,7 +1573,7 @@ class ProjectsPage(QWidget):
             message = f"{completed} cartões receberam áudio · {existing} já completos"
             self.task_center.finish(task_key, message)
         if self.current_project is not None and self.current_project.id == project_id:
-            self.populate_cards()
+            self._refresh_all_card_rows()
         self.changed.emit()
 
     def _set_export_busy(self, busy: bool) -> None:
@@ -1432,7 +1668,7 @@ class ProjectsPage(QWidget):
     def export_selected(self) -> None:
         if self.current_project is None or self.current_project.id is None:
             return
-        if not self.resolve_pending_changes("exportar os cartões selecionados"):
+        if not self._resolve_before_action("exportar os cartões selecionados"):
             return
         cards = self.database.list_cards_by_ids(self.current_project.id, self.checked_card_ids())
         self._export_cards(cards, "Exportar cartões selecionados")
@@ -1441,7 +1677,7 @@ class ProjectsPage(QWidget):
         if self.current_project is None or self.current_project.id is None:
             QMessageBox.warning(self, "Sem projeto", "Selecione um projeto para exportar.")
             return
-        if not self.resolve_pending_changes("exportar o projeto"):
+        if not self._resolve_before_action("exportar o projeto"):
             return
         cards = self.database.list_cards(self.current_project.id)
         self._export_cards(cards, "Exportar todos os cartões")
